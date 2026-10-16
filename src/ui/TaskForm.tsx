@@ -27,10 +27,14 @@ function nextSlot(day: Date, others: Task[]): { start: string; end: string } {
 }
 
 export function TaskForm({ day, others, initial, onSubmit, onCancel }: Props) {
-  const [slot] = useState(() => initial ?? nextSlot(day, others))
+  // Until a time is typed, the new-task slot follows `others`, which may still be loading.
+  // Typing either time pins both.
+  const [typed, setTyped] = useState(initial ? { start: toInputValue(initial.start), end: toInputValue(initial.end) } : null)
+  const slot = nextSlot(day, others)
+  const { start, end } = typed ?? { start: toInputValue(slot.start), end: toInputValue(slot.end) }
+  const setStart = (value: string) => setTyped({ start: value, end })
+  const setEnd = (value: string) => setTyped({ start, end: value })
   const [title, setTitle] = useState(initial?.title ?? '')
-  const [start, setStart] = useState(toInputValue(slot.start))
-  const [end, setEnd] = useState(toInputValue(slot.end))
   const [category, setCategory] = useState<Category>(initial?.category ?? 'office')
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)

@@ -124,6 +124,14 @@ describe('TodayView', () => {
     expect(screen.getByText(/Couldn.t load/)).toBeInTheDocument()
   })
 
+  test('the new-task form pre-fills after tasks that load after it mounts', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await findCard('Standup')
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:15')
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
+  })
+
   test("Tomorrow shows and saves tomorrow's plan, separate from today", async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)

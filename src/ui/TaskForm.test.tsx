@@ -13,6 +13,20 @@ function fill(title: string, start: string, end: string) {
 }
 
 describe('TaskForm', () => {
+  test('the pre-filled slot follows tasks that arrive later, until you change a time', () => {
+    const standup = makeTask({ title: 'Standup', start: ist('2026-10-17', '09:00'), end: ist('2026-10-17', '09:15') })
+    const gym = makeTask({ title: 'Gym', start: ist('2026-10-17', '18:00'), end: ist('2026-10-17', '19:00') })
+    const onSubmit = vi.fn(async () => true)
+    const { rerender } = render(<TaskForm day={DAY} others={[]} onSubmit={onSubmit} />)
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:00')
+    rerender(<TaskForm day={DAY} others={[standup]} onSubmit={onSubmit} />)
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:15')
+    fireEvent.change(screen.getByLabelText('Start'), { target: { value: '2026-10-17T11:00' } })
+    rerender(<TaskForm day={DAY} others={[standup, gym]} onSubmit={onSubmit} />)
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T11:00')
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
+  })
+
   test('end before start shows an error and does not submit', async () => {
     const onSubmit = vi.fn(async () => true)
     render(<TaskForm day={DAY} others={[]} onSubmit={onSubmit} />)
