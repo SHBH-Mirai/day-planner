@@ -1,0 +1,27 @@
+import { formatLocalTime } from '../domain/time'
+import type { Nudge } from '../scheduler/dueNudges'
+
+export type PermissionState = NotificationPermission | 'unsupported'
+
+export function nudgeText(n: Nudge): string {
+  return n.kind === 'start'
+    ? `▶ START: ${n.task.title} until ${formatLocalTime(n.task.end)}`
+    : `⏹ STOP: ${n.task.title}. Done?`
+}
+
+export function notificationPermission(): PermissionState {
+  return typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+}
+
+/** Must be called from a click handler: browsers ignore requests without a user gesture. */
+export async function requestNotificationPermission(): Promise<PermissionState> {
+  if (typeof Notification === 'undefined') return 'unsupported'
+  return Notification.requestPermission()
+}
+
+/** Pops an OS notification. Returns false when it didn't (no permission, no API, or missed). */
+export function showOsNotification(n: Nudge): boolean {
+  if (n.missed || typeof Notification === 'undefined' || Notification.permission !== 'granted') return false
+  new Notification(nudgeText(n), { tag: n.key })
+  return true
+}
