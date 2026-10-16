@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import { InMemoryTaskRepository } from '../storage/InMemoryTaskRepository'
@@ -93,5 +93,61 @@ describe('TodayView', () => {
     await findCard('Standup')
     await userEvent.click(screen.getByRole('button', { name: 'Summary' }))
     expect(screen.getByRole('table', { name: 'Tasks' })).toBeInTheDocument()
+  })
+
+  test('a failed save stays visible and flagged even after a later save succeeds', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'], ['Gym', '18:00', '19:00'])
+    const realUpdate = repo.update.bind(repo)
+    vi.spyOn(repo, 'update').mockRejectedValueOnce(new Error('offline')).mockImplementation(realUpdate)
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    expect(await screen.findByText(/Couldn.t save/)).toBeInTheDocument()
+    expect(card('Standup')).toHaveAttribute('data-status', 'done')
+    await userEvent.click(within(card('Gym')).getByRole('button', { name: 'Skip' }))
+    await waitFor(() => expect(card('Gym')).toHaveAttribute('data-status', 'skipped'))
+    expect(screen.getByText(/Couldn.t save/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    await waitFor(() => expect(screen.queryByText(/Couldn.t save/)).not.toBeInTheDocument())
+    const saved = await repo.listForDay(DAY)
+    expect(saved.find((t) => t.title === 'Standup')?.status).toBe('done')
+  })
+
+  test('a load failure is not hidden by a later successful save', async () => {
+    const repo = new InMemoryTaskRepository()
+    vi.spyOn(repo, 'listForDay').mockRejectedValueOnce(new Error('offline'))
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    expect(await screen.findByText(/Couldn.t load/)).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Title'), 'Proposal')
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await findCard('Proposal')
+    expect(screen.getByText(/Couldn.t load/)).toBeInTheDocument()
+  })
+
+  test("Tomorrow shows and saves tomorrow's plan, separate from today", async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await findCard('Standup')
+    await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }))
+    expect(await screen.findByRole('heading', { name: 'Tomorrow' })).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Standup' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-18T09:00')
+    await userEvent.type(screen.getByLabelText('Title'), 'Gym')
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(await findCard('Gym')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Today' }))
+    expect(await findCard('Standup')).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Gym' })).not.toBeInTheDocument()
+    expect(await repo.listForDay(new Date('2026-10-18T12:00:00+05:30'))).toHaveLength(1)
+  })
+
+  test('a task dated another day is not listed under today, and says where it went', async () => {
+    const repo = new InMemoryTaskRepository()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.type(await screen.findByLabelText('Title'), 'Edit video')
+    fireEvent.change(screen.getByLabelText('Start'), { target: { value: '2026-10-18T10:00' } })
+    fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-18T11:00' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(await screen.findByText('Saved for Sunday 18 October')).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Edit video' })).not.toBeInTheDocument()
   })
 })

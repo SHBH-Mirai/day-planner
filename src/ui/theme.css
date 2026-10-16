@@ -94,3 +94,9 @@ input, select {
 .summary table { width: 100%; border-collapse: collapse; margin-bottom: 16px; background: var(--surface); }
 .summary th, .summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 .summary td { font-variant-numeric: tabular-nums; }
+.header-actions { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.day-switch { display: inline-flex; }
+.day-switch button { border-radius: 0; }
+.day-switch button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.day-switch button:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+.day-switch button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }

@@ -5,6 +5,7 @@ import { authConfigFromEnv, createMsal, getAccessToken, type AppEnv, type AuthCo
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
 import { TodayView } from './ui/TodayView'
+import { useToday } from './ui/useToday'
 
 interface Props {
   env?: AppEnv
@@ -12,8 +13,7 @@ interface Props {
 }
 
 function App({ env = import.meta.env, createClient = createMsal }: Props) {
-  // Fixed at page load. A tab left open past midnight keeps showing yesterday until refresh.
-  const [day] = useState(() => new Date())
+  const day = useToday()
   if (env.VITE_STORAGE !== 'sharepoint') return <MemoryApp day={day} />
   return <SharePointApp day={day} env={env} createClient={createClient} />
 }

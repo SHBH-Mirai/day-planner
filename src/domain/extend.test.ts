@@ -37,4 +37,12 @@ describe('extendTask', () => {
     extendTask(task, 15, [task, next])
     expect(task).toEqual(before)
   })
+
+  test('a late +15 counts from now, not from the old end', () => {
+    const now = new Date(ist(D, '10:40'))
+    const { updated, affected } = extendTask(task, 15, [task, next, later], now)
+    expect(updated.end).toBe(ist(D, '10:55'))
+    expect(updated.originalEnd).toBe(ist(D, '10:00'))
+    expect(affected).toEqual([next, later])
+  })
 })
