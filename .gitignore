@@ -25,3 +25,4 @@ dist-ssr
 
 # Plan execution scratch
 .superpowers/
+teams-app/*.zip

@@ -56,3 +56,17 @@ describe('App', () => {
     expect(client.loginRedirect).toHaveBeenCalledOnce()
   })
 })
+
+describe('App inside Teams', () => {
+  test('creates the Microsoft client for the Teams host', async () => {
+    const client = {
+      getActiveAccount: () => null,
+      getAllAccounts: () => [],
+      loginRedirect: vi.fn(async () => {}),
+    } as unknown as IPublicClientApplication
+    const createClient = vi.fn(async () => client)
+    render(<App env={{ VITE_STORAGE: 'sharepoint' }} createClient={createClient} detect={async () => 'teams'} />)
+    await screen.findByRole('button', { name: 'Sign in with Microsoft' })
+    expect(createClient).toHaveBeenCalledWith(expect.anything(), 'teams')
+  })
+})

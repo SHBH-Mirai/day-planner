@@ -9,10 +9,13 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "teams:icons": "node scripts/make-teams-icons.mjs",
+    "teams:zip": "powershell -NoProfile -Command \"Compress-Archive -Force -Path teams-app/manifest.json,teams-app/color.png,teams-app/outline.png -DestinationPath teams-app/day-planner.zip\""
   },
   "dependencies": {
     "@azure/msal-browser": "^5.25.1",
+    "@microsoft/teams-js": "^2.58.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

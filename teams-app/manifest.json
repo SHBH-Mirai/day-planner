@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.22",
+  "version": "1.0.0",
+  "id": "47511cc7-b44e-4121-a222-23960d9688e5",
+  "developer": {
+    "name": "Shubh",
+    "websiteUrl": "https://github.com/SHBH-Mirai/day-planner",
+    "privacyUrl": "https://github.com/SHBH-Mirai/day-planner",
+    "termsOfUseUrl": "https://github.com/SHBH-Mirai/day-planner"
+  },
+  "name": { "short": "Day Planner", "full": "Day Planner" },
+  "description": {
+    "short": "Plan your day and get start/end nudges.",
+    "full": "Plan today and tomorrow across office, freelance and YouTube work. Tasks are saved in your SharePoint list, and Teams cards nudge you at each task's start and end."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#2F6FDB",
+  "staticTabs": [
+    {
+      "entityId": "today",
+      "name": "Today",
+      "contentUrl": "https://shbh-mirai.github.io/day-planner/",
+      "websiteUrl": "https://shbh-mirai.github.io/day-planner/",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["shbh-mirai.github.io"],
+  "webApplicationInfo": { "id": "ce947e4a-b18a-4a3c-bf77-eb5811b6a3c8" }
+}
