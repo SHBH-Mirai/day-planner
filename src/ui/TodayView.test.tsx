@@ -88,6 +88,30 @@ describe('TodayView', () => {
     expect(await findCard('Team sync')).toBeInTheDocument()
   })
 
+  test('an edit that keeps the times keeps originalEnd (an extend stays an overrun)', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    const [standup] = await repo.listForDay(DAY)
+    await repo.update({ ...standup, end: ist(D, '09:30') }) // as if +15 was pressed
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
+    await userEvent.type(screen.getByLabelText('Title'), ' notes')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await findCard('Standup notes')
+    const [saved] = await repo.listForDay(DAY)
+    expect(saved).toMatchObject({ end: ist(D, '09:30'), originalEnd: ist(D, '09:15') })
+  })
+
+  test('an edit that moves the times re-plans originalEnd', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-17T09:45' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument())
+    const [saved] = await repo.listForDay(DAY)
+    expect(saved).toMatchObject({ end: ist(D, '09:45'), originalEnd: ist(D, '09:45') })
+  })
+
   test('Summary button shows the summary', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)

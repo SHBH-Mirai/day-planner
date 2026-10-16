@@ -172,10 +172,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
             }
             return ok
           }
-          // Re-planning resets originalEnd; only +15 keeps it.
           // Start from the latest copy: a nudge may have changed the task while the form was open.
           const current = shown.tasks.find((t) => t.id === editing.id) ?? editing
-          const ok = await shown.save({ ...current, ...draft, originalEnd: draft.end })
+          // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
+          const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
+          const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
           if (ok) setEditing(null)
           return ok
         }}
