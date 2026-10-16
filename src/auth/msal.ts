@@ -18,8 +18,12 @@ export interface AuthConfig {
   scopes: string[]
 }
 
+export type AppEnv = Partial<
+  Pick<ImportMetaEnv, 'VITE_STORAGE' | 'VITE_AAD_CLIENT_ID' | 'VITE_AAD_TENANT_ID' | 'VITE_SP_SITE_ID' | 'VITE_SP_LIST_ID' | 'VITE_GRAPH_SCOPE'>
+>
+
 /** Reads auth settings from VITE_* env vars. The scope can be switched to the fallback without code changes. */
-export function authConfigFromEnv(env: ImportMetaEnv = import.meta.env): AuthConfig {
+export function authConfigFromEnv(env: AppEnv = import.meta.env): AuthConfig {
   return {
     clientId: env.VITE_AAD_CLIENT_ID ?? '',
     tenantId: env.VITE_AAD_TENANT_ID ?? '',
