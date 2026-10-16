@@ -21,3 +21,11 @@ export async function detectHost(init: () => Promise<unknown> = () => app.initia
     clearTimeout(timer)
   }
 }
+
+/** Teams always hosts tabs in a frame, so a top-level page is a browser at once (no 1.5 s wait). */
+export function detectHostIfFramed(
+  framed: () => boolean = () => window.self !== window.top,
+  detect: () => Promise<Host> = () => detectHost(),
+): Promise<Host> {
+  return framed() ? detect() : Promise.resolve('browser')
+}

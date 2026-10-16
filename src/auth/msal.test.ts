@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import { InteractionRequiredAuthError, type AccountInfo } from '@azure/msal-browser'
-import { getAccessToken, type TokenClient } from './msal'
+import { getAccessToken, signInAgain, type TokenClient } from './msal'
 
 const SCOPES = ['https://graph.microsoft.com/Sites.Selected']
 const account = { homeAccountId: 'h', username: 'shubh@example.com' } as AccountInfo
@@ -47,6 +47,15 @@ describe('getAccessToken', () => {
   test('with no signed-in account it rejects with auth and does not redirect', async () => {
     const client = fakeClient({ getActiveAccount: vi.fn(() => null), getAllAccounts: vi.fn(() => []) })
     await expect(getAccessToken(client, SCOPES)).rejects.toMatchObject({ kind: 'auth' })
+    expect(client.acquireTokenRedirect).not.toHaveBeenCalled()
+  })
+})
+
+describe('signInAgain inside Teams', () => {
+  test('uses a popup, never a redirect', async () => {
+    const client = fakeClient({ acquireTokenPopup: vi.fn(async () => ({ accessToken: 't' })) } as unknown as Partial<TokenClient>)
+    await signInAgain(client, SCOPES, 'teams')
+    expect(client.acquireTokenPopup).toHaveBeenCalledWith({ scopes: SCOPES, account })
     expect(client.acquireTokenRedirect).not.toHaveBeenCalled()
   })
 })

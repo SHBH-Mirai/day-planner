@@ -11,7 +11,7 @@ import type { Host } from './host'
 /** The part of the MSAL client that getAccessToken uses (keeps tests small). */
 export type TokenClient = Pick<
   IPublicClientApplication,
-  'getActiveAccount' | 'getAllAccounts' | 'acquireTokenSilent' | 'acquireTokenRedirect'
+  'getActiveAccount' | 'getAllAccounts' | 'acquireTokenSilent' | 'acquireTokenRedirect' | 'acquireTokenPopup'
 >
 
 export interface AuthConfig {
@@ -101,8 +101,16 @@ export async function getAccessToken(client: TokenClient, scopes: string[]): Pro
   }
 }
 
-/** Sends you to Microsoft to sign in again; you come back to the app afterwards. */
-export function signInAgain(client: TokenClient, scopes: string[]): Promise<void> {
+/**
+ * Signs you in again. Browser: sends you to Microsoft and back.
+ * Teams: a popup, because a redirect would break inside the Teams frame.
+ */
+export async function signInAgain(client: TokenClient, scopes: string[], host: Host = 'browser'): Promise<void> {
   const account = client.getActiveAccount() ?? client.getAllAccounts()[0]
-  return client.acquireTokenRedirect(account ? { scopes, account } : { scopes })
+  const request = account ? { scopes, account } : { scopes }
+  if (host === 'teams') {
+    await client.acquireTokenPopup(request)
+    return
+  }
+  return client.acquireTokenRedirect(request)
 }

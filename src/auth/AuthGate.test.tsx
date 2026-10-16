@@ -32,3 +32,22 @@ describe('AuthGate', () => {
     expect(screen.getByText('secret planner')).toBeInTheDocument()
   })
 })
+
+describe('AuthGate with a custom sign-in (Teams popup)', () => {
+  test('uses it and shows the app once it resolves', async () => {
+    let account: AccountInfo | null = null
+    const c: SignInClient = {
+      getActiveAccount: vi.fn(() => account),
+      getAllAccounts: vi.fn(() => (account ? [account] : [])),
+      loginRedirect: vi.fn(async () => {}),
+    }
+    const signIn = vi.fn(async () => {
+      account = { username: 'shubh@example.com' } as AccountInfo
+    })
+    render(<AuthGate client={c} scopes={SCOPES} signIn={signIn}>secret planner</AuthGate>)
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in with Microsoft' }))
+    expect(signIn).toHaveBeenCalledOnce()
+    expect(c.loginRedirect).not.toHaveBeenCalled()
+    expect(await screen.findByText('secret planner')).toBeInTheDocument()
+  })
+})

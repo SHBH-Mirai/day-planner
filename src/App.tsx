@@ -10,6 +10,7 @@ import {
   type AppEnv,
   type AuthConfig,
 } from './auth/msal'
+import { detectHostIfFramed, type Host } from './auth/host'
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
 import { TodayView } from './ui/TodayView'
@@ -17,13 +18,15 @@ import { useToday } from './ui/useToday'
 
 interface Props {
   env?: AppEnv
-  createClient?: (config: AuthConfig) => Promise<IPublicClientApplication>
+  createClient?: (config: AuthConfig, host?: Host) => Promise<IPublicClientApplication>
+  /** Where are we running? Default: Teams if framed and Teams answers, else browser. */
+  detect?: () => Promise<Host>
 }
 
-function App({ env = import.meta.env, createClient = createMsal }: Props) {
+function App({ env = import.meta.env, createClient = createMsal, detect = detectHostIfFramed }: Props) {
   const day = useToday()
   if (env.VITE_STORAGE !== 'sharepoint') return <MemoryApp day={day} />
-  return <SharePointApp day={day} env={env} createClient={createClient} />
+  return <SharePointApp day={day} env={env} createClient={createClient} detect={detect} />
 }
 
 function MemoryApp({ day }: { day: Date }) {
@@ -39,14 +42,31 @@ function MemoryApp({ day }: { day: Date }) {
   )
 }
 
-function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; createClient: NonNullable<Props['createClient']> }) {
+function SharePointApp({
+  day,
+  env,
+  createClient,
+  detect,
+}: {
+  day: Date
+  env: AppEnv
+  createClient: NonNullable<Props['createClient']>
+  detect: NonNullable<Props['detect']>
+}) {
   const config = useMemo(() => authConfigFromEnv(env), [env])
   const [client, setClient] = useState<IPublicClientApplication | null>(null)
   const [failed, setFailed] = useState<false | 'config' | SignInRedirectError>(false)
 
+  const [host, setHost] = useState<Host>('browser')
+
   useEffect(() => {
-    createClient(config).then(setClient, (e: unknown) => setFailed(e instanceof SignInRedirectError ? e : 'config'))
-  }, [createClient, config])
+    detect()
+      .then((h) => {
+        setHost(h)
+        return createClient(config, h)
+      })
+      .then(setClient, (e: unknown) => setFailed(e instanceof SignInRedirectError ? e : 'config'))
+  }, [createClient, detect, config])
 
   const repo = useMemo(
     () =>
@@ -83,8 +103,16 @@ function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; cre
   if (!client || !repo) return <main className="today muted">Loading…</main>
 
   return (
-    <AuthGate client={client} scopes={config.scopes}>
-      <TodayView repo={repo} day={day} onSignInAgain={() => void signInAgain(client, config.scopes)} />
+    <AuthGate
+      client={client}
+      scopes={config.scopes}
+      signIn={
+        host === 'teams'
+          ? () => client.loginPopup({ scopes: config.scopes }).then((r) => client.setActiveAccount(r.account))
+          : undefined
+      }
+    >
+      <TodayView repo={repo} day={day} onSignInAgain={() => void signInAgain(client, config.scopes, host)} />
     </AuthGate>
   )
 }
