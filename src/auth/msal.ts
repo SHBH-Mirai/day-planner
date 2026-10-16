@@ -1,9 +1,12 @@
 import {
+  createNestablePublicClientApplication,
   createStandardPublicClientApplication,
   InteractionRequiredAuthError,
+  type AccountInfo,
   type IPublicClientApplication,
 } from '@azure/msal-browser'
 import { RepositoryError } from '../storage/TaskRepository'
+import type { Host } from './host'
 
 /** The part of the MSAL client that getAccessToken uses (keeps tests small). */
 export type TokenClient = Pick<
@@ -43,8 +46,28 @@ export class SignInRedirectError extends Error {
   }
 }
 
-/** Creates and initialises MSAL, and finishes a sign-in redirect if we're coming back from one. */
-export async function createMsal(config: AuthConfig): Promise<IPublicClientApplication> {
+/**
+ * Creates and initialises MSAL.
+ * Browser: finishes a sign-in redirect if we're coming back from one.
+ * Teams: uses nested app auth (MSAL v5's nestable factory switches it on by itself)
+ * and tries a silent sign-in through Teams; if that fails the sign-in button shows.
+ */
+export async function createMsal(config: AuthConfig, host: Host = 'browser'): Promise<IPublicClientApplication> {
+  if (host === 'teams') {
+    const client = await createNestablePublicClientApplication({
+      auth: { clientId: config.clientId, authority: `https://login.microsoftonline.com/${config.tenantId}` },
+    })
+    let account: AccountInfo | null = client.getActiveAccount() ?? client.getAllAccounts()[0] ?? null
+    if (!account) {
+      account = await client.ssoSilent({ scopes: config.scopes }).then(
+        (r) => r.account,
+        () => null,
+      )
+    }
+    client.setActiveAccount(account)
+    return client
+  }
+
   const client = await createStandardPublicClientApplication({
     auth: {
       clientId: config.clientId,
