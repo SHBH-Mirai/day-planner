@@ -1,7 +1,9 @@
 import { describe, expect, test, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { IPublicClientApplication } from '@azure/msal-browser'
 import App from './App'
+import { SignInRedirectError } from './auth/msal'
 
 describe('App', () => {
   test('memory storage opens straight to Today, with no sign-in', async () => {
@@ -36,5 +38,21 @@ describe('App', () => {
       />,
     )
     expect(await screen.findByText(/Couldn.t start Microsoft sign-in/)).toBeInTheDocument()
+  })
+
+  test('a sign-in that did not finish (e.g. consent cancelled) offers to try again', async () => {
+    const client = { loginRedirect: vi.fn(async () => {}) } as unknown as IPublicClientApplication
+    render(
+      <App
+        env={{ VITE_STORAGE: 'sharepoint' }}
+        createClient={async () => {
+          throw new SignInRedirectError(client, new Error('user_cancelled'))
+        }}
+      />,
+    )
+    expect(await screen.findByText(/Sign-in didn.t finish/)).toBeInTheDocument()
+    expect(screen.queryByText(/VITE_AAD/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in with Microsoft' }))
+    expect(client.loginRedirect).toHaveBeenCalledOnce()
   })
 })

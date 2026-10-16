@@ -32,6 +32,17 @@ export function authConfigFromEnv(env: AppEnv = import.meta.env): AuthConfig {
   }
 }
 
+/** Coming back from Microsoft sign-in failed (e.g. consent cancelled). MSAL itself started fine, so you can try again. */
+export class SignInRedirectError extends Error {
+  readonly client: IPublicClientApplication
+
+  constructor(client: IPublicClientApplication, cause: unknown) {
+    super("Sign-in didn't finish", { cause })
+    this.client = client
+    this.name = 'SignInRedirectError'
+  }
+}
+
 /** Creates and initialises MSAL, and finishes a sign-in redirect if we're coming back from one. */
 export async function createMsal(config: AuthConfig): Promise<IPublicClientApplication> {
   const client = await createStandardPublicClientApplication({
@@ -42,7 +53,9 @@ export async function createMsal(config: AuthConfig): Promise<IPublicClientAppli
     },
     cache: { cacheLocation: 'localStorage' },
   })
-  const result = await client.handleRedirectPromise()
+  const result = await client.handleRedirectPromise().catch((e: unknown) => {
+    throw new SignInRedirectError(client, e)
+  })
   const account = result?.account ?? client.getActiveAccount() ?? client.getAllAccounts()[0] ?? null
   client.setActiveAccount(account)
   return client
