@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { extendTask } from '../domain/extend'
 import type { Task } from '../domain/task'
 import { formatLocalTime } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
+import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
+import { startScheduler } from '../scheduler/startScheduler'
+import type { Nudge } from '../scheduler/dueNudges'
 import type { TaskRepository } from '../storage/TaskRepository'
+import { NudgeBanner } from './NudgeBanner'
 import { SummaryView } from './SummaryView'
 import { TaskCard } from './TaskCard'
 import { TaskForm } from './TaskForm'
@@ -21,7 +26,29 @@ export function TodayView({ repo, day, now = () => new Date() }: Props) {
   const [editing, setEditing] = useState<Task | null>(null)
   const [showSummary, setShowSummary] = useState(false)
 
+  const [nudges, setNudges] = useState<Nudge[]>([])
+  const [permission, setPermission] = useState(notificationPermission)
+  // The scheduler reads tasks through a ref, so it always sees the latest list.
+  const tasksRef = useRef(tasks)
+  useLayoutEffect(() => {
+    tasksRef.current = tasks
+  }, [tasks])
+
+  useEffect(
+    () =>
+      startScheduler({
+        getTasks: () => tasksRef.current,
+        onNudge: (n) => {
+          showOsNotification(n)
+          setNudges((prev) => [...prev, n])
+        },
+      }),
+    [],
+  )
+
   const stamp = () => now().toISOString()
+  const latest = (id: string) => tasks.find((t) => t.id === id)
+  const clearNudgesFor = (id: string) => setNudges((prev) => prev.filter((n) => n.task.id !== id))
   const others = editing ? tasks.filter((t) => t.id !== editing.id) : tasks
 
   return (
@@ -41,6 +68,35 @@ export function TodayView({ repo, day, now = () => new Date() }: Props) {
           {error} <button onClick={retry}>Retry</button>
         </div>
       )}
+
+      <NudgeBanner
+        nudges={nudges}
+        permission={permission}
+        onStarted={(id) => {
+          const t = latest(id)
+          if (t) void save({ ...t, actualStart: stamp() })
+          clearNudgesFor(id)
+        }}
+        onDone={(id) => {
+          const t = latest(id)
+          if (t) void save({ ...t, status: 'done', actualEnd: stamp() })
+          clearNudgesFor(id)
+        }}
+        onSkip={(id) => {
+          const t = latest(id)
+          if (t) void save({ ...t, status: 'skipped' })
+          clearNudgesFor(id)
+        }}
+        onExtend={(id) => {
+          const t = latest(id)
+          if (!t) return { newEnd: '', affected: [] }
+          const { updated, affected } = extendTask(t, 15, tasks)
+          void save(updated)
+          return { newEnd: updated.end, affected }
+        }}
+        onDismiss={(key) => setNudges((prev) => prev.filter((n) => n.key !== key))}
+        onEnableNotifications={async () => setPermission(await requestNotificationPermission())}
+      />
 
       {findNoBreakRuns(tasks).map((run) => (
         <div key={run.fromUtc} className="banner banner-warning">
