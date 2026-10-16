@@ -66,7 +66,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   const todayTask = (id: string) => today.tasks.find((t) => t.id === id)
   const clearNudgesFor = (id: string) => setNudges((prev) => prev.filter((n) => n.task.id !== id))
   // A nudge only stays while its task is still planned: Done, Skip or Delete anywhere clears it.
-  const liveNudges = nudges.filter((n) => todayTask(n.task.id)?.status === 'planned')
+  // It shows the latest copy of its task, so an edit or +15 updates the text.
+  const liveNudges = nudges.flatMap((n) => {
+    const task = todayTask(n.task.id)
+    return task?.status === 'planned' ? [{ ...n, task }] : []
+  })
   const others = editing ? shown.tasks.filter((t) => t.id !== editing.id) : shown.tasks
   const error = today.error ?? next.error
   const needsSignIn = today.needsSignIn || next.needsSignIn
@@ -172,10 +176,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
             }
             return ok
           }
-          // Re-planning resets originalEnd; only +15 keeps it.
           // Start from the latest copy: a nudge may have changed the task while the form was open.
           const current = shown.tasks.find((t) => t.id === editing.id) ?? editing
-          const ok = await shown.save({ ...current, ...draft, originalEnd: draft.end })
+          // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
+          const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
+          const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
           if (ok) setEditing(null)
           return ok
         }}

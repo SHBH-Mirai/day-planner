@@ -51,6 +51,7 @@ input, select {
 .banner { padding: 10px 14px; border-radius: var(--radius); margin: 0 0 12px; }
 .banner-error { background: var(--danger-bg); color: var(--danger); }
 .banner-warning { background: var(--warning-bg); color: var(--warning); }
+.memory-banner { border-radius: 0; margin: 0; text-align: center; }
 
 .task-form {
   display: grid;

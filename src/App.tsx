@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { IPublicClientApplication } from '@azure/msal-browser'
 import { AuthGate } from './auth/AuthGate'
-import { authConfigFromEnv, createMsal, getAccessToken, signInAgain, type AppEnv, type AuthConfig } from './auth/msal'
+import {
+  authConfigFromEnv,
+  createMsal,
+  getAccessToken,
+  signInAgain,
+  SignInRedirectError,
+  type AppEnv,
+  type AuthConfig,
+} from './auth/msal'
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
 import { TodayView } from './ui/TodayView'
@@ -20,16 +28,24 @@ function App({ env = import.meta.env, createClient = createMsal }: Props) {
 
 function MemoryApp({ day }: { day: Date }) {
   const [repo] = useState(() => new InMemoryTaskRepository())
-  return <TodayView repo={repo} day={day} />
+  // Loud on purpose: a deploy missing VITE_STORAGE=sharepoint lands here.
+  return (
+    <>
+      <div className="banner banner-warning memory-banner" role="alert">
+        Not saved: memory mode. Tasks disappear when you close or refresh this tab.
+      </div>
+      <TodayView repo={repo} day={day} />
+    </>
+  )
 }
 
 function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; createClient: NonNullable<Props['createClient']> }) {
   const config = useMemo(() => authConfigFromEnv(env), [env])
   const [client, setClient] = useState<IPublicClientApplication | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<false | 'config' | SignInRedirectError>(false)
 
   useEffect(() => {
-    createClient(config).then(setClient, () => setFailed(true))
+    createClient(config).then(setClient, (e: unknown) => setFailed(e instanceof SignInRedirectError ? e : 'config'))
   }, [createClient, config])
 
   const repo = useMemo(
@@ -43,6 +59,18 @@ function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; cre
     [client, config, env],
   )
 
+  if (failed instanceof SignInRedirectError) {
+    return (
+      <main className="today">
+        <div className="banner banner-error" role="alert">
+          Sign-in didn't finish, so nothing was loaded.{' '}
+          <button className="primary" onClick={() => void failed.client.loginRedirect({ scopes: config.scopes })}>
+            Sign in with Microsoft
+          </button>
+        </div>
+      </main>
+    )
+  }
   if (failed) {
     return (
       <main className="today">

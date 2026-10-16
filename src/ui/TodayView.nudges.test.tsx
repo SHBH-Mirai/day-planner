@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import { InMemoryTaskRepository } from '../storage/InMemoryTaskRepository'
@@ -51,6 +51,15 @@ describe('TodayView nudges', () => {
       const saved = (await repo.listForDay(DAY)).find((t) => t.title === 'Deep work')
       expect(saved).toMatchObject({ end: ist(D, '10:15'), originalEnd: ist(D, '10:00') })
     })
+  })
+
+  test('the nudge text follows later changes to its task', async () => {
+    await setup()
+    await screen.findByText('▶ START: Lunch until 10:30')
+    await userEvent.click(within(screen.getByRole('article', { name: 'Lunch' })).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-17T10:45' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('▶ START: Lunch until 10:45')).toBeInTheDocument()
   })
 
   test('Done on the task card also clears its nudge', async () => {

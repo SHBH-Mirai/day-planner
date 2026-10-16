@@ -72,7 +72,7 @@ interface Task {
   title: string;
   start: string;         // ISO 8601 UTC, e.g. "2026-10-17T03:30:00Z"
   end: string;           // ISO 8601 UTC; moves when the task is extended
-  originalEnd: string;   // end as first planned; never changes after create
+  originalEnd: string;   // end as planned; +15 never moves it, an edit that moves start/end re-plans it
   actualStart?: string;  // set when I press "Started" (or accept the start nudge)
   actualEnd?: string;    // set when I press Done
   category: Category;

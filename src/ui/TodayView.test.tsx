@@ -88,6 +88,30 @@ describe('TodayView', () => {
     expect(await findCard('Team sync')).toBeInTheDocument()
   })
 
+  test('an edit that keeps the times keeps originalEnd (an extend stays an overrun)', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    const [standup] = await repo.listForDay(DAY)
+    await repo.update({ ...standup, end: ist(D, '09:30') }) // as if +15 was pressed
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
+    await userEvent.type(screen.getByLabelText('Title'), ' notes')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await findCard('Standup notes')
+    const [saved] = await repo.listForDay(DAY)
+    expect(saved).toMatchObject({ end: ist(D, '09:30'), originalEnd: ist(D, '09:15') })
+  })
+
+  test('an edit that moves the times re-plans originalEnd', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-17T09:45' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument())
+    const [saved] = await repo.listForDay(DAY)
+    expect(saved).toMatchObject({ end: ist(D, '09:45'), originalEnd: ist(D, '09:45') })
+  })
+
   test('Summary button shows the summary', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
@@ -122,6 +146,14 @@ describe('TodayView', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
     await findCard('Proposal')
     expect(screen.getByText(/Couldn.t load/)).toBeInTheDocument()
+  })
+
+  test('the new-task form pre-fills after tasks that load after it mounts', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await findCard('Standup')
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:15')
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
   })
 
   test("Tomorrow shows and saves tomorrow's plan, separate from today", async () => {
