@@ -22,14 +22,15 @@ describe('getAccessToken', () => {
     expect(client.acquireTokenSilent).toHaveBeenCalledWith({ scopes: SCOPES, account })
   })
 
-  test('falls back to a redirect when interaction is required', async () => {
+  // Changed 2026-10-16 with Shubh's OK (review finding I5): no redirect mid-save; the UI offers "Sign in again".
+  test('when interaction is required it rejects with auth and does not redirect', async () => {
     const client = fakeClient({
       acquireTokenSilent: vi.fn(async () => {
         throw new InteractionRequiredAuthError('interaction_required', 'corr-1')
       }),
     })
     await expect(getAccessToken(client, SCOPES)).rejects.toMatchObject({ kind: 'auth' })
-    expect(client.acquireTokenRedirect).toHaveBeenCalledWith({ scopes: SCOPES, account })
+    expect(client.acquireTokenRedirect).not.toHaveBeenCalled()
   })
 
   test('other failures become an auth RepositoryError without redirecting', async () => {
@@ -42,9 +43,10 @@ describe('getAccessToken', () => {
     expect(client.acquireTokenRedirect).not.toHaveBeenCalled()
   })
 
-  test('with no signed-in account it redirects to sign in', async () => {
+  // Changed 2026-10-16 with Shubh's OK (review finding I5): same rule, no redirect from inside a save.
+  test('with no signed-in account it rejects with auth and does not redirect', async () => {
     const client = fakeClient({ getActiveAccount: vi.fn(() => null), getAllAccounts: vi.fn(() => []) })
     await expect(getAccessToken(client, SCOPES)).rejects.toMatchObject({ kind: 'auth' })
-    expect(client.acquireTokenRedirect).toHaveBeenCalledWith({ scopes: SCOPES })
+    expect(client.acquireTokenRedirect).not.toHaveBeenCalled()
   })
 })

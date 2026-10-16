@@ -49,23 +49,24 @@ export async function createMsal(config: AuthConfig): Promise<IPublicClientAppli
 }
 
 /**
- * A Graph access token. Silent first (refreshes quietly in a long-open tab);
- * when Microsoft needs you to sign in again, it redirects and this rejects.
+ * A Graph access token, fetched silently (refreshes quietly in a long-open tab).
+ * Never navigates away: when Microsoft needs you to sign in again it rejects
+ * with an 'auth' RepositoryError, and the UI offers "Sign in again".
  */
 export async function getAccessToken(client: TokenClient, scopes: string[]): Promise<string> {
   const account = client.getActiveAccount() ?? client.getAllAccounts()[0]
-  if (!account) {
-    await client.acquireTokenRedirect({ scopes })
-    throw new RepositoryError('auth', 'Signing in')
-  }
+  if (!account) throw new RepositoryError('auth', 'Not signed in')
   try {
     const result = await client.acquireTokenSilent({ scopes, account })
     return result.accessToken
   } catch (error) {
-    if (error instanceof InteractionRequiredAuthError) {
-      await client.acquireTokenRedirect({ scopes, account })
-      throw new RepositoryError('auth', 'Signing in again')
-    }
+    if (error instanceof InteractionRequiredAuthError) throw new RepositoryError('auth', 'Sign-in expired')
     throw new RepositoryError('auth', error instanceof Error ? error.message : 'Sign-in failed')
   }
+}
+
+/** Sends you to Microsoft to sign in again; you come back to the app afterwards. */
+export function signInAgain(client: TokenClient, scopes: string[]): Promise<void> {
+  const account = client.getActiveAccount() ?? client.getAllAccounts()[0]
+  return client.acquireTokenRedirect(account ? { scopes, account } : { scopes })
 }

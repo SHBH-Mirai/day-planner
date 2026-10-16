@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Task, TaskDraft } from '../domain/task'
 import { tasksForDay } from '../domain/time'
-import type { TaskRepository } from '../storage/TaskRepository'
+import { RepositoryError, type TaskRepository } from '../storage/TaskRepository'
 
 const byStart = (a: Task, b: Task) => Date.parse(a.start) - Date.parse(b.start)
 
@@ -9,7 +9,11 @@ const byStart = (a: Task, b: Task) => Date.parse(a.start) - Date.parse(b.start)
 interface PendingSave {
   id: number
   run: () => Promise<void>
+  /** Failed because the Microsoft sign-in expired. */
+  auth: boolean
 }
+
+const isAuth = (e: unknown) => e instanceof RepositoryError && e.kind === 'auth'
 
 /**
  * Loads one day's tasks and saves changes. Edits and deletes show on screen
@@ -18,7 +22,7 @@ interface PendingSave {
  */
 export function useTasks(repo: TaskRepository, day: Date) {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadFailed, setLoadFailed] = useState<false | 'auth' | 'other'>(false)
   const [pending, setPending] = useState<PendingSave[]>([])
   /** Goes up on every successful create, so the add form can reset itself. */
   const [createdCount, setCreatedCount] = useState(0)
@@ -29,8 +33,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
     try {
       setTasks(await repo.listForDay(new Date(dayKey)))
       setLoadFailed(false)
-    } catch {
-      setLoadFailed(true)
+    } catch (e) {
+      setLoadFailed(isAuth(e) ? 'auth' : 'other')
     }
   }, [repo, dayKey])
 
@@ -43,8 +47,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
         setTasks(loaded)
         setLoadFailed(false)
       },
-      () => {
-        if (!cancelled) setLoadFailed(true)
+      (e: unknown) => {
+        if (!cancelled) setLoadFailed(isAuth(e) ? 'auth' : 'other')
       },
     )
     return () => {
@@ -57,8 +61,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
       await run()
       setPending((p) => p.filter((x) => x.id !== id))
       return true
-    } catch {
-      setPending((p) => (p.some((x) => x.id === id) ? p : [...p, { id, run }]))
+    } catch (e) {
+      setPending((p) => (p.some((x) => x.id === id) ? p : [...p, { id, run, auth: isAuth(e) }]))
       return false
     }
   }
@@ -88,7 +92,12 @@ export function useTasks(repo: TaskRepository, day: Date) {
     for (const p of pending) void attempt(p.run, p.id)
   }
 
-  const error = loadFailed
+  const needsSignIn = loadFailed === 'auth' || pending.some((p) => p.auth)
+  const error = needsSignIn
+    ? pending.length > 0
+      ? `Your Microsoft sign-in expired. ${pending.length} unsaved change${pending.length > 1 ? 's' : ''} will need redoing after you sign in.`
+      : 'Your Microsoft sign-in expired.'
+    : loadFailed
     ? "Couldn't load your tasks."
     : pending.length > 1
       ? `Couldn't save ${pending.length} changes.`
@@ -96,5 +105,5 @@ export function useTasks(repo: TaskRepository, day: Date) {
         ? "Couldn't save."
         : null
 
-  return { tasks, error, retry, add, save, remove, createdCount, reload: load }
+  return { tasks, error, needsSignIn, retry, add, save, remove, createdCount, reload: load }
 }

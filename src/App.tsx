@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { IPublicClientApplication } from '@azure/msal-browser'
 import { AuthGate } from './auth/AuthGate'
-import { authConfigFromEnv, createMsal, getAccessToken, type AppEnv, type AuthConfig } from './auth/msal'
+import { authConfigFromEnv, createMsal, getAccessToken, signInAgain, type AppEnv, type AuthConfig } from './auth/msal'
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
 import { TodayView } from './ui/TodayView'
@@ -56,7 +56,7 @@ function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; cre
 
   return (
     <AuthGate client={client} scopes={config.scopes}>
-      <TodayView repo={repo} day={day} />
+      <TodayView repo={repo} day={day} onSignInAgain={() => void signInAgain(client, config.scopes)} />
     </AuthGate>
   )
 }

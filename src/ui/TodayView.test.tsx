@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import { InMemoryTaskRepository } from '../storage/InMemoryTaskRepository'
+import { RepositoryError } from '../storage/TaskRepository'
 import { ist } from '../test-utils/makeTask'
 
 const D = '2026-10-17'
@@ -149,5 +150,24 @@ describe('TodayView', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
     expect(await screen.findByText('Saved for Sunday 18 October')).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Edit video' })).not.toBeInTheDocument()
+  })
+
+  test('an expired sign-in shows Sign in again instead of leaving the page', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    vi.spyOn(repo, 'update').mockRejectedValue(new RepositoryError('auth', 'Sign-in expired'))
+    const onSignInAgain = vi.fn()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} onSignInAgain={onSignInAgain} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    expect(await screen.findByText(/Your Microsoft sign-in expired/)).toBeInTheDocument()
+    expect(card('Standup')).toHaveAttribute('data-status', 'done')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in again' }))
+    expect(onSignInAgain).toHaveBeenCalledOnce()
+  })
+
+  test('an expired sign-in while loading also offers Sign in again', async () => {
+    const repo = new InMemoryTaskRepository()
+    vi.spyOn(repo, 'listForDay').mockRejectedValue(new RepositoryError('auth', 'Sign-in expired'))
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} onSignInAgain={vi.fn()} />)
+    expect(await screen.findByRole('button', { name: 'Sign in again' })).toBeInTheDocument()
   })
 })

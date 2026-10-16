@@ -18,11 +18,13 @@ interface Props {
   /** Today. */
   day: Date
   now?: () => Date
+  /** Shown as "Sign in again" when the Microsoft sign-in has expired. */
+  onSignInAgain?: () => void
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 
-export function TodayView({ repo, day, now = () => new Date() }: Props) {
+export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: Props) {
   const dayKey = day.toDateString()
   const tomorrow = useMemo(() => {
     const d = new Date(dayKey)
@@ -67,6 +69,7 @@ export function TodayView({ repo, day, now = () => new Date() }: Props) {
   const liveNudges = nudges.filter((n) => todayTask(n.task.id)?.status === 'planned')
   const others = editing ? shown.tasks.filter((t) => t.id !== editing.id) : shown.tasks
   const error = today.error ?? next.error
+  const needsSignIn = today.needsSignIn || next.needsSignIn
 
   function switchDay(toTomorrow: boolean) {
     setViewTomorrow(toTomorrow)
@@ -99,6 +102,11 @@ export function TodayView({ repo, day, now = () => new Date() }: Props) {
       {error && (
         <div className="banner banner-error" role="alert">
           {error}{' '}
+          {needsSignIn && onSignInAgain && (
+            <button className="primary" onClick={onSignInAgain}>
+              Sign in again
+            </button>
+          )}{' '}
           <button
             onClick={() => {
               today.retry()
