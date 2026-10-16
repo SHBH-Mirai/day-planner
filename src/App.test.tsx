@@ -10,6 +10,11 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: 'Sign in with Microsoft' })).not.toBeInTheDocument()
   })
 
+  test('memory storage warns that nothing is saved', async () => {
+    render(<App env={{}} />)
+    expect(await screen.findByText(/Not saved: memory mode/)).toBeInTheDocument()
+  })
+
   test('sharepoint storage asks to sign in when nobody is signed in', async () => {
     const client = {
       getActiveAccount: () => null,

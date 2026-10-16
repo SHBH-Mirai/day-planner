@@ -20,7 +20,15 @@ function App({ env = import.meta.env, createClient = createMsal }: Props) {
 
 function MemoryApp({ day }: { day: Date }) {
   const [repo] = useState(() => new InMemoryTaskRepository())
-  return <TodayView repo={repo} day={day} />
+  // Loud on purpose: a deploy missing VITE_STORAGE=sharepoint lands here.
+  return (
+    <>
+      <div className="banner banner-warning memory-banner" role="alert">
+        Not saved: memory mode. Tasks disappear when you close or refresh this tab.
+      </div>
+      <TodayView repo={repo} day={day} />
+    </>
+  )
 }
 
 function SharePointApp({ day, env, createClient }: { day: Date; env: AppEnv; createClient: NonNullable<Props['createClient']> }) {
