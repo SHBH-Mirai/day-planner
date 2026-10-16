@@ -38,3 +38,19 @@ Versions as installed on 2026-10-16:
 | Vitest | 5.0 | Tests |
 | React Testing Library | 16.3 | Tests UI the way a user clicks it |
 | oxlint | 1.81 | Linting (ships with the Vite template) |
+
+## Deploy (GitHub Pages)
+
+`.github/workflows/deploy.yml` runs the tests, builds and deploys on every push to
+`main`. One-time setup in the repo's GitHub settings:
+
+1. **Settings → Pages → Source: GitHub Actions.**
+2. **Settings → Secrets and variables → Actions → Variables:** add `VITE_STORAGE`
+   (`sharepoint`), `VITE_AAD_CLIENT_ID`, `VITE_AAD_TENANT_ID`, `VITE_SP_SITE_ID`,
+   `VITE_SP_LIST_ID`, and optionally `VITE_GRAPH_SCOPE`.
+3. Add `https://shbh-mirai.github.io/day-planner/` as an SPA redirect URI on the
+   app registration (see `docs/setup-microsoft.md`).
+
+Note: a browser app can't hide its config. The client ID, tenant ID and site
+ID end up in the published JavaScript. That's normal for single-page apps;
+access is still protected by Microsoft sign-in and the site permission.
