@@ -267,7 +267,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       {showSummary ? (
         <SummaryView tasks={shown.tasks} />
       ) : (
-        <ol className="timeline">
+        <ol className="timeline" key={viewTomorrow ? 'tomorrow' : 'today'}>
           <AnimatePresence initial={false}>
             {shown.tasks.map((task) => (
               <TaskRow
