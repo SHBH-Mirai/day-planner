@@ -268,8 +268,8 @@
       }
      }
     },
-    "Rows": {
-     "type": "Select",
+    "Done_today": {
+     "type": "Query",
      "runAfter": {
       "Sum_minutes": [
        "Succeeded"
@@ -277,41 +277,74 @@
      },
      "inputs": {
       "from": "@body('Get_today')?['value']",
+      "where": "@equals(item()?['TaskStatus']?['Value'], 'done')"
+     }
+    },
+    "Rows": {
+     "type": "Select",
+     "runAfter": {
+      "Done_today": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_today')?['value']",
       "select": {
-       "type": "ColumnSet",
-       "separator": true,
+       "type": "Container",
+       "style": "@{if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), 'accent', 'default')}",
        "spacing": "Small",
-       "columns": [
+       "items": [
         {
-         "type": "Column",
-         "width": "stretch",
-         "items": [
+         "type": "ColumnSet",
+         "columns": [
           {
-           "type": "TextBlock",
-           "text": "@{item()?['Title']}",
-           "wrap": true,
-           "weight": "Bolder"
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm')}",
+             "wrap": true,
+             "isSubtle": true
+            }
+           ]
           },
           {
-           "type": "TextBlock",
-           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
-           "wrap": true,
-           "isSubtle": true,
-           "spacing": "None"
-          }
-         ]
-        },
-        {
-         "type": "Column",
-         "width": "auto",
-         "verticalContentAlignment": "Center",
-         "items": [
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼'))}",
+             "wrap": true
+            }
+           ]
+          },
           {
-           "type": "TextBlock",
-           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
-           "wrap": true,
-           "weight": "Bolder",
-           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+           "type": "Column",
+           "width": "stretch",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{concat(if(equals(item()?['TaskStatus']?['Value'], 'done'), '✓ ', ''), if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), 'NOW · ', ''), item()?['Title'], if(equals(item()?['TaskStatus']?['Value'], 'skipped'), ' (skipped)', ''))}",
+             "wrap": true,
+             "weight": "@{if(or(equals(item()?['TaskStatus']?['Value'], 'done'), equals(item()?['TaskStatus']?['Value'], 'skipped')), 'Default', 'Bolder')}",
+             "isSubtle": "@or(equals(item()?['TaskStatus']?['Value'], 'done'), equals(item()?['TaskStatus']?['Value'], 'skipped'))"
+            }
+           ]
+          },
+          {
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), concat(string(div(add(sub(ticks(item()?['TaskEnd']), ticks(utcNow())), 300000000), 600000000)), ' min left'), concat(string(div(add(sub(ticks(item()?['TaskEnd']), ticks(item()?['TaskStart'])), 300000000), 600000000)), 'm'))}",
+             "wrap": true,
+             "isSubtle": true,
+             "horizontalAlignment": "Right"
+            }
+           ]
           }
          ]
         }
@@ -345,7 +378,7 @@
             "items": [
              {
               "type": "TextBlock",
-              "text": "@{concat('Today · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "text": "@{convertFromUtc(utcNow(), 'India Standard Time', 'ddd, d MMM')}",
               "wrap": true,
               "weight": "Bolder"
              }
@@ -357,12 +390,46 @@
             "items": [
              {
               "type": "TextBlock",
-              "text": "@{concat(string(length(body('Get_today')?['value'])), if(equals(length(body('Get_today')?['value']), 1), ' task · ', ' tasks · '), if(less(variables('total'), 60), concat(string(variables('total')), 'm'), concat(string(div(variables('total'), 60)), 'h ', string(mod(variables('total'), 60)), 'm')))}",
+              "text": "@{concat(string(length(body('Done_today'))), ' of ', string(length(body('Get_today')?['value'])), ' · ', if(less(variables('total'), 60), concat(string(variables('total')), 'm'), concat(string(div(variables('total'), 60)), 'h ', string(mod(variables('total'), 60)), 'm')), ' planned')}",
               "wrap": true,
               "weight": "Bolder",
               "horizontalAlignment": "Right"
              }
             ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "ColumnSet",
+        "spacing": "Small",
+        "columns": [
+         {
+          "type": "Column",
+          "width": "@max(length(body('Done_today')), 1)",
+          "isVisible": "@greater(length(body('Done_today')), 0)",
+          "style": "good",
+          "minHeight": "8px",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": " ",
+            "size": "Small"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "@max(sub(length(body('Get_today')?['value']), length(body('Done_today'))), 1)",
+          "isVisible": "@greater(sub(length(body('Get_today')?['value']), length(body('Done_today'))), 0)",
+          "style": "emphasis",
+          "minHeight": "8px",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": " ",
+            "size": "Small"
            }
           ]
          }
