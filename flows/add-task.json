@@ -1,0 +1,669 @@
+{
+ "properties": {
+  "connectionReferences": {
+   "shared_sharepointonline": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedsharepointonline_45d18"
+    },
+    "api": {
+     "name": "shared_sharepointonline"
+    }
+   },
+   "shared_teams": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedteams_b45b2"
+    },
+    "api": {
+     "name": "shared_teams"
+    }
+   }
+  },
+  "definition": {
+   "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": {
+    "$authentication": {
+     "defaultValue": {},
+     "type": "SecureObject"
+    },
+    "$connections": {
+     "defaultValue": {},
+     "type": "Object"
+    }
+   },
+   "triggers": {
+    "manual": {
+     "type": "Request",
+     "kind": "Button",
+     "inputs": {
+      "schema": {
+       "type": "object",
+       "properties": {
+        "text": {
+         "title": "date",
+         "type": "string",
+         "x-ms-dynamically-added": true,
+         "description": "yyyy-MM-dd (IST)",
+         "x-ms-content-hint": "TEXT"
+        },
+        "text_1": {
+         "title": "start",
+         "type": "string",
+         "x-ms-dynamically-added": true,
+         "description": "HH:mm (IST)",
+         "x-ms-content-hint": "TEXT"
+        }
+       },
+       "required": [
+        "text",
+        "text_1"
+       ]
+      }
+     }
+    }
+   },
+   "actions": {
+    "Respond": {
+     "type": "Response",
+     "kind": "PowerApp",
+     "inputs": {
+      "statusCode": 200,
+      "body": {
+       "ok": "yes"
+      },
+      "schema": {
+       "type": "object",
+       "properties": {
+        "ok": {
+         "title": "ok",
+         "x-ms-dynamically-added": true,
+         "type": "string"
+        }
+       }
+      }
+     }
+    },
+    "Get_settings": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "fc63f483-9505-4589-a627-11c6d2930fef",
+       "$top": 1
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Respond": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_length": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "length",
+        "type": "integer",
+        "value": "@int(coalesce(first(body('Get_settings')?['value'])?['DefaultLengthMin'], 30))"
+       }
+      ]
+     },
+     "runAfter": {
+      "Get_settings": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_date": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "date",
+        "type": "string",
+        "value": "@triggerBody()?['text']"
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_length": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_start": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "start",
+        "type": "string",
+        "value": "@triggerBody()?['text_1']"
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_date": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_end": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "end",
+        "type": "string",
+        "value": "@formatDateTime(addMinutes(concat('2000-01-01T', variables('start'), ':00Z'), variables('length')), 'HH:mm')"
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_start": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_title": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "title",
+        "type": "string",
+        "value": ""
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_end": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_category": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "category",
+        "type": "string",
+        "value": "office"
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_title": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_note": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "note",
+        "type": "string",
+        "value": ""
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_category": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_saved": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "saved",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_note": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_stop": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "stop",
+        "type": "boolean",
+        "value": false
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_saved": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Form_loop": {
+     "runAfter": {
+      "Init_stop": [
+       "Succeeded"
+      ]
+     },
+     "type": "Until",
+     "expression": "@or(variables('stop'), greaterOrEquals(variables('saved'), 10))",
+     "limit": {
+      "count": 20,
+      "timeout": "PT12H"
+     },
+     "actions": {
+      "Form_card": {
+       "type": "Compose",
+       "inputs": {
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "body": [
+         {
+          "type": "TextBlock",
+          "text": "Add task",
+          "size": "Medium",
+          "weight": "Bolder"
+         },
+         {
+          "type": "TextBlock",
+          "text": "@variables('note')",
+          "wrap": true,
+          "isVisible": "@not(empty(variables('note')))"
+         },
+         {
+          "type": "Input.Text",
+          "id": "title",
+          "label": "Title",
+          "value": "@variables('title')"
+         },
+         {
+          "type": "Input.Date",
+          "id": "date",
+          "label": "Date",
+          "isRequired": true,
+          "value": "@variables('date')"
+         },
+         {
+          "type": "Input.Time",
+          "id": "start",
+          "label": "Start",
+          "isRequired": true,
+          "value": "@variables('start')"
+         },
+         {
+          "type": "Input.Time",
+          "id": "end",
+          "label": "End",
+          "isRequired": true,
+          "value": "@variables('end')"
+         },
+         {
+          "type": "Input.ChoiceSet",
+          "id": "category",
+          "label": "Category",
+          "value": "@variables('category')",
+          "choices": [
+           {
+            "title": "Office",
+            "value": "office"
+           },
+           {
+            "title": "Freelance",
+            "value": "freelance"
+           },
+           {
+            "title": "YouTube",
+            "value": "youtube"
+           }
+          ]
+         }
+        ],
+        "actions": [
+         {
+          "type": "Action.Submit",
+          "title": "Save",
+          "data": {
+           "choice": "save"
+          }
+         },
+         {
+          "type": "Action.Submit",
+          "title": "Done",
+          "data": {
+           "choice": "done"
+          }
+         }
+        ]
+       }
+      },
+      "Post_form": {
+       "runAfter": {
+        "Form_card": [
+         "Succeeded"
+        ]
+       },
+       "limit": {
+        "timeout": "PT2H"
+       },
+       "type": "OpenApiConnectionWebhook",
+       "inputs": {
+        "parameters": {
+         "poster": "Flow bot",
+         "location": "Chat with Flow bot",
+         "body/body/messageBody": "@{string(outputs('Form_card'))}",
+         "body/body/updateMessage": "Got it.",
+         "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
+        },
+        "host": {
+         "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+         "connectionName": "shared_teams",
+         "operationId": "PostCardAndWaitForResponse"
+        },
+        "authentication": "@parameters('$authentication')"
+       }
+      },
+      "Stop_on_timeout": {
+       "runAfter": {
+        "Post_form": [
+         "TimedOut",
+         "Failed"
+        ]
+       },
+       "type": "SetVariable",
+       "inputs": {
+        "name": "stop",
+        "value": true
+       }
+      },
+      "Is_save": {
+       "runAfter": {
+        "Post_form": [
+         "Succeeded"
+        ]
+       },
+       "type": "If",
+       "expression": {
+        "and": [
+         {
+          "equals": [
+           "@body('Post_form')?['data']?['choice']",
+           "save"
+          ]
+         }
+        ]
+       },
+       "actions": {
+        "Keep_title": {
+         "type": "SetVariable",
+         "inputs": {
+          "name": "title",
+          "value": "@trim(coalesce(body('Post_form')?['data']?['title'], ''))"
+         }
+        },
+        "Keep_date": {
+         "type": "SetVariable",
+         "inputs": {
+          "name": "date",
+          "value": "@{body('Post_form')?['data']?['date']}"
+         },
+         "runAfter": {
+          "Keep_title": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Keep_start": {
+         "type": "SetVariable",
+         "inputs": {
+          "name": "start",
+          "value": "@{body('Post_form')?['data']?['start']}"
+         },
+         "runAfter": {
+          "Keep_date": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Keep_end": {
+         "type": "SetVariable",
+         "inputs": {
+          "name": "end",
+          "value": "@{body('Post_form')?['data']?['end']}"
+         },
+         "runAfter": {
+          "Keep_start": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Keep_category": {
+         "type": "SetVariable",
+         "inputs": {
+          "name": "category",
+          "value": "@{coalesce(body('Post_form')?['data']?['category'], 'office')}"
+         },
+         "runAfter": {
+          "Keep_end": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Check": {
+         "runAfter": {
+          "Keep_category": [
+           "Succeeded"
+          ]
+         },
+         "type": "Compose",
+         "inputs": "@if(empty(variables('title')), 'Title is required', if(lessOrEquals(ticks(convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')), ticks(convertToUtc(concat(variables('date'), 'T', variables('start'), ':00'), 'India Standard Time'))), 'End must be after start', ''))"
+        },
+        "Is_valid": {
+         "runAfter": {
+          "Check": [
+           "Succeeded"
+          ]
+         },
+         "type": "If",
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@outputs('Check')",
+             ""
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Get_day_tasks": {
+           "type": "OpenApiConnection",
+           "inputs": {
+            "parameters": {
+             "dataset": "https://datenshi.sharepoint.com/sites/Development",
+             "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+             "$filter": "TaskStart ge '@{convertToUtc(concat(variables('date'), 'T00:00:00'), 'India Standard Time')}' and TaskStart lt '@{addDays(convertToUtc(concat(variables('date'), 'T00:00:00'), 'India Standard Time'), 1)}'"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+             "connectionName": "shared_sharepointonline",
+             "operationId": "GetItems"
+            },
+            "authentication": "@parameters('$authentication')"
+           }
+          },
+          "Find_overlaps": {
+           "runAfter": {
+            "Get_day_tasks": [
+             "Succeeded"
+            ]
+           },
+           "type": "Query",
+           "inputs": {
+            "from": "@body('Get_day_tasks')?['value']",
+            "where": "@and(equals(item()?['TaskStatus']?['Value'], 'planned'), less(ticks(convertToUtc(concat(variables('date'), 'T', variables('start'), ':00'), 'India Standard Time')), ticks(item()?['TaskEnd'])), less(ticks(item()?['TaskStart']), ticks(convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time'))))"
+           }
+          },
+          "Overlap_lines": {
+           "runAfter": {
+            "Find_overlaps": [
+             "Succeeded"
+            ]
+           },
+           "type": "Select",
+           "inputs": {
+            "from": "@body('Find_overlaps')",
+            "select": "@concat('⚠ Overlaps ', item()?['Title'], ' (', convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), '–', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), ')')"
+           }
+          },
+          "Create_task": {
+           "type": "OpenApiConnection",
+           "inputs": {
+            "parameters": {
+             "dataset": "https://datenshi.sharepoint.com/sites/Development",
+             "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+             "item/Title": "@variables('title')",
+             "item/TaskStart": "@convertToUtc(concat(variables('date'), 'T', variables('start'), ':00'), 'India Standard Time')",
+             "item/TaskEnd": "@convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')",
+             "item/TaskOriginalEnd": "@convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')",
+             "item/TaskCategory/Value": "@variables('category')",
+             "item/TaskStatus/Value": "planned"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+             "connectionName": "shared_sharepointonline",
+             "operationId": "PostItem"
+            },
+            "authentication": "@parameters('$authentication')"
+           },
+           "runAfter": {
+            "Overlap_lines": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Note_saved": {
+           "type": "SetVariable",
+           "inputs": {
+            "name": "note",
+            "value": "@{concat('Saved ✓ ', variables('title'), ' ', variables('start'), '–', variables('end'), if(empty(body('Overlap_lines')), '', concat('\n\n', join(body('Overlap_lines'), '\n\n'))))}"
+           },
+           "runAfter": {
+            "Create_task": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Count_saved": {
+           "runAfter": {
+            "Note_saved": [
+             "Succeeded"
+            ]
+           },
+           "type": "IncrementVariable",
+           "inputs": {
+            "name": "saved",
+            "value": 1
+           }
+          },
+          "Next_title": {
+           "type": "SetVariable",
+           "inputs": {
+            "name": "title",
+            "value": ""
+           },
+           "runAfter": {
+            "Count_saved": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Next_start": {
+           "type": "SetVariable",
+           "inputs": {
+            "name": "start",
+            "value": "@variables('end')"
+           },
+           "runAfter": {
+            "Next_title": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Next_end": {
+           "type": "SetVariable",
+           "inputs": {
+            "name": "end",
+            "value": "@formatDateTime(addMinutes(concat('2000-01-01T', variables('start'), ':00Z'), variables('length')), 'HH:mm')"
+           },
+           "runAfter": {
+            "Next_start": [
+             "Succeeded"
+            ]
+           }
+          }
+         },
+         "else": {
+          "actions": {
+           "Note_error": {
+            "type": "SetVariable",
+            "inputs": {
+             "name": "note",
+             "value": "@{outputs('Check')}"
+            }
+           }
+          }
+         }
+        }
+       },
+       "else": {
+        "actions": {
+         "Stop_on_done": {
+          "type": "SetVariable",
+          "inputs": {
+           "name": "stop",
+           "value": true
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "Finished": {
+     "runAfter": {
+      "Form_loop": [
+       "Succeeded",
+       "Failed",
+       "TimedOut"
+      ]
+     },
+     "type": "Compose",
+     "inputs": "@variables('saved')"
+    }
+   },
+   "outputs": {}
+  }
+ },
+ "schemaVersion": "1.0.0.0"
+}
