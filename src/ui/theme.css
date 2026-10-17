@@ -212,3 +212,8 @@ input, select {
 .summary table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; }
 .summary th, .summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, var(--neu-dark) 60%, transparent); }
 .summary td { font-variant-numeric: tabular-nums; }
+
+.nudges { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+.nudge { padding: 14px 16px; border-left: 4px solid var(--neu-accent); border-radius: 0; }
+.nudge-end { border-left-color: var(--neu-warning); }
+.nudge-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
