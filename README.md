@@ -28,12 +28,15 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 | Day Planner - Morning | 06:00 IST | active templates for today become tasks, then the today card |
 | Day Planner - Evening | 22:30 IST | saves the day's row in `DailySummaries`, then the summary and tomorrow card |
 | Day Planner - Add task | **Add task** on either card | form loop: saves tasks, refuses end before start, warns on overlaps |
-| Day Planner - Quick add | Run by hand (portal, any time) | opens the Add task form for today |
+| Day Planner - Quick add | **+ Add task** in the *Day Planner* Power App | opens the Add task form for today |
 
 - **Templates and settings** are edited in the SharePoint lists `Templates` and
   `Settings` (Microsoft Lists on web or phone). `Settings` turns start or end
   nudges off and sets the default task length.
 - **Definitions** live in `flows/*.json` (the flows' Dataverse `clientdata`).
+- **Phone:** the canvas app *Day Planner* (same solution) is one **+ Add task** button that runs Quick add.
+  Pin it from Power Apps mobile (Android: ⋯ → Pin to Home; iPhone: Shortcut → Add to Siri → Shortcuts app → Add to Home Screen).
+  The Power Automate mobile app and its widget were retired on 31 Aug 2026.
 - **This web app** stays as the fallback; edit or delete tasks here or in the list.
 
 ## Known limits

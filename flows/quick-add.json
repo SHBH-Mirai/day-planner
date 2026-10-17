@@ -5,17 +5,35 @@
    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
    "contentVersion": "1.0.0.0",
    "parameters": {
-    "$authentication": {"defaultValue": {}, "type": "SecureObject"},
-    "$connections": {"defaultValue": {}, "type": "Object"}
+    "$authentication": {
+     "defaultValue": {},
+     "type": "SecureObject"
+    },
+    "$connections": {
+     "defaultValue": {},
+     "type": "Object"
+    }
    },
    "triggers": {
-    "manual": {"type": "Request", "kind": "Button", "inputs": {"schema": {"type": "object", "properties": {}, "required": []}}}
+    "manual": {
+     "type": "Request",
+     "kind": "PowerAppV2",
+     "inputs": {
+      "schema": {
+       "type": "object",
+       "properties": {},
+       "required": []
+      }
+     }
+    }
    },
    "actions": {
     "Add_task": {
      "type": "Workflow",
      "inputs": {
-      "host": {"workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"},
+      "host": {
+       "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
+      },
       "body": {
        "text": "@convertFromUtc(utcNow(), 'India Standard Time', 'yyyy-MM-dd')",
        "text_1": "@convertFromUtc(addSeconds(utcNow(), sub(300, mod(div(ticks(utcNow()), 10000000), 300))), 'India Standard Time', 'HH:mm')"
