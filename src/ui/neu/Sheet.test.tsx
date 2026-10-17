@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Sheet } from './Sheet'
 import { Fab } from './Fab'
@@ -63,6 +63,29 @@ describe('Sheet', () => {
     const { onClose } = renderSheet(true)
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Sheet, focus anywhere in the panel', () => {
+  it('Esc still closes after clicking an empty part of the panel', async () => {
+    const { onClose } = renderSheet(true)
+    await userEvent.click(screen.getByRole('heading', { name: 'New task' }))
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('Shift+Tab from the panel itself stays inside the sheet', async () => {
+    renderSheet(true)
+    screen.getByRole('dialog').focus()
+    await userEvent.tab({ shift: true })
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
+  })
+
+  it('a text selection that ends on the backdrop does not close the sheet', () => {
+    const { onClose } = renderSheet(true)
+    fireEvent.pointerDown(screen.getByLabelText('Title'))
+    fireEvent.click(screen.getByTestId('sheet-backdrop'))
+    expect(onClose).not.toHaveBeenCalled()
   })
 })
 

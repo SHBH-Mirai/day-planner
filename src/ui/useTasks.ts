@@ -34,6 +34,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
   const newest = useRef(new Map<string, number>())
   /** Saves sent that haven't answered yet, so a second Retry tap doesn't send them twice. */
   const inFlight = useRef(new Set<number>())
+  /** Per task: resolves when its latest queued save has finished, so the next one can go. */
+  const tails = useRef(new Map<string, Promise<void>>())
   const dayKey = day.toDateString()
 
   const load = useCallback(async (): Promise<void> => {
@@ -72,7 +74,29 @@ export function useTasks(repo: TaskRepository, day: Date) {
   async function attempt(run: () => Promise<void>, key?: string, id = ++nextId.current): Promise<boolean> {
     const k = key ?? `new-${id}`
     if (id > (newest.current.get(k) ?? 0)) newest.current.set(k, id)
+
+    // One save at a time per task: wait for the one on its way, so a slow older save can't land last.
     inFlight.current.add(id)
+    let done!: () => void
+    const finished = new Promise<void>((r) => (done = r))
+    const before = tails.current.get(k)
+    const tail = before ? before.then(() => finished) : finished
+    tails.current.set(k, tail)
+    const release = () => {
+      done()
+      // Nothing queued behind this save: the task is free, so its next save goes at once.
+      if (tails.current.get(k) === tail) tails.current.delete(k)
+    }
+    if (before) {
+      await before
+      // A newer save queued while this one waited carries every change, so this one has nothing left to send.
+      if (newest.current.get(k) !== id) {
+        inFlight.current.delete(id)
+        release()
+        return true
+      }
+    }
+
     try {
       await run()
       setPending((p) => p.filter((x) => x.key !== k || x.id > id))
@@ -82,6 +106,7 @@ export function useTasks(repo: TaskRepository, day: Date) {
       return false
     } finally {
       inFlight.current.delete(id)
+      release()
     }
   }
 

@@ -144,7 +144,7 @@ input, select {
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.task-row { position: relative; padding: 12px 14px; touch-action: pan-y; }
+.task-row { position: relative; padding: 12px 14px; touch-action: pan-y pinch-zoom !important; }
 .task-row[data-category='office'] { --cat: var(--cat-office); }
 .task-row[data-category='freelance'] { --cat: var(--cat-freelance); }
 .task-row[data-category='youtube'] { --cat: var(--cat-youtube); }
@@ -167,7 +167,7 @@ input, select {
 .task-row-meta .tag { color: var(--cat); font-weight: 600; }
 .now-badge { color: var(--neu-accent-text); font-weight: 700; }
 .task-row-length { font-size: 13px; color: var(--neu-muted); font-variant-numeric: tabular-nums; }
-.task-row-actions { display: flex; flex-wrap: wrap; gap: 8px; overflow: hidden; padding-top: 12px; }
+.task-row-actions { display: flex; flex-wrap: wrap; gap: 8px; overflow: hidden; padding: 12px 6px 8px; margin: 0 -6px -8px; }
 .task-row.now::after {
   content: ''; position: absolute; inset: -3px; border-radius: calc(var(--radius) + 3px);
   border: 2px solid var(--neu-accent); pointer-events: none; animation: neu-pulse 1.8s ease-in-out infinite;
@@ -176,6 +176,7 @@ input, select {
 
 .sheet-backdrop {
   position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
   background: color-mix(in srgb, var(--neu-dark) 55%, transparent);
 }
 .sheet {
@@ -194,8 +195,9 @@ input, select {
 
 .day-switch { margin: 18px 0 14px; padding: 6px; border-radius: 16px; }
 .day-switch > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.day-switch button { box-shadow: none; background: transparent; border-radius: 12px; font-weight: 600; color: var(--neu-muted); }
-.day-switch button[aria-pressed='true'] { background: var(--neu-bg); color: var(--neu-accent-text); box-shadow: var(--neu-raise-sm); }
+.day-switch button { position: relative; isolation: isolate; box-shadow: none; background: transparent; border-radius: 12px; font-weight: 600; color: var(--neu-muted); }
+.day-pill { position: absolute; inset: 0; z-index: -1; border-radius: 12px; background: var(--neu-bg); box-shadow: var(--neu-raise-sm); border: var(--neu-border); }
+.day-switch button[aria-pressed='true'] { color: var(--neu-accent-text); }
 
 .focus-strip { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin: 0 0 18px; color: var(--neu-muted); }
 .focus-strip strong { color: var(--neu-text); font-variant-numeric: tabular-nums; }
@@ -224,3 +226,15 @@ input, select {
 .nudge { padding: 14px 16px; border-left: 4px solid var(--neu-accent); border-radius: 0; }
 .nudge-end { border-left-color: var(--neu-warning); }
 .nudge-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.undo-bar {
+  position: fixed; left: 50%; bottom: 24px; z-index: 15; translate: -50% 0;
+  display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 18px; max-width: calc(100vw - 184px);
+}
+.undo-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* High contrast: no doubled borders inside rows and tabs; categories told apart by pattern, not colour. */
+[data-theme='contrast'] .task-row-toggle, [data-theme='contrast'] .day-switch button { border: none; }
+[data-theme='contrast'] .ring-track { stroke: #ffffff; opacity: 0.35; }
+[data-theme='contrast'] .category-segment[data-category='freelance'] { background: repeating-linear-gradient(45deg, #ffffff 0 4px, #000000 4px 7px); }
+[data-theme='contrast'] .category-segment[data-category='youtube'] { background: repeating-linear-gradient(90deg, #ffffff 0 2px, #000000 2px 5px); }

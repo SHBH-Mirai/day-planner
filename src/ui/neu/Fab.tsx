@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 
 interface Props {
   onClick: () => void
@@ -8,7 +8,7 @@ interface Props {
 /** The round floating + button, bottom right. */
 export function Fab({ onClick, 'aria-label': label }: Props) {
   return (
-    <motion.button
+    <m.button
       className="fab"
       aria-label={label}
       onClick={onClick}
@@ -16,6 +16,6 @@ export function Fab({ onClick, 'aria-label': label }: Props) {
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
     >
       <span aria-hidden="true">+</span>
-    </motion.button>
+    </m.button>
   )
 }

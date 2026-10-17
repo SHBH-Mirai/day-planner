@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { CATEGORIES, type Task } from '../domain/task'
 import { summarize } from '../domain/summary'
 import { CATEGORY_LABEL } from './labels'
@@ -6,6 +7,7 @@ import { NeuSurface } from './neu/NeuSurface'
 import { dayTotals } from './neu/totals'
 
 export function SummaryView({ tasks }: { tasks: Task[] }) {
+  const legendId = useId()
   const { perTask, perCategory } = summarize(tasks)
   // Headline numbers and the bar share one rule with the focus strip, so the screens agree.
   const totals = dayTotals(tasks)
@@ -33,7 +35,7 @@ export function SummaryView({ tasks }: { tasks: Task[] }) {
 
       {withTime.length > 0 && (
         <NeuSurface variant="inset" className="category-bar-wrap">
-          <div className="category-bar" role="img" aria-label="Time by category">
+          <div className="category-bar" role="img" aria-label="Time by category" aria-describedby={legendId}>
             {withTime.map((c) => (
               <span
                 key={c}
@@ -44,7 +46,7 @@ export function SummaryView({ tasks }: { tasks: Task[] }) {
               />
             ))}
           </div>
-          <p className="category-legend">
+          <p className="category-legend" id={legendId}>
             {withTime.map((c) => (
               <span key={c} data-category={c}>
                 {CATEGORY_LABEL[c]} {formatMinutes(totals.perCategory[c])}

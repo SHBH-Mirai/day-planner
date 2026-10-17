@@ -45,6 +45,12 @@ describe('SummaryView', () => {
     expect(within(stats).getByText('Skipped').nextSibling).toHaveTextContent('1')
   })
 
+  test('the category bar is described by its legend', () => {
+    const office = makeTask({ category: 'office', start: ist(D, '09:00'), end: ist(D, '10:00') })
+    render(<SummaryView tasks={[office]} />)
+    expect(screen.getByRole('img', { name: 'Time by category' })).toHaveAccessibleDescription(/Office 1h/)
+  })
+
   test('a bar split by category, one labelled segment per category with time', () => {
     const office = makeTask({ category: 'office', start: ist(D, '09:00'), end: ist(D, '10:00') })
     const content = makeTask({ category: 'youtube', start: ist(D, '20:00'), end: ist(D, '21:30') })

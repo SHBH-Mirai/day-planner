@@ -109,6 +109,24 @@ describe('TaskRow', () => {
     expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
   })
 
+  it("the round Done button is described by the task's title", () => {
+    const { row } = setup()
+    expect(within(row).getByRole('button', { name: 'Done' })).toHaveAccessibleDescription(/Standup/)
+  })
+
+  it('keeps focus on the row after the tick', async () => {
+    const { row, toggle } = setup()
+    await userEvent.click(within(row).getByRole('button', { name: 'Done' }))
+    expect(toggle()).toHaveFocus()
+  })
+
+  it('keeps focus on the row after Started or Skip', async () => {
+    const { row, toggle } = setup()
+    await userEvent.click(toggle())
+    await userEvent.click(within(row).getByRole('button', { name: 'Skip' }))
+    expect(toggle()).toHaveFocus()
+  })
+
   it('marks the task that is running now', () => {
     const { row } = setup(task(), true)
     expect(row).toHaveClass('now')

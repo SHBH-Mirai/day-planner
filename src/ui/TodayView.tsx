@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import { extendTask } from '../domain/extend'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
@@ -17,6 +17,7 @@ import { NeuSurface } from './neu/NeuSurface'
 import { ProgressRing } from './neu/ProgressRing'
 import { Sheet } from './neu/Sheet'
 import { TaskRow } from './neu/TaskRow'
+import { UndoBar } from './neu/UndoBar'
 import { dayTotals } from './neu/totals'
 import { SummaryView } from './SummaryView'
 import { TaskForm } from './TaskForm'
@@ -37,8 +38,16 @@ const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numer
 function useMinuteTick() {
   const [, setTick] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60_000)
-    return () => clearInterval(id)
+    let every: ReturnType<typeof setInterval> | undefined
+    // Wait for the next whole minute, then tick every minute, so "now" moves on time.
+    const first = setTimeout(() => {
+      setTick((t) => t + 1)
+      every = setInterval(() => setTick((t) => t + 1), 60_000)
+    }, 60_000 - (Date.now() % 60_000))
+    return () => {
+      clearTimeout(first)
+      clearInterval(every)
+    }
   }, [])
 }
 
@@ -63,6 +72,17 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   const [showSummary, setShowSummary] = useState(false)
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
+  // The last Done or Skip on a row, kept for a few seconds so a mis-tap can be taken back.
+  const [undo, setUndo] = useState<{ taskId: string; message: string; restore: () => void } | null>(null)
+  /** Only after the first day switch does the list slide in; on first load it shows at once. */
+  const [slide, setSlide] = useState(false)
+  /** An Undo for a task that was then deleted or edited would save a stale or missing task. */
+  const dropUndoFor = (id: string) => setUndo((u) => (u?.taskId === id ? null : u))
+  useEffect(() => {
+    if (!undo) return
+    const id = setTimeout(() => setUndo(null), 6_000)
+    return () => clearTimeout(id)
+  }, [undo])
 
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [permission, setPermission] = useState(notificationPermission)
@@ -100,6 +120,8 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   function switchDay(toTomorrow: boolean) {
     setViewTomorrow(toTomorrow)
     setShowSummary(false)
+    setUndo(null)
+    setSlide(true)
     setEditing(null)
     setAdding(false)
     setAddFailed(false)
@@ -156,18 +178,21 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
           <h1>{viewTomorrow ? 'Tomorrow' : 'Today'}</h1>
           <p className="muted">{dayTitle.format(shownDay)}</p>
         </div>
-        {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.length} />}
+        {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.filter((t) => t.status !== 'skipped').length} />}
       </header>
 
       <NeuSurface variant="inset" className="day-switch">
         <div role="group" aria-label="View">
           <NeuButton pressed={!viewTomorrow && !showSummary} onClick={() => switchDay(false)}>
+            {!viewTomorrow && !showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Today
           </NeuButton>
           <NeuButton pressed={viewTomorrow && !showSummary} onClick={() => switchDay(true)}>
+            {(viewTomorrow && !showSummary) && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Tomorrow
           </NeuButton>
           <NeuButton pressed={showSummary} onClick={() => setShowSummary(true)}>
+            {showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Summary
           </NeuButton>
         </div>
@@ -249,7 +274,10 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
             // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
             const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
             const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
-            if (ok) setEditing(null)
+            if (ok) {
+                dropUndoFor(editing.id)
+                setEditing(null)
+              }
             return ok
           }}
           onCancel={closeSheet}
@@ -259,7 +287,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       {showSummary ? (
         <SummaryView tasks={shown.tasks} />
       ) : (
-        <ol className="timeline">
+        <m.ol
+          className="timeline"
+          key={viewTomorrow ? 'tomorrow' : 'today'}
+          initial={slide ? { opacity: 0, x: viewTomorrow ? 32 : -32 } : false}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
           <AnimatePresence initial={false}>
             {shown.tasks.map((task) => (
               <TaskRow
@@ -267,17 +301,40 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
                 task={task}
                 isNow={isNow(task)}
                 onStarted={() => void shown.save({ ...task, actualStart: stamp() })}
-                onDone={() => void shown.save({ ...task, status: 'done', actualEnd: stamp() })}
-                onPlus15={() => void shown.save(extendTask(task, 15, shown.tasks, now()).updated)}
-                onSkip={() => void shown.save({ ...task, status: 'skipped' })}
+                onDone={() => {
+                  void shown.save({ ...task, status: 'done', actualEnd: stamp() })
+                  const list = shown
+                  setUndo({ taskId: task.id, message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+                }}
+                onPlus15={() => {
+                  const { updated, affected } = extendTask(task, 15, shown.tasks, now())
+                  void shown.save(updated)
+                  const pushed = affected.length ? `Now overlaps: ${affected.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
+                  setNotice(`${task.title}: extended to ${formatLocalTime(updated.end)}. ${pushed}`)
+                }}
+                onSkip={() => {
+                  void shown.save({ ...task, status: 'skipped' })
+                  const list = shown
+                  setUndo({ taskId: task.id, message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
+                }}
                 onEdit={() => setEditing(task)}
-                onDelete={() => void shown.remove(task.id)}
+                onDelete={() => {
+                  dropUndoFor(task.id)
+                  void shown.remove(task.id)
+                }}
               />
             ))}
           </AnimatePresence>
-        </ol>
+        </m.ol>
       )}
 
+      <UndoBar
+        message={undo?.message ?? null}
+        onUndo={() => {
+          undo?.restore()
+          setUndo(null)
+        }}
+      />
       <Fab aria-label="New task" onClick={() => setAdding(true)} />
     </main>
     </MotionPrefs>

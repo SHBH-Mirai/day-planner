@@ -66,8 +66,13 @@ describe('useTasks pending saves', () => {
     vi.spyOn(repo, 'update').mockRejectedValueOnce(offline()).mockReturnValueOnce(retried.promise).mockImplementation(realUpdate)
     await act(() => hook.result.current.save({ ...task, title: 'Old' }))
     act(() => hook.result.current.retry())
-    await act(() => hook.result.current.save({ ...task, title: 'New' }))
+    // Saves of one task go one at a time, so the newer save waits for the Retry to answer.
+    let saving!: Promise<boolean>
+    act(() => {
+      saving = hook.result.current.save({ ...task, title: 'New' })
+    })
     retried.reject(offline())
+    await act(() => saving)
     await settle()
     expect(hook.result.current.error).toBeNull()
     expect((await stored())?.title).toBe('New')
@@ -84,8 +89,13 @@ describe('useTasks pending saves', () => {
       .mockImplementation(realUpdate)
     await act(() => hook.result.current.save({ ...task, title: 'Old' }))
     act(() => hook.result.current.retry())
-    await act(() => hook.result.current.save({ ...task, title: 'New' }))
+    // Saves of one task go one at a time, so the newer save waits for the Retry to answer.
+    let saving!: Promise<boolean>
+    act(() => {
+      saving = hook.result.current.save({ ...task, title: 'New' })
+    })
     retried.resolve({ ...task, title: 'Old' })
+    await act(() => saving)
     await settle()
     expect(hook.result.current.error).toBe("Couldn't save.")
     act(() => hook.result.current.retry())
@@ -163,5 +173,96 @@ describe('useTasks pending saves', () => {
     await settle()
     expect(hook.result.current.error).toBeNull()
     expect(await repo.listForDay(DAY)).toHaveLength(1)
+  })
+})
+
+describe('useTasks saves one at a time per task', () => {
+  test('a second save waits for the first, so a slow first save can never land last', async () => {
+    const { repo, task, hook, stored } = await withOneTask()
+    const realUpdate = repo.update.bind(repo)
+    const first = held<Task>()
+    const sent: string[] = []
+    vi.spyOn(repo, 'update').mockImplementation(async (t) => {
+      sent.push(t.title)
+      if (t.title === 'Old') {
+        await first.promise
+      }
+      return realUpdate(t)
+    })
+
+    let a!: Promise<boolean>
+    let b!: Promise<boolean>
+    act(() => {
+      a = hook.result.current.save({ ...task, title: 'Old' })
+    })
+    act(() => {
+      b = hook.result.current.save({ ...task, title: 'New' })
+    })
+    await settle()
+    expect(sent).toEqual(['Old'])
+
+    first.resolve(task)
+    await act(async () => {
+      await Promise.all([a, b])
+    })
+    expect(sent).toEqual(['Old', 'New'])
+    expect((await stored())?.title).toBe('New')
+  })
+
+  test('saves that pile up behind a slow one collapse into the newest', async () => {
+    const { repo, task, hook, stored } = await withOneTask()
+    const realUpdate = repo.update.bind(repo)
+    const first = held<Task>()
+    const sent: string[] = []
+    vi.spyOn(repo, 'update').mockImplementation(async (t) => {
+      sent.push(t.title)
+      if (t.title === 'One') await first.promise
+      return realUpdate(t)
+    })
+
+    const results: Promise<boolean>[] = []
+    for (const title of ['One', 'Two', 'Three']) {
+      act(() => {
+        results.push(hook.result.current.save({ ...task, title }))
+      })
+    }
+    first.resolve(task)
+    let oks: boolean[] = []
+    await act(async () => {
+      oks = await Promise.all(results)
+    })
+    expect(sent).toEqual(['One', 'Three'])
+    expect(oks).toEqual([true, true, true])
+    expect((await stored())?.title).toBe('Three')
+    expect(hook.result.current.error).toBeNull()
+  })
+
+  test('a delete waits for a save of the same task that is on its way', async () => {
+    const { repo, task, hook, stored } = await withOneTask()
+    const realUpdate = repo.update.bind(repo)
+    const first = held<Task>()
+    vi.spyOn(repo, 'update').mockImplementation(async (t) => {
+      await first.promise
+      return realUpdate(t)
+    })
+    const removeSpy = vi.spyOn(repo, 'remove')
+
+    let a!: Promise<boolean>
+    let b!: Promise<boolean>
+    act(() => {
+      a = hook.result.current.save({ ...task, title: 'Renamed' })
+    })
+    act(() => {
+      b = hook.result.current.remove(task.id)
+    })
+    await settle()
+    expect(removeSpy).not.toHaveBeenCalled()
+
+    first.resolve(task)
+    await act(async () => {
+      await Promise.all([a, b])
+    })
+    expect(removeSpy).toHaveBeenCalledTimes(1)
+    expect(await stored()).toBeUndefined()
   })
 })

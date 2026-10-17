@@ -10,6 +10,8 @@ interface Options {
   listId: string
   getToken: () => Promise<string>
   fetchFn?: FetchFn
+  /** Give up on a request after this long, so one hung call can't block later saves. */
+  timeoutMs?: number
 }
 
 const byStart = (a: Task, b: Task) => Date.parse(a.start) - Date.parse(b.start)
@@ -19,11 +21,13 @@ export class SharePointTaskRepository implements TaskRepository {
   private readonly base: string
   private readonly getToken: () => Promise<string>
   private readonly fetchFn: FetchFn
+  private readonly timeoutMs: number
 
-  constructor({ siteId, listId, getToken, fetchFn = (input, init) => fetch(input, init) }: Options) {
+  constructor({ siteId, listId, getToken, fetchFn = (input, init) => fetch(input, init), timeoutMs = 30_000 }: Options) {
     this.base = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`
     this.getToken = getToken
     this.fetchFn = fetchFn
+    this.timeoutMs = timeoutMs
   }
 
   async listForDay(day: Date): Promise<Task[]> {
@@ -60,6 +64,7 @@ export class SharePointTaskRepository implements TaskRepository {
     try {
       res = await this.fetchFn(url, {
         ...init,
+        signal: AbortSignal.timeout(this.timeoutMs),
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
