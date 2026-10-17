@@ -190,7 +190,7 @@ input, select {
 
 .fab {
   position: fixed; right: 24px; bottom: 24px; z-index: 10; width: 60px; height: 60px; padding: 0;
-  border-radius: 50%; font-size: 30px; line-height: 1; color: var(--neu-accent-text); box-shadow: var(--neu-raise);
+  border-radius: 50%; font-size: 30px; line-height: 1; background: var(--neu-accent-text); color: var(--neu-on-accent); box-shadow: var(--neu-raise);
 }
 
 .day-switch { margin: 18px 0 14px; padding: 6px; border-radius: 16px; }
