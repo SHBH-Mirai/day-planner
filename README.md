@@ -18,7 +18,7 @@ sign-in; `sharepoint` uses a SharePoint list (see `docs/setup-microsoft.md`).
 
 ## Teams (Power Automate)
 
-Day Planner also runs in Teams with no code to host: four Power Automate
+**This is the live setup.** Day Planner runs in Teams with no code to host: four Power Automate
 flows in the solution **Day Planner** post cards from the Flow bot in your
 chat and read and write the same SharePoint lists on `/sites/Development`.
 

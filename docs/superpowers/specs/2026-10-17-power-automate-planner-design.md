@@ -1,6 +1,6 @@
 # Day Planner in Teams with Power Automate — design spec
 
-Date: 2026-10-17 · Owner: Shubh · Status: draft for review
+Date: 2026-10-17 · Owner: Shubh · Status: live (built and verified 2026-10-17)
 
 ## Goal
 
@@ -115,7 +115,7 @@ only. This duplication is deliberate and limited to those three.
 ## Out of scope
 - Typed commands, editing or deleting tasks from Teams (done in the SharePoint list), the
   no-break warning in Teams, template or settings cards, changing the Teams catalog app.
-- The `feat/teams-bot` branch stays on GitHub unmerged, as a reference.
+- The Azure bot branch `feat/teams-bot` was deleted with Shubh's OK (last commit e9cf8c2); the old tab app was removed from the catalog.
 
 [tc]: https://learn.microsoft.com/en-us/connectors/teams/
 [code]: https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code
