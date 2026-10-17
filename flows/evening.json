@@ -1,0 +1,837 @@
+{
+ "properties": {
+  "connectionReferences": {
+   "shared_sharepointonline": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedsharepointonline_45d18"
+    },
+    "api": {
+     "name": "shared_sharepointonline"
+    }
+   },
+   "shared_teams": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedteams_b45b2"
+    },
+    "api": {
+     "name": "shared_teams"
+    }
+   }
+  },
+  "definition": {
+   "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": {
+    "$authentication": {
+     "defaultValue": {},
+     "type": "SecureObject"
+    },
+    "$connections": {
+     "defaultValue": {},
+     "type": "Object"
+    }
+   },
+   "triggers": {
+    "Recurrence": {
+     "type": "Recurrence",
+     "recurrence": {
+      "frequency": "Day",
+      "interval": 1,
+      "schedule": {
+       "hours": [
+        "22"
+       ],
+       "minutes": [
+        30
+       ]
+      },
+      "timeZone": "India Standard Time"
+     }
+    }
+   },
+   "actions": {
+    "Today": {
+     "type": "Compose",
+     "inputs": "@convertFromUtc(utcNow(), 'India Standard Time', 'yyyy-MM-dd')"
+    },
+    "Day_start": {
+     "type": "Compose",
+     "runAfter": {
+      "Today": [
+       "Succeeded"
+      ]
+     },
+     "inputs": "@convertToUtc(concat(outputs('Today'), 'T00:00:00'), 'India Standard Time')"
+    },
+    "Init_planned": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "planned",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Day_start": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_actual": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "actual",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_planned": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_office": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "office",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_actual": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_freelance": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "freelance",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_office": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_youtube": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "youtube",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_freelance": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_done": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "done",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_youtube": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_skipped": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "skipped",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_done": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Get_today": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+       "$orderby": "TaskStart asc",
+       "$filter": "TaskStart ge '@{outputs('Day_start')}' and TaskStart lt '@{addDays(outputs('Day_start'), 1)}'"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Init_skipped": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Each_task": {
+     "type": "Foreach",
+     "runAfter": {
+      "Get_today": [
+       "Succeeded"
+      ]
+     },
+     "foreach": "@body('Get_today')?['value']",
+     "runtimeConfiguration": {
+      "concurrency": {
+       "repetitions": 1
+      }
+     },
+     "actions": {
+      "Planned_min": {
+       "type": "Compose",
+       "inputs": "@div(add(sub(ticks(coalesce(items('Each_task')?['TaskOriginalEnd'], items('Each_task')?['TaskEnd'])), ticks(items('Each_task')?['TaskStart'])), 300000000), 600000000)"
+      },
+      "Actual_min": {
+       "type": "Compose",
+       "runAfter": {
+        "Planned_min": [
+         "Succeeded"
+        ]
+       },
+       "inputs": "@div(add(sub(ticks(coalesce(items('Each_task')?['TaskActualEnd'], items('Each_task')?['TaskStart'])), ticks(coalesce(items('Each_task')?['TaskActualStart'], items('Each_task')?['TaskStart']))), 300000000), 600000000)"
+      },
+      "Add_planned": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Actual_min": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "planned",
+        "value": "@outputs('Planned_min')"
+       }
+      },
+      "Add_actual": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_planned": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "actual",
+        "value": "@if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), 0)"
+       }
+      },
+      "Add_office": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_actual": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "office",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'office'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_freelance": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_office": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "freelance",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'freelance'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_youtube": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_freelance": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "youtube",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'youtube'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_done": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_youtube": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "done",
+        "value": "@if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), 1, 0)"
+       }
+      },
+      "Add_skipped": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_done": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "skipped",
+        "value": "@if(equals(items('Each_task')?['TaskStatus']?['Value'], 'skipped'), 1, 0)"
+       }
+      }
+     }
+    },
+    "Get_summary_row": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "45d16b27-f8e1-48b4-9b1c-8f0070ffeb4b",
+       "$filter": "Title eq '@{outputs('Today')}'"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Each_task": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Row_exists": {
+     "type": "If",
+     "runAfter": {
+      "Get_summary_row": [
+       "Succeeded"
+      ]
+     },
+     "expression": {
+      "and": [
+       {
+        "greater": [
+         "@length(body('Get_summary_row')?['value'])",
+         0
+        ]
+       }
+      ]
+     },
+     "actions": {
+      "Update_row": {
+       "type": "OpenApiConnection",
+       "inputs": {
+        "parameters": {
+         "dataset": "https://datenshi.sharepoint.com/sites/Development",
+         "table": "45d16b27-f8e1-48b4-9b1c-8f0070ffeb4b",
+         "id": "@first(body('Get_summary_row')?['value'])?['ID']",
+         "item/Title": "@outputs('Today')",
+         "item/Day": "@{concat(outputs('Today'), 'T00:00:00Z')}",
+         "item/PlannedMin": "@variables('planned')",
+         "item/ActualMin": "@variables('actual')",
+         "item/OfficeMin": "@variables('office')",
+         "item/FreelanceMin": "@variables('freelance')",
+         "item/YoutubeMin": "@variables('youtube')",
+         "item/Done": "@variables('done')",
+         "item/Skipped": "@variables('skipped')"
+        },
+        "host": {
+         "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+         "connectionName": "shared_sharepointonline",
+         "operationId": "PatchItem"
+        },
+        "authentication": "@parameters('$authentication')"
+       }
+      }
+     },
+     "else": {
+      "actions": {
+       "Create_row": {
+        "type": "OpenApiConnection",
+        "inputs": {
+         "parameters": {
+          "dataset": "https://datenshi.sharepoint.com/sites/Development",
+          "table": "45d16b27-f8e1-48b4-9b1c-8f0070ffeb4b",
+          "item/Title": "@outputs('Today')",
+          "item/Day": "@{concat(outputs('Today'), 'T00:00:00Z')}",
+          "item/PlannedMin": "@variables('planned')",
+          "item/ActualMin": "@variables('actual')",
+          "item/OfficeMin": "@variables('office')",
+          "item/FreelanceMin": "@variables('freelance')",
+          "item/YoutubeMin": "@variables('youtube')",
+          "item/Done": "@variables('done')",
+          "item/Skipped": "@variables('skipped')"
+         },
+         "host": {
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+          "connectionName": "shared_sharepointonline",
+          "operationId": "PostItem"
+         },
+         "authentication": "@parameters('$authentication')"
+        }
+       }
+      }
+     }
+    },
+    "Summary_rows": {
+     "type": "Select",
+     "runAfter": {
+      "Row_exists": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_today')?['value']",
+      "select": {
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat('planned ', string(div(add(sub(ticks(coalesce(item()?['TaskOriginalEnd'], item()?['TaskEnd'])), ticks(item()?['TaskStart'])), 300000000), 600000000)), ' · actual ', if(empty(item()?['TaskActualEnd']), '–', string(div(add(sub(ticks(coalesce(item()?['TaskActualEnd'], item()?['TaskStart'])), ticks(coalesce(item()?['TaskActualStart'], item()?['TaskStart']))), 300000000), 600000000))), ' min · ', item()?['TaskStatus']?['Value'])}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "Get_tomorrow": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+       "$orderby": "TaskStart asc",
+       "$filter": "TaskStart ge '@{addDays(outputs('Day_start'), 1)}' and TaskStart lt '@{addDays(addDays(outputs('Day_start'), 1), 1)}'"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Summary_rows": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Tomorrow_rows": {
+     "type": "Select",
+     "runAfter": {
+      "Get_tomorrow": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_tomorrow')?['value']",
+      "select": {
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "Card": {
+     "type": "Compose",
+     "runAfter": {
+      "Tomorrow_rows": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "type": "AdaptiveCard",
+      "version": "1.4",
+      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+      "body": [
+       {
+        "type": "Container",
+        "style": "accent",
+        "bleed": true,
+        "items": [
+         {
+          "type": "ColumnSet",
+          "columns": [
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat('Your day · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "wrap": true,
+              "weight": "Bolder"
+             }
+            ]
+           },
+           {
+            "type": "Column",
+            "width": "auto",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat(string(variables('done')), ' of ', string(length(body('Get_today')?['value'])), ' done')}",
+              "wrap": true,
+              "weight": "Bolder",
+              "horizontalAlignment": "Right",
+              "color": "Good"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "ColumnSet",
+        "spacing": "Medium",
+        "columns": [
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Planned",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('planned'), 60), concat(string(variables('planned')), 'm'), concat(string(div(variables('planned'), 60)), 'h ', string(mod(variables('planned'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Actual",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('actual'), 60), concat(string(variables('actual')), 'm'), concat(string(div(variables('actual'), 60)), 'h ', string(mod(variables('actual'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Skipped",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{string(variables('skipped'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "ColumnSet",
+        "columns": [
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Office",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Accent"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('office'), 60), concat(string(variables('office')), 'm'), concat(string(div(variables('office'), 60)), 'h ', string(mod(variables('office'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Freelance",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Good"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('freelance'), 60), concat(string(variables('freelance')), 'm'), concat(string(div(variables('freelance'), 60)), 'h ', string(mod(variables('freelance'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "YouTube",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Attention"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('youtube'), 60), concat(string(variables('youtube')), 'm'), concat(string(div(variables('youtube'), 60)), 'h ', string(mod(variables('youtube'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TextBlock",
+        "text": "Tasks",
+        "wrap": true,
+        "weight": "Bolder",
+        "isSubtle": true,
+        "spacing": "Medium",
+        "separator": true
+       },
+       {
+        "type": "Container",
+        "items": "@if(empty(body('Summary_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks today.\",\"isSubtle\":true,\"wrap\":true}]'), body('Summary_rows'))"
+       },
+       {
+        "type": "TextBlock",
+        "text": "Tomorrow",
+        "wrap": true,
+        "weight": "Bolder",
+        "isSubtle": true,
+        "spacing": "Medium",
+        "separator": true
+       },
+       {
+        "type": "Container",
+        "items": "@if(empty(body('Tomorrow_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true,\"wrap\":true}]'), body('Tomorrow_rows'))"
+       }
+      ],
+      "actions": [
+       {
+        "type": "Action.Submit",
+        "id": "add",
+        "title": "+ Plan tomorrow",
+        "data": {
+         "choice": "add"
+        }
+       }
+      ]
+     }
+    },
+    "Post_evening": {
+     "runAfter": {
+      "Card": [
+       "Succeeded"
+      ]
+     },
+     "limit": {
+      "timeout": "PT2H"
+     },
+     "type": "OpenApiConnectionWebhook",
+     "inputs": {
+      "parameters": {
+       "poster": "Flow bot",
+       "location": "Chat with Flow bot",
+       "body/body/messageBody": "@{string(outputs('Card'))}",
+       "body/body/updateMessage": "Opening the Add task form…",
+       "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+       "connectionName": "shared_teams",
+       "operationId": "PostCardAndWaitForResponse"
+      },
+      "authentication": "@parameters('$authentication')"
+     }
+    },
+    "Add_task": {
+     "type": "Workflow",
+     "runAfter": {
+      "Post_evening": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "host": {
+       "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
+      },
+      "body": {
+       "text": "@addDays(concat(outputs('Today'), 'T00:00:00Z'), 1, 'yyyy-MM-dd')",
+       "text_1": "09:00"
+      }
+     }
+    },
+    "No_answer": {
+     "type": "Compose",
+     "runAfter": {
+      "Post_evening": [
+       "TimedOut"
+      ]
+     },
+     "inputs": "no answer"
+    },
+    "Finished": {
+     "type": "Compose",
+     "runAfter": {
+      "Add_task": [
+       "Succeeded",
+       "Skipped",
+       "Failed"
+      ]
+     },
+     "inputs": "done"
+    }
+   },
+   "outputs": {}
+  }
+ },
+ "schemaVersion": "1.0.0.0"
+}

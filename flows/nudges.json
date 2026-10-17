@@ -1,0 +1,653 @@
+{
+ "properties": {
+  "connectionReferences": {
+   "shared_sharepointonline": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedsharepointonline_45d18"
+    },
+    "api": {
+     "name": "shared_sharepointonline"
+    }
+   },
+   "shared_teams": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedteams_b45b2"
+    },
+    "api": {
+     "name": "shared_teams"
+    }
+   }
+  },
+  "definition": {
+   "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": {
+    "$authentication": {
+     "defaultValue": {},
+     "type": "SecureObject"
+    },
+    "$connections": {
+     "defaultValue": {},
+     "type": "Object"
+    }
+   },
+   "triggers": {
+    "When_an_item_is_created_or_modified": {
+     "recurrence": {
+      "frequency": "Minute",
+      "interval": 1
+     },
+     "splitOn": "@triggerOutputs()?['body/value']",
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetOnUpdatedItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "conditions": [
+      {
+       "expression": "@equals(triggerOutputs()?['body/TaskStatus/Value'], 'planned')"
+      }
+     ]
+    }
+   },
+   "actions": {
+    "Get_settings": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "fc63f483-9505-4589-a627-11c6d2930fef",
+       "$top": 1
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     }
+    },
+    "Start_on": {
+     "runAfter": {
+      "Get_settings": [
+       "Succeeded"
+      ]
+     },
+     "type": "Compose",
+     "inputs": "@coalesce(first(body('Get_settings')?['value'])?['StartNudges'], true)"
+    },
+    "End_on": {
+     "runAfter": {
+      "Get_settings": [
+       "Succeeded"
+      ]
+     },
+     "type": "Compose",
+     "inputs": "@coalesce(first(body('Get_settings')?['value'])?['EndNudges'], true)"
+    },
+    "Start_nudge": {
+     "type": "Scope",
+     "runAfter": {
+      "Start_on": [
+       "Succeeded"
+      ],
+      "End_on": [
+       "Succeeded"
+      ]
+     },
+     "actions": {
+      "Condition_start_due": {
+       "type": "If",
+       "expression": {
+        "and": [
+         {
+          "equals": [
+           "@outputs('Start_on')",
+           true
+          ]
+         },
+         {
+          "equals": [
+           "@empty(triggerOutputs()?['body/TaskActualStart'])",
+           true
+          ]
+         },
+         {
+          "greater": [
+           "@ticks(triggerOutputs()?['body/TaskStart'])",
+           "@ticks(addMinutes(utcNow(), -10))"
+          ]
+         }
+        ]
+       },
+       "actions": {
+        "Delay_until_start": {
+         "type": "Wait",
+         "inputs": {
+          "until": {
+           "timestamp": "@triggerOutputs()?['body/TaskStart']"
+          }
+         }
+        },
+        "Get_item_start": {
+         "type": "OpenApiConnection",
+         "inputs": {
+          "parameters": {
+           "dataset": "https://datenshi.sharepoint.com/sites/Development",
+           "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+           "id": "@triggerOutputs()?['body/ID']"
+          },
+          "host": {
+           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+           "connectionName": "shared_sharepointonline",
+           "operationId": "GetItem"
+          },
+          "authentication": "@parameters('$authentication')"
+         },
+         "runAfter": {
+          "Delay_until_start": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Condition_start_fresh": {
+         "runAfter": {
+          "Get_item_start": [
+           "Succeeded"
+          ]
+         },
+         "type": "If",
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@body('Get_item_start')?['Modified']",
+             "@triggerOutputs()?['body/Modified']"
+            ]
+           },
+           {
+            "equals": [
+             "@body('Get_item_start')?['TaskStatus']?['Value']",
+             "planned"
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Start_card": {
+           "type": "Compose",
+           "inputs": {
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "body": [
+             {
+              "type": "Container",
+              "style": "accent",
+              "bleed": true,
+              "items": [
+               {
+                "type": "ColumnSet",
+                "columns": [
+                 {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "Time to start",
+                    "wrap": true,
+                    "weight": "Bolder"
+                   }
+                  ]
+                 },
+                 {
+                  "type": "Column",
+                  "width": "auto",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "wrap": true,
+                    "weight": "Bolder",
+                    "horizontalAlignment": "Right",
+                    "color": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                   }
+                  ]
+                 }
+                ]
+               }
+              ]
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{body('Get_item_start')?['Title']}",
+              "wrap": true,
+              "size": "Large",
+              "weight": "Bolder",
+              "spacing": "Medium"
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{concat(convertFromUtc(body('Get_item_start')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' · ', string(div(add(sub(ticks(body('Get_item_start')?['TaskEnd']), ticks(body('Get_item_start')?['TaskStart'])), 300000000), 600000000)), ' min')}",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "None"
+             }
+            ],
+            "actions": [
+             {
+              "type": "Action.Submit",
+              "id": "started",
+              "title": "✓ I've started",
+              "data": {
+               "choice": "started"
+              }
+             }
+            ]
+           }
+          },
+          "Post_START": {
+           "runAfter": {
+            "Start_card": [
+             "Succeeded"
+            ]
+           },
+           "limit": {
+            "timeout": "PT3H"
+           },
+           "type": "OpenApiConnectionWebhook",
+           "inputs": {
+            "parameters": {
+             "poster": "Flow bot",
+             "location": "Chat with Flow bot",
+             "body/body/messageBody": "@{string(outputs('Start_card'))}",
+             "body/body/updateMessage": "Got it, start time saved.",
+             "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+             "connectionName": "shared_teams",
+             "operationId": "PostCardAndWaitForResponse"
+            },
+            "authentication": "@parameters('$authentication')"
+           }
+          },
+          "Start_no_answer": {
+           "type": "Compose",
+           "runAfter": {
+            "Post_START": [
+             "TimedOut"
+            ]
+           },
+           "inputs": "no answer"
+          },
+          "Get_item_started": {
+           "type": "OpenApiConnection",
+           "inputs": {
+            "parameters": {
+             "dataset": "https://datenshi.sharepoint.com/sites/Development",
+             "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+             "id": "@triggerOutputs()?['body/ID']"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+             "connectionName": "shared_sharepointonline",
+             "operationId": "GetItem"
+            },
+            "authentication": "@parameters('$authentication')"
+           },
+           "runAfter": {
+            "Post_START": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Condition_not_started_yet": {
+           "runAfter": {
+            "Get_item_started": [
+             "Succeeded"
+            ]
+           },
+           "type": "If",
+           "expression": {
+            "and": [
+             {
+              "equals": [
+               "@body('Get_item_started')?['TaskStatus']?['Value']",
+               "planned"
+              ]
+             },
+             {
+              "equals": [
+               "@empty(body('Get_item_started')?['TaskActualStart'])",
+               true
+              ]
+             }
+            ]
+           },
+           "actions": {
+            "Update_item_started": {
+             "type": "OpenApiConnection",
+             "inputs": {
+              "parameters": {
+               "dataset": "https://datenshi.sharepoint.com/sites/Development",
+               "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+               "id": "@triggerOutputs()?['body/ID']",
+               "item/Title": "@body('Get_item_started')?['Title']",
+               "item/TaskActualStart": "@utcNow()"
+              },
+              "host": {
+               "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+               "connectionName": "shared_sharepointonline",
+               "operationId": "PatchItem"
+              },
+              "authentication": "@parameters('$authentication')"
+             }
+            }
+           },
+           "else": {
+            "actions": {}
+           }
+          },
+          "Start_finished": {
+           "runAfter": {
+            "Condition_not_started_yet": [
+             "Succeeded",
+             "Skipped"
+            ]
+           },
+           "type": "Compose",
+           "inputs": "done"
+          }
+         },
+         "else": {
+          "actions": {}
+         }
+        }
+       },
+       "else": {
+        "actions": {}
+       }
+      }
+     }
+    },
+    "Stop_nudge": {
+     "type": "Scope",
+     "runAfter": {
+      "Start_on": [
+       "Succeeded"
+      ],
+      "End_on": [
+       "Succeeded"
+      ]
+     },
+     "actions": {
+      "Condition_stop_on": {
+       "type": "If",
+       "expression": {
+        "and": [
+         {
+          "equals": [
+           "@outputs('End_on')",
+           true
+          ]
+         }
+        ]
+       },
+       "actions": {
+        "Delay_until_end": {
+         "type": "Wait",
+         "inputs": {
+          "until": {
+           "timestamp": "@triggerOutputs()?['body/TaskEnd']"
+          }
+         }
+        },
+        "Get_item_end": {
+         "type": "OpenApiConnection",
+         "inputs": {
+          "parameters": {
+           "dataset": "https://datenshi.sharepoint.com/sites/Development",
+           "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+           "id": "@triggerOutputs()?['body/ID']"
+          },
+          "host": {
+           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+           "connectionName": "shared_sharepointonline",
+           "operationId": "GetItem"
+          },
+          "authentication": "@parameters('$authentication')"
+         },
+         "runAfter": {
+          "Delay_until_end": [
+           "Succeeded"
+          ]
+         }
+        },
+        "Condition_end_fresh": {
+         "runAfter": {
+          "Get_item_end": [
+           "Succeeded"
+          ]
+         },
+         "type": "If",
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@body('Get_item_end')?['Modified']",
+             "@triggerOutputs()?['body/Modified']"
+            ]
+           },
+           {
+            "equals": [
+             "@body('Get_item_end')?['TaskStatus']?['Value']",
+             "planned"
+            ]
+           },
+           {
+            "greater": [
+             "@ticks(body('Get_item_end')?['TaskEnd'])",
+             "@ticks(addMinutes(utcNow(), -10))"
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Stop_card": {
+           "type": "Compose",
+           "inputs": {
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "body": [
+             {
+              "type": "Container",
+              "style": "warning",
+              "bleed": true,
+              "items": [
+               {
+                "type": "ColumnSet",
+                "columns": [
+                 {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "Time's up",
+                    "wrap": true,
+                    "weight": "Bolder"
+                   }
+                  ]
+                 },
+                 {
+                  "type": "Column",
+                  "width": "auto",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "wrap": true,
+                    "weight": "Bolder",
+                    "horizontalAlignment": "Right",
+                    "color": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                   }
+                  ]
+                 }
+                ]
+               }
+              ]
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{body('Get_item_end')?['Title']}",
+              "wrap": true,
+              "size": "Large",
+              "weight": "Bolder",
+              "spacing": "Medium"
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{if(empty(body('Get_item_end')?['TaskActualStart']), concat(convertFromUtc(body('Get_item_end')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(body('Get_item_end')?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' · ', string(div(add(sub(ticks(body('Get_item_end')?['TaskEnd']), ticks(body('Get_item_end')?['TaskStart'])), 300000000), 600000000)), ' min'), concat('Started ', convertFromUtc(coalesce(body('Get_item_end')?['TaskActualStart'], body('Get_item_end')?['TaskStart']), 'India Standard Time', 'HH:mm'), ' · ran ', string(div(add(sub(ticks(utcNow()), ticks(coalesce(body('Get_item_end')?['TaskActualStart'], body('Get_item_end')?['TaskStart']))), 300000000), 600000000)), ' min'))}",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "None"
+             }
+            ],
+            "actions": [
+             {
+              "type": "Action.Submit",
+              "id": "done",
+              "title": "✓ Done",
+              "data": {
+               "choice": "done"
+              }
+             },
+             {
+              "type": "Action.Submit",
+              "id": "plus15",
+              "title": "+15 min",
+              "data": {
+               "choice": "plus15"
+              }
+             },
+             {
+              "type": "Action.Submit",
+              "id": "skip",
+              "title": "Skip",
+              "data": {
+               "choice": "skip"
+              }
+             }
+            ]
+           }
+          },
+          "Post_STOP": {
+           "runAfter": {
+            "Stop_card": [
+             "Succeeded"
+            ]
+           },
+           "limit": {
+            "timeout": "PT1H"
+           },
+           "type": "OpenApiConnectionWebhook",
+           "inputs": {
+            "parameters": {
+             "poster": "Flow bot",
+             "location": "Chat with Flow bot",
+             "body/body/messageBody": "@{string(outputs('Stop_card'))}",
+             "body/body/updateMessage": "Got it, saved to Day Planner.",
+             "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+             "connectionName": "shared_teams",
+             "operationId": "PostCardAndWaitForResponse"
+            },
+            "authentication": "@parameters('$authentication')"
+           }
+          },
+          "Stop_no_answer": {
+           "type": "Compose",
+           "runAfter": {
+            "Post_STOP": [
+             "TimedOut"
+            ]
+           },
+           "inputs": "no answer"
+          },
+          "Choice": {
+           "runAfter": {
+            "Post_STOP": [
+             "Succeeded"
+            ]
+           },
+           "type": "Compose",
+           "inputs": "@coalesce(body('Post_STOP')?['data']?['choice'], body('Post_STOP')?['submitActionId'], '')"
+          },
+          "Update_item_after_stop": {
+           "type": "OpenApiConnection",
+           "inputs": {
+            "parameters": {
+             "dataset": "https://datenshi.sharepoint.com/sites/Development",
+             "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+             "id": "@triggerOutputs()?['body/ID']",
+             "item/Title": "@body('Get_item_end')?['Title']",
+             "item/TaskEnd": "@if(equals(outputs('Choice'), 'plus15'), addMinutes(if(greater(ticks(body('Get_item_end')?['TaskEnd']), ticks(utcNow())), body('Get_item_end')?['TaskEnd'], utcNow()), 15), body('Get_item_end')?['TaskEnd'])",
+             "item/TaskActualEnd": "@if(equals(outputs('Choice'), 'done'), utcNow(), body('Get_item_end')?['TaskActualEnd'])",
+             "item/TaskStatus/Value": "@if(equals(outputs('Choice'), 'done'), 'done', if(equals(outputs('Choice'), 'skip'), 'skipped', 'planned'))"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+             "connectionName": "shared_sharepointonline",
+             "operationId": "PatchItem"
+            },
+            "authentication": "@parameters('$authentication')"
+           },
+           "runAfter": {
+            "Choice": [
+             "Succeeded"
+            ]
+           }
+          },
+          "Stop_finished": {
+           "runAfter": {
+            "Update_item_after_stop": [
+             "Succeeded",
+             "Skipped"
+            ]
+           },
+           "type": "Compose",
+           "inputs": "done"
+          }
+         },
+         "else": {
+          "actions": {}
+         }
+        }
+       },
+       "else": {
+        "actions": {}
+       }
+      }
+     }
+    }
+   },
+   "outputs": {}
+  }
+ },
+ "schemaVersion": "1.0.0.0"
+}

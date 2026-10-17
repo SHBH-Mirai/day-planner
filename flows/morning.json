@@ -1,0 +1,457 @@
+{
+ "properties": {
+  "connectionReferences": {
+   "shared_sharepointonline": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedsharepointonline_45d18"
+    },
+    "api": {
+     "name": "shared_sharepointonline"
+    }
+   },
+   "shared_teams": {
+    "runtimeSource": "embedded",
+    "connection": {
+     "connectionReferenceLogicalName": "cr9a0_sharedteams_b45b2"
+    },
+    "api": {
+     "name": "shared_teams"
+    }
+   }
+  },
+  "definition": {
+   "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": {
+    "$authentication": {
+     "defaultValue": {},
+     "type": "SecureObject"
+    },
+    "$connections": {
+     "defaultValue": {},
+     "type": "Object"
+    }
+   },
+   "triggers": {
+    "Recurrence": {
+     "type": "Recurrence",
+     "recurrence": {
+      "frequency": "Day",
+      "interval": 1,
+      "schedule": {
+       "hours": [
+        "6"
+       ],
+       "minutes": [
+        0
+       ]
+      },
+      "timeZone": "India Standard Time"
+     }
+    }
+   },
+   "actions": {
+    "Today": {
+     "type": "Compose",
+     "inputs": "@convertFromUtc(utcNow(), 'India Standard Time', 'yyyy-MM-dd')"
+    },
+    "Weekday": {
+     "type": "Compose",
+     "runAfter": {
+      "Today": [
+       "Succeeded"
+      ]
+     },
+     "inputs": "@convertFromUtc(utcNow(), 'India Standard Time', 'ddd')"
+    },
+    "Day_start": {
+     "type": "Compose",
+     "runAfter": {
+      "Weekday": [
+       "Succeeded"
+      ]
+     },
+     "inputs": "@convertToUtc(concat(outputs('Today'), 'T00:00:00'), 'India Standard Time')"
+    },
+    "Init_total": {
+     "type": "InitializeVariable",
+     "runAfter": {
+      "Day_start": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "variables": [
+       {
+        "name": "total",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     }
+    },
+    "Get_templates": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "13b87cf1-fe6c-4753-8a0a-b51245cb2f64",
+       "$filter": "Active eq 1"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Init_total": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Todays_templates": {
+     "type": "Query",
+     "runAfter": {
+      "Get_templates": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_templates')?['value']",
+      "where": "@and(contains(string(item()?['Days']), concat('\"Value\":\"', outputs('Weekday'), '\"')), not(empty(item()?['StartTime'])), not(empty(item()?['DurationMin'])))"
+     }
+    },
+    "Get_existing": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+       "$orderby": "TaskStart asc",
+       "$filter": "TaskStart ge '@{outputs('Day_start')}' and TaskStart lt '@{addDays(outputs('Day_start'), 1)}'"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Todays_templates": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Each_template": {
+     "type": "Foreach",
+     "runAfter": {
+      "Get_existing": [
+       "Succeeded"
+      ]
+     },
+     "foreach": "@body('Todays_templates')",
+     "runtimeConfiguration": {
+      "concurrency": {
+       "repetitions": 1
+      }
+     },
+     "actions": {
+      "Template_start": {
+       "type": "Compose",
+       "inputs": "@convertToUtc(concat(outputs('Today'), 'T', items('Each_template')?['StartTime'], ':00'), 'India Standard Time')"
+      },
+      "Same_task": {
+       "type": "Query",
+       "runAfter": {
+        "Template_start": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "from": "@body('Get_existing')?['value']",
+        "where": "@and(equals(item()?['Title'], items('Each_template')?['Title']), equals(ticks(item()?['TaskStart']), ticks(outputs('Template_start'))))"
+       }
+      },
+      "Not_created_yet": {
+       "type": "If",
+       "runAfter": {
+        "Same_task": [
+         "Succeeded"
+        ]
+       },
+       "expression": {
+        "and": [
+         {
+          "equals": [
+           "@length(body('Same_task'))",
+           0
+          ]
+         }
+        ]
+       },
+       "actions": {
+        "Create_task": {
+         "type": "OpenApiConnection",
+         "inputs": {
+          "parameters": {
+           "dataset": "https://datenshi.sharepoint.com/sites/Development",
+           "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+           "item/Title": "@items('Each_template')?['Title']",
+           "item/TaskStart": "@outputs('Template_start')",
+           "item/TaskEnd": "@addMinutes(outputs('Template_start'), int(items('Each_template')?['DurationMin']))",
+           "item/TaskOriginalEnd": "@addMinutes(outputs('Template_start'), int(items('Each_template')?['DurationMin']))",
+           "item/TaskCategory/Value": "@coalesce(items('Each_template')?['Category']?['Value'], 'office')",
+           "item/TaskStatus/Value": "planned"
+          },
+          "host": {
+           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+           "connectionName": "shared_sharepointonline",
+           "operationId": "PostItem"
+          },
+          "authentication": "@parameters('$authentication')"
+         }
+        }
+       },
+       "else": {
+        "actions": {}
+       }
+      }
+     }
+    },
+    "Get_today": {
+     "type": "OpenApiConnection",
+     "inputs": {
+      "parameters": {
+       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+       "$orderby": "TaskStart asc",
+       "$filter": "TaskStart ge '@{outputs('Day_start')}' and TaskStart lt '@{addDays(outputs('Day_start'), 1)}'"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+       "connectionName": "shared_sharepointonline",
+       "operationId": "GetItems"
+      },
+      "authentication": "@parameters('$authentication')"
+     },
+     "runAfter": {
+      "Each_template": [
+       "Succeeded",
+       "Failed"
+      ]
+     }
+    },
+    "Sum_minutes": {
+     "type": "Foreach",
+     "runAfter": {
+      "Get_today": [
+       "Succeeded"
+      ]
+     },
+     "foreach": "@body('Get_today')?['value']",
+     "runtimeConfiguration": {
+      "concurrency": {
+       "repetitions": 1
+      }
+     },
+     "actions": {
+      "Add_minutes": {
+       "type": "IncrementVariable",
+       "inputs": {
+        "name": "total",
+        "value": "@div(add(sub(ticks(items('Sum_minutes')?['TaskEnd']), ticks(items('Sum_minutes')?['TaskStart'])), 300000000), 600000000)"
+       }
+      }
+     }
+    },
+    "Rows": {
+     "type": "Select",
+     "runAfter": {
+      "Sum_minutes": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_today')?['value']",
+      "select": {
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "Card": {
+     "type": "Compose",
+     "runAfter": {
+      "Rows": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "type": "AdaptiveCard",
+      "version": "1.4",
+      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+      "body": [
+       {
+        "type": "Container",
+        "style": "accent",
+        "bleed": true,
+        "items": [
+         {
+          "type": "ColumnSet",
+          "columns": [
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat('Today · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "wrap": true,
+              "weight": "Bolder"
+             }
+            ]
+           },
+           {
+            "type": "Column",
+            "width": "auto",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat(string(length(body('Get_today')?['value'])), if(equals(length(body('Get_today')?['value']), 1), ' task · ', ' tasks · '), if(less(variables('total'), 60), concat(string(variables('total')), 'm'), concat(string(div(variables('total'), 60)), 'h ', string(mod(variables('total'), 60)), 'm')))}",
+              "wrap": true,
+              "weight": "Bolder",
+              "horizontalAlignment": "Right"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "Container",
+        "spacing": "Medium",
+        "items": "@if(empty(body('Rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true,\"wrap\":true}]'), body('Rows'))"
+       }
+      ],
+      "actions": [
+       {
+        "type": "Action.Submit",
+        "id": "add",
+        "title": "+ Add task",
+        "data": {
+         "choice": "add"
+        }
+       }
+      ]
+     }
+    },
+    "Post_today": {
+     "runAfter": {
+      "Card": [
+       "Succeeded"
+      ]
+     },
+     "limit": {
+      "timeout": "PT12H"
+     },
+     "type": "OpenApiConnectionWebhook",
+     "inputs": {
+      "parameters": {
+       "poster": "Flow bot",
+       "location": "Chat with Flow bot",
+       "body/body/messageBody": "@{string(outputs('Card'))}",
+       "body/body/updateMessage": "Opening the Add task form…",
+       "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
+      },
+      "host": {
+       "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+       "connectionName": "shared_teams",
+       "operationId": "PostCardAndWaitForResponse"
+      },
+      "authentication": "@parameters('$authentication')"
+     }
+    },
+    "Add_task": {
+     "type": "Workflow",
+     "runAfter": {
+      "Post_today": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "host": {
+       "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
+      },
+      "body": {
+       "text": "@outputs('Today')",
+       "text_1": "@convertFromUtc(addSeconds(utcNow(), sub(300, mod(div(ticks(utcNow()), 10000000), 300))), 'India Standard Time', 'HH:mm')"
+      }
+     }
+    },
+    "No_answer": {
+     "type": "Compose",
+     "runAfter": {
+      "Post_today": [
+       "TimedOut"
+      ]
+     },
+     "inputs": "no answer"
+    },
+    "Finished": {
+     "type": "Compose",
+     "runAfter": {
+      "Add_task": [
+       "Succeeded",
+       "Skipped",
+       "Failed"
+      ]
+     },
+     "inputs": "done"
+    }
+   },
+   "outputs": {}
+  }
+ },
+ "schemaVersion": "1.0.0.0"
+}

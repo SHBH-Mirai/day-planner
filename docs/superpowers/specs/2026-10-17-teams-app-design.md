@@ -1,5 +1,8 @@
 # Day Planner in Teams — design spec
 
+
+> Retired 2026-10-17: the tab app (catalog App ID 68ef3d36-2d57-4209-830f-16a7f344fca2) was removed from the
+> Teams org catalog. Power Automate is the live Teams setup (`2026-10-17-power-automate-planner-design.md`).
 Date: 2026-10-17 · Owner: Shubh · Status: draft, awaiting approval
 
 ## Goal
