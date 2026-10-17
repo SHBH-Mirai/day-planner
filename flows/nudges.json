@@ -160,6 +160,46 @@
           ]
          }
         },
+        "If_Get_item_start_gone": {
+         "type": "If",
+         "runAfter": {
+          "Get_item_start": [
+           "Failed"
+          ]
+         },
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@outputs('Get_item_start')?['statusCode']",
+             404
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Cancel_Get_item_start": {
+           "type": "Terminate",
+           "inputs": {
+            "runStatus": "Cancelled"
+           }
+          }
+         },
+         "else": {
+          "actions": {
+           "Fail_Get_item_start": {
+            "type": "Terminate",
+            "inputs": {
+             "runStatus": "Failed",
+             "runError": {
+              "code": "GetItemFailed",
+              "message": "@{string(outputs('Get_item_start')?['statusCode'])}"
+             }
+            }
+           }
+          }
+         }
+        },
         "Condition_start_fresh": {
          "runAfter": {
           "Get_item_start": [
@@ -456,6 +496,46 @@
             ]
            },
            "inputs": "@coalesce(body('Post_START')?['data']?['choice'], body('Post_START')?['submitActionId'], '')"
+          },
+          "If_Get_item_started_gone": {
+           "type": "If",
+           "runAfter": {
+            "Get_item_started": [
+             "Failed"
+            ]
+           },
+           "expression": {
+            "and": [
+             {
+              "equals": [
+               "@outputs('Get_item_started')?['statusCode']",
+               404
+              ]
+             }
+            ]
+           },
+           "actions": {
+            "Cancel_Get_item_started": {
+             "type": "Terminate",
+             "inputs": {
+              "runStatus": "Cancelled"
+             }
+            }
+           },
+           "else": {
+            "actions": {
+             "Fail_Get_item_started": {
+              "type": "Terminate",
+              "inputs": {
+               "runStatus": "Failed",
+               "runError": {
+                "code": "GetItemFailed",
+                "message": "@{string(outputs('Get_item_started')?['statusCode'])}"
+               }
+              }
+             }
+            }
+           }
           }
          },
          "else": {
@@ -520,6 +600,46 @@
           "Delay_until_end": [
            "Succeeded"
           ]
+         }
+        },
+        "If_Get_item_end_gone": {
+         "type": "If",
+         "runAfter": {
+          "Get_item_end": [
+           "Failed"
+          ]
+         },
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@outputs('Get_item_end')?['statusCode']",
+             404
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Cancel_Get_item_end": {
+           "type": "Terminate",
+           "inputs": {
+            "runStatus": "Cancelled"
+           }
+          }
+         },
+         "else": {
+          "actions": {
+           "Fail_Get_item_end": {
+            "type": "Terminate",
+            "inputs": {
+             "runStatus": "Failed",
+             "runError": {
+              "code": "GetItemFailed",
+              "message": "@{string(outputs('Get_item_end')?['statusCode'])}"
+             }
+            }
+           }
+          }
          }
         },
         "Condition_end_fresh": {

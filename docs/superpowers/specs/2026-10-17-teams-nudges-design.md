@@ -50,6 +50,8 @@ closed. This removes v1's biggest limit for desktop and phone (Teams mobile).
 
 - Writes made by the flow (Started/Done/+15) also trigger the flow. The guard and
   stale checks make those runs end early, at a small cost in actions.
+- A task deleted while its run waits: the run's GetItem gets 404 and the run ends
+  **Cancelled** with no card (added 2026-10-17). Any other GetItem error still fails the run.
 - One run can wait at most 30 days, so only tasks planned less than 30 days ahead nudge.
 - Licensing and limits are GUESS until checked: SharePoint and Teams are standard
   connectors included with M365 business plans; about 6,000 actions per day.
