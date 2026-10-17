@@ -224,3 +224,9 @@ input, select {
 .nudge { padding: 14px 16px; border-left: 4px solid var(--neu-accent); border-radius: 0; }
 .nudge-end { border-left-color: var(--neu-warning); }
 .nudge-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.undo-bar {
+  position: fixed; left: 50%; bottom: 24px; z-index: 15; translate: -50% 0;
+  display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 18px; max-width: calc(100vw - 120px);
+}
+.undo-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

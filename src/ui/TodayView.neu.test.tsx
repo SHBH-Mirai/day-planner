@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import { InMemoryTaskRepository } from '../storage/InMemoryTaskRepository'
@@ -66,6 +66,49 @@ describe('TodayView, neumorphic layout', () => {
     expect(await findCard('Proposal')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(await repo.listForDay(DAY)).toHaveLength(1)
+  })
+
+  test('ticking a task done offers Undo, and Undo puts it back to planned', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    const bar = await screen.findByRole('status', { name: 'Undo' })
+    expect(bar).toHaveTextContent('Marked done: Standup')
+    await userEvent.click(within(bar).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const [t] = await repo.listForDay(DAY)
+      expect(t).toMatchObject({ status: 'planned' })
+      expect(t.actualEnd).toBeUndefined()
+    })
+    expect(within(await findCard('Standup')).getByRole('button', { name: 'Done' })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument()
+  })
+
+  test('Skip offers Undo too', async () => {
+    const repo = await seeded(['Gym', '18:00', '19:00'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: /Gym/ }))
+    await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Skip' }))
+    const bar = await screen.findByRole('status', { name: 'Undo' })
+    expect(bar).toHaveTextContent('Skipped: Gym')
+    await userEvent.click(within(bar).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await repo.listForDay(DAY))[0].status).toBe('planned'))
+  })
+
+  test('the Undo bar goes away by itself after 6 seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const repo = await seeded(['Standup', '09:00', '09:15'])
+      render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+      await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+      expect(await screen.findByRole('status', { name: 'Undo' })).toBeInTheDocument()
+      await act(async () => {
+        vi.advanceTimersByTime(6_100)
+      })
+      expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   test('marks the task that is running now', async () => {

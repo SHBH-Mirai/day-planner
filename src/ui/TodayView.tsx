@@ -17,6 +17,7 @@ import { NeuSurface } from './neu/NeuSurface'
 import { ProgressRing } from './neu/ProgressRing'
 import { Sheet } from './neu/Sheet'
 import { TaskRow } from './neu/TaskRow'
+import { UndoBar } from './neu/UndoBar'
 import { dayTotals } from './neu/totals'
 import { SummaryView } from './SummaryView'
 import { TaskForm } from './TaskForm'
@@ -63,6 +64,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   const [showSummary, setShowSummary] = useState(false)
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
+  // The last Done or Skip on a row, kept for a few seconds so a mis-tap can be taken back.
+  const [undo, setUndo] = useState<{ message: string; restore: () => void } | null>(null)
+  useEffect(() => {
+    if (!undo) return
+    const id = setTimeout(() => setUndo(null), 6_000)
+    return () => clearTimeout(id)
+  }, [undo])
 
   const [nudges, setNudges] = useState<Nudge[]>([])
   const [permission, setPermission] = useState(notificationPermission)
@@ -267,9 +275,17 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
                 task={task}
                 isNow={isNow(task)}
                 onStarted={() => void shown.save({ ...task, actualStart: stamp() })}
-                onDone={() => void shown.save({ ...task, status: 'done', actualEnd: stamp() })}
+                onDone={() => {
+                  void shown.save({ ...task, status: 'done', actualEnd: stamp() })
+                  const list = shown
+                  setUndo({ message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+                }}
                 onPlus15={() => void shown.save(extendTask(task, 15, shown.tasks, now()).updated)}
-                onSkip={() => void shown.save({ ...task, status: 'skipped' })}
+                onSkip={() => {
+                  void shown.save({ ...task, status: 'skipped' })
+                  const list = shown
+                  setUndo({ message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
+                }}
                 onEdit={() => setEditing(task)}
                 onDelete={() => void shown.remove(task.id)}
               />
@@ -278,6 +294,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
         </ol>
       )}
 
+      <UndoBar
+        message={undo?.message ?? null}
+        onUndo={() => {
+          undo?.restore()
+          setUndo(null)
+        }}
+      />
       <Fab aria-label="New task" onClick={() => setAdding(true)} />
     </main>
     </MotionPrefs>
