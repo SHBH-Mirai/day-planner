@@ -104,7 +104,7 @@
      },
      "inputs": {
       "from": "@body('Get_templates')?['value']",
-      "where": "@contains(string(item()?['Days']), concat('\"Value\":\"', outputs('Weekday'), '\"'))"
+      "where": "@and(contains(string(item()?['Days']), concat('\"Value\":\"', outputs('Weekday'), '\"')), not(empty(item()?['StartTime'])), not(empty(item()?['DurationMin'])))"
      }
     },
     "Get_existing": {
@@ -223,7 +223,8 @@
      },
      "runAfter": {
       "Each_template": [
-       "Succeeded"
+       "Succeeded",
+       "Failed"
       ]
      }
     },
@@ -320,6 +321,15 @@
        "text_1": "@convertFromUtc(addSeconds(utcNow(), sub(300, mod(div(ticks(utcNow()), 10000000), 300))), 'India Standard Time', 'HH:mm')"
       }
      }
+    },
+    "No_answer": {
+     "type": "Compose",
+     "runAfter": {
+      "Post_today": [
+       "TimedOut"
+      ]
+     },
+     "inputs": "no answer"
     },
     "Finished": {
      "type": "Compose",

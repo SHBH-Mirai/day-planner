@@ -184,7 +184,39 @@
           ]
          },
          "actions": {
+          "Start_card": {
+           "type": "Compose",
+           "inputs": {
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "body": [
+             {
+              "type": "TextBlock",
+              "wrap": true,
+              "text": "▶ START: @{body('Get_item_start')?['Title']} until @{convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm')}",
+              "size": "Medium",
+              "weight": "Bolder"
+             }
+            ],
+            "actions": [
+             {
+              "type": "Action.Submit",
+              "id": "started",
+              "title": "Started",
+              "data": {
+               "choice": "started"
+              }
+             }
+            ]
+           }
+          },
           "Post_START": {
+           "runAfter": {
+            "Start_card": [
+             "Succeeded"
+            ]
+           },
            "limit": {
             "timeout": "PT3H"
            },
@@ -193,7 +225,7 @@
             "parameters": {
              "poster": "Flow bot",
              "location": "Chat with Flow bot",
-             "body/body/messageBody": "{\"type\": \"AdaptiveCard\", \"version\": \"1.4\", \"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\", \"body\": [{\"type\": \"TextBlock\", \"wrap\": true, \"text\": \"▶ START: @{body('Get_item_start')?['Title']} until @{convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm')}\", \"size\": \"Medium\", \"weight\": \"Bolder\"}], \"actions\": [{\"type\": \"Action.Submit\", \"id\": \"started\", \"title\": \"Started\", \"data\": {\"choice\": \"started\"}}]}",
+             "body/body/messageBody": "@{string(outputs('Start_card'))}",
              "body/body/updateMessage": "Got it, start time saved.",
              "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
             },
@@ -204,6 +236,15 @@
             },
             "authentication": "@parameters('$authentication')"
            }
+          },
+          "Start_no_answer": {
+           "type": "Compose",
+           "runAfter": {
+            "Post_START": [
+             "TimedOut"
+            ]
+           },
+           "inputs": "no answer"
           },
           "Get_item_started": {
            "type": "OpenApiConnection",
@@ -378,7 +419,55 @@
           ]
          },
          "actions": {
+          "Stop_card": {
+           "type": "Compose",
+           "inputs": {
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "body": [
+             {
+              "type": "TextBlock",
+              "wrap": true,
+              "text": "⏹ STOP: @{body('Get_item_end')?['Title']}. Done?",
+              "size": "Medium",
+              "weight": "Bolder"
+             }
+            ],
+            "actions": [
+             {
+              "type": "Action.Submit",
+              "id": "done",
+              "title": "Done",
+              "data": {
+               "choice": "done"
+              }
+             },
+             {
+              "type": "Action.Submit",
+              "id": "plus15",
+              "title": "+15 min",
+              "data": {
+               "choice": "plus15"
+              }
+             },
+             {
+              "type": "Action.Submit",
+              "id": "skip",
+              "title": "Skip",
+              "data": {
+               "choice": "skip"
+              }
+             }
+            ]
+           }
+          },
           "Post_STOP": {
+           "runAfter": {
+            "Stop_card": [
+             "Succeeded"
+            ]
+           },
            "limit": {
             "timeout": "PT1H"
            },
@@ -387,7 +476,7 @@
             "parameters": {
              "poster": "Flow bot",
              "location": "Chat with Flow bot",
-             "body/body/messageBody": "{\"type\": \"AdaptiveCard\", \"version\": \"1.4\", \"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\", \"body\": [{\"type\": \"TextBlock\", \"wrap\": true, \"text\": \"⏹ STOP: @{body('Get_item_end')?['Title']}. Done?\", \"size\": \"Medium\", \"weight\": \"Bolder\"}], \"actions\": [{\"type\": \"Action.Submit\", \"id\": \"done\", \"title\": \"Done\", \"data\": {\"choice\": \"done\"}}, {\"type\": \"Action.Submit\", \"id\": \"plus15\", \"title\": \"+15 min\", \"data\": {\"choice\": \"plus15\"}}, {\"type\": \"Action.Submit\", \"id\": \"skip\", \"title\": \"Skip\", \"data\": {\"choice\": \"skip\"}}]}",
+             "body/body/messageBody": "@{string(outputs('Stop_card'))}",
              "body/body/updateMessage": "Got it, saved to Day Planner.",
              "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
             },
@@ -398,6 +487,15 @@
             },
             "authentication": "@parameters('$authentication')"
            }
+          },
+          "Stop_no_answer": {
+           "type": "Compose",
+           "runAfter": {
+            "Post_STOP": [
+             "TimedOut"
+            ]
+           },
+           "inputs": "no answer"
           },
           "Choice": {
            "runAfter": {

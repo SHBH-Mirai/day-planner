@@ -557,10 +557,19 @@
        "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
       },
       "body": {
-       "text": "@convertFromUtc(addDays(utcNow(), 1), 'India Standard Time', 'yyyy-MM-dd')",
+       "text": "@addDays(concat(outputs('Today'), 'T00:00:00Z'), 1, 'yyyy-MM-dd')",
        "text_1": "09:00"
       }
      }
+    },
+    "No_answer": {
+     "type": "Compose",
+     "runAfter": {
+      "Post_evening": [
+       "TimedOut"
+      ]
+     },
+     "inputs": "no answer"
     },
     "Finished": {
      "type": "Compose",
