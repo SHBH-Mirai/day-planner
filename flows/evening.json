@@ -413,7 +413,7 @@
       }
      }
     },
-    "Summary_lines": {
+    "Summary_rows": {
      "type": "Select",
      "runAfter": {
       "Row_exists": [
@@ -423,9 +423,44 @@
      "inputs": {
       "from": "@body('Get_today')?['value']",
       "select": {
-       "type": "TextBlock",
-       "wrap": true,
-       "text": "@concat(item()?['Title'], ': planned ', string(div(add(sub(ticks(coalesce(item()?['TaskOriginalEnd'], item()?['TaskEnd'])), ticks(item()?['TaskStart'])), 300000000), 600000000)), ' · actual ', if(empty(item()?['TaskActualEnd']), '–', string(div(add(sub(ticks(coalesce(item()?['TaskActualEnd'], item()?['TaskStart'])), ticks(coalesce(item()?['TaskActualStart'], item()?['TaskStart']))), 300000000), 600000000))), ' min · ', item()?['TaskStatus']?['Value'])"
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat('planned ', string(div(add(sub(ticks(coalesce(item()?['TaskOriginalEnd'], item()?['TaskEnd'])), ticks(item()?['TaskStart'])), 300000000), 600000000)), ' · actual ', if(empty(item()?['TaskActualEnd']), '–', string(div(add(sub(ticks(coalesce(item()?['TaskActualEnd'], item()?['TaskStart'])), ticks(coalesce(item()?['TaskActualStart'], item()?['TaskStart']))), 300000000), 600000000))), ' min · ', item()?['TaskStatus']?['Value'])}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
       }
      }
     },
@@ -446,12 +481,12 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Summary_lines": [
+      "Summary_rows": [
        "Succeeded"
       ]
      }
     },
-    "Tomorrow_lines": {
+    "Tomorrow_rows": {
      "type": "Select",
      "runAfter": {
       "Get_tomorrow": [
@@ -461,16 +496,51 @@
      "inputs": {
       "from": "@body('Get_tomorrow')?['value']",
       "select": {
-       "type": "TextBlock",
-       "wrap": true,
-       "text": "@concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), '–', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' ', item()?['Title'], ' · ', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1))), ' · ', item()?['TaskStatus']?['Value'])"
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
       }
      }
     },
     "Card": {
      "type": "Compose",
      "runAfter": {
-      "Tomorrow_lines": [
+      "Tomorrow_rows": [
        "Succeeded"
       ]
      },
@@ -480,38 +550,215 @@
       "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
       "body": [
        {
-        "type": "TextBlock",
-        "size": "Medium",
-        "weight": "Bolder",
-        "wrap": true,
-        "text": "@concat('Summary · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))"
-       },
-       {
         "type": "Container",
-        "items": "@if(empty(body('Summary_lines')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks today.\",\"isSubtle\":true}]'), body('Summary_lines'))"
+        "style": "accent",
+        "bleed": true,
+        "items": [
+         {
+          "type": "ColumnSet",
+          "columns": [
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat('Your day · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "wrap": true,
+              "weight": "Bolder"
+             }
+            ]
+           },
+           {
+            "type": "Column",
+            "width": "auto",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat(string(variables('done')), ' of ', string(length(body('Get_today')?['value'])), ' done')}",
+              "wrap": true,
+              "weight": "Bolder",
+              "horizontalAlignment": "Right",
+              "color": "Good"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "ColumnSet",
+        "spacing": "Medium",
+        "columns": [
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Planned",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('planned'), 60), concat(string(variables('planned')), 'm'), concat(string(div(variables('planned'), 60)), 'h ', string(mod(variables('planned'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Actual",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('actual'), 60), concat(string(variables('actual')), 'm'), concat(string(div(variables('actual'), 60)), 'h ', string(mod(variables('actual'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Skipped",
+            "wrap": true,
+            "isSubtle": true,
+            "size": "Small"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{string(variables('skipped'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "ColumnSet",
+        "columns": [
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Office",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Accent"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('office'), 60), concat(string(variables('office')), 'm'), concat(string(div(variables('office'), 60)), 'h ', string(mod(variables('office'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "Freelance",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Good"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('freelance'), 60), concat(string(variables('freelance')), 'm'), concat(string(div(variables('freelance'), 60)), 'h ', string(mod(variables('freelance'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         },
+         {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+           {
+            "type": "TextBlock",
+            "text": "YouTube",
+            "wrap": true,
+            "size": "Small",
+            "weight": "Bolder",
+            "color": "Attention"
+           },
+           {
+            "type": "TextBlock",
+            "text": "@{if(less(variables('youtube'), 60), concat(string(variables('youtube')), 'm'), concat(string(div(variables('youtube'), 60)), 'h ', string(mod(variables('youtube'), 60)), 'm'))}",
+            "wrap": true,
+            "size": "Large",
+            "weight": "Bolder",
+            "spacing": "None"
+           }
+          ]
+         }
+        ]
        },
        {
         "type": "TextBlock",
+        "text": "Tasks",
         "wrap": true,
         "weight": "Bolder",
-        "text": "@concat('Office ', string(variables('office')), ' min · Freelance ', string(variables('freelance')), ' min · YouTube ', string(variables('youtube')), ' min')"
-       },
-       {
-        "type": "TextBlock",
-        "size": "Medium",
-        "weight": "Bolder",
-        "text": "Tomorrow",
+        "isSubtle": true,
+        "spacing": "Medium",
         "separator": true
        },
        {
         "type": "Container",
-        "items": "@if(empty(body('Tomorrow_lines')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks yet.\",\"isSubtle\":true}]'), body('Tomorrow_lines'))"
+        "items": "@if(empty(body('Summary_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks today.\",\"isSubtle\":true,\"wrap\":true}]'), body('Summary_rows'))"
+       },
+       {
+        "type": "TextBlock",
+        "text": "Tomorrow",
+        "wrap": true,
+        "weight": "Bolder",
+        "isSubtle": true,
+        "spacing": "Medium",
+        "separator": true
+       },
+       {
+        "type": "Container",
+        "items": "@if(empty(body('Tomorrow_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true,\"wrap\":true}]'), body('Tomorrow_rows'))"
        }
       ],
       "actions": [
        {
         "type": "Action.Submit",
-        "title": "Add task",
+        "id": "add",
+        "title": "+ Plan tomorrow",
         "data": {
          "choice": "add"
         }

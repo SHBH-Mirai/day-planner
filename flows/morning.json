@@ -74,6 +74,23 @@
      },
      "inputs": "@convertToUtc(concat(outputs('Today'), 'T00:00:00'), 'India Standard Time')"
     },
+    "Init_total": {
+     "type": "InitializeVariable",
+     "runAfter": {
+      "Day_start": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "variables": [
+       {
+        "name": "total",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     }
+    },
     "Get_templates": {
      "type": "OpenApiConnection",
      "inputs": {
@@ -90,7 +107,7 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Day_start": [
+      "Init_total": [
        "Succeeded"
       ]
      }
@@ -228,26 +245,84 @@
       ]
      }
     },
-    "Lines": {
-     "type": "Select",
+    "Sum_minutes": {
+     "type": "Foreach",
      "runAfter": {
       "Get_today": [
+       "Succeeded"
+      ]
+     },
+     "foreach": "@body('Get_today')?['value']",
+     "runtimeConfiguration": {
+      "concurrency": {
+       "repetitions": 1
+      }
+     },
+     "actions": {
+      "Add_minutes": {
+       "type": "IncrementVariable",
+       "inputs": {
+        "name": "total",
+        "value": "@div(add(sub(ticks(items('Sum_minutes')?['TaskEnd']), ticks(items('Sum_minutes')?['TaskStart'])), 300000000), 600000000)"
+       }
+      }
+     }
+    },
+    "Rows": {
+     "type": "Select",
+     "runAfter": {
+      "Sum_minutes": [
        "Succeeded"
       ]
      },
      "inputs": {
       "from": "@body('Get_today')?['value']",
       "select": {
-       "type": "TextBlock",
-       "wrap": true,
-       "text": "@concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), '–', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' ', item()?['Title'], ' · ', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1))), ' · ', item()?['TaskStatus']?['Value'])"
+       "type": "ColumnSet",
+       "separator": true,
+       "spacing": "Small",
+       "columns": [
+        {
+         "type": "Column",
+         "width": "stretch",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{item()?['Title']}",
+           "wrap": true,
+           "weight": "Bolder"
+          },
+          {
+           "type": "TextBlock",
+           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
+           "wrap": true,
+           "isSubtle": true,
+           "spacing": "None"
+          }
+         ]
+        },
+        {
+         "type": "Column",
+         "width": "auto",
+         "verticalContentAlignment": "Center",
+         "items": [
+          {
+           "type": "TextBlock",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "wrap": true,
+           "weight": "Bolder",
+           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+          }
+         ]
+        }
+       ]
       }
      }
     },
     "Card": {
      "type": "Compose",
      "runAfter": {
-      "Lines": [
+      "Rows": [
        "Succeeded"
       ]
      },
@@ -257,21 +332,53 @@
       "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
       "body": [
        {
-        "type": "TextBlock",
-        "size": "Medium",
-        "weight": "Bolder",
-        "wrap": true,
-        "text": "@concat('Today · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))"
+        "type": "Container",
+        "style": "accent",
+        "bleed": true,
+        "items": [
+         {
+          "type": "ColumnSet",
+          "columns": [
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat('Today · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "wrap": true,
+              "weight": "Bolder"
+             }
+            ]
+           },
+           {
+            "type": "Column",
+            "width": "auto",
+            "items": [
+             {
+              "type": "TextBlock",
+              "text": "@{concat(string(length(body('Get_today')?['value'])), if(equals(length(body('Get_today')?['value']), 1), ' task · ', ' tasks · '), if(less(variables('total'), 60), concat(string(variables('total')), 'm'), concat(string(div(variables('total'), 60)), 'h ', string(mod(variables('total'), 60)), 'm')))}",
+              "wrap": true,
+              "weight": "Bolder",
+              "horizontalAlignment": "Right"
+             }
+            ]
+           }
+          ]
+         }
+        ]
        },
        {
         "type": "Container",
-        "items": "@if(empty(body('Lines')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks yet.\",\"isSubtle\":true}]'), body('Lines'))"
+        "spacing": "Medium",
+        "items": "@if(empty(body('Rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true,\"wrap\":true}]'), body('Rows'))"
        }
       ],
       "actions": [
        {
         "type": "Action.Submit",
-        "title": "Add task",
+        "id": "add",
+        "title": "+ Add task",
         "data": {
          "choice": "add"
         }

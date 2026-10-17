@@ -280,16 +280,36 @@
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "body": [
          {
-          "type": "TextBlock",
-          "text": "Add task",
-          "size": "Medium",
-          "weight": "Bolder"
+          "type": "Container",
+          "style": "accent",
+          "bleed": true,
+          "items": [
+           {
+            "type": "ColumnSet",
+            "columns": [
+             {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+               {
+                "type": "TextBlock",
+                "text": "Add task",
+                "wrap": true,
+                "weight": "Bolder"
+               }
+              ]
+             }
+            ]
+           }
+          ]
          },
          {
           "type": "TextBlock",
           "text": "@variables('note')",
           "wrap": true,
-          "isVisible": "@not(empty(variables('note')))"
+          "spacing": "Medium",
+          "isVisible": "@not(empty(variables('note')))",
+          "color": "@{if(startsWith(variables('note'), 'Saved'), 'Good', 'Attention')}"
          },
          {
           "type": "Input.Text",
@@ -305,18 +325,35 @@
           "value": "@variables('date')"
          },
          {
-          "type": "Input.Time",
-          "id": "start",
-          "label": "Start",
-          "isRequired": true,
-          "value": "@variables('start')"
-         },
-         {
-          "type": "Input.Time",
-          "id": "end",
-          "label": "End",
-          "isRequired": true,
-          "value": "@variables('end')"
+          "type": "ColumnSet",
+          "columns": [
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "Input.Time",
+              "id": "start",
+              "label": "Start",
+              "isRequired": true,
+              "value": "@variables('start')"
+             }
+            ]
+           },
+           {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+             {
+              "type": "Input.Time",
+              "id": "end",
+              "label": "End",
+              "isRequired": true,
+              "value": "@variables('end')"
+             }
+            ]
+           }
+          ]
          },
          {
           "type": "Input.ChoiceSet",
@@ -342,7 +379,7 @@
         "actions": [
          {
           "type": "Action.Submit",
-          "title": "Save",
+          "title": "✓ Save",
           "data": {
            "choice": "save"
           }

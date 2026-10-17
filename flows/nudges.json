@@ -192,18 +192,64 @@
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "body": [
              {
+              "type": "Container",
+              "style": "accent",
+              "bleed": true,
+              "items": [
+               {
+                "type": "ColumnSet",
+                "columns": [
+                 {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "Time to start",
+                    "wrap": true,
+                    "weight": "Bolder"
+                   }
+                  ]
+                 },
+                 {
+                  "type": "Column",
+                  "width": "auto",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "wrap": true,
+                    "weight": "Bolder",
+                    "horizontalAlignment": "Right",
+                    "color": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                   }
+                  ]
+                 }
+                ]
+               }
+              ]
+             },
+             {
               "type": "TextBlock",
+              "text": "@{body('Get_item_start')?['Title']}",
               "wrap": true,
-              "text": "▶ START: @{body('Get_item_start')?['Title']} until @{convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm')}",
-              "size": "Medium",
-              "weight": "Bolder"
+              "size": "Large",
+              "weight": "Bolder",
+              "spacing": "Medium"
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{concat(convertFromUtc(body('Get_item_start')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' · ', string(div(add(sub(ticks(body('Get_item_start')?['TaskEnd']), ticks(body('Get_item_start')?['TaskStart'])), 300000000), 600000000)), ' min')}",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "None"
              }
             ],
             "actions": [
              {
               "type": "Action.Submit",
               "id": "started",
-              "title": "Started",
+              "title": "✓ I've started",
               "data": {
                "choice": "started"
               }
@@ -427,18 +473,64 @@
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "body": [
              {
+              "type": "Container",
+              "style": "warning",
+              "bleed": true,
+              "items": [
+               {
+                "type": "ColumnSet",
+                "columns": [
+                 {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "Time's up",
+                    "wrap": true,
+                    "weight": "Bolder"
+                   }
+                  ]
+                 },
+                 {
+                  "type": "Column",
+                  "width": "auto",
+                  "items": [
+                   {
+                    "type": "TextBlock",
+                    "text": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "wrap": true,
+                    "weight": "Bolder",
+                    "horizontalAlignment": "Right",
+                    "color": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                   }
+                  ]
+                 }
+                ]
+               }
+              ]
+             },
+             {
               "type": "TextBlock",
+              "text": "@{body('Get_item_end')?['Title']}",
               "wrap": true,
-              "text": "⏹ STOP: @{body('Get_item_end')?['Title']}. Done?",
-              "size": "Medium",
-              "weight": "Bolder"
+              "size": "Large",
+              "weight": "Bolder",
+              "spacing": "Medium"
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{if(empty(body('Get_item_end')?['TaskActualStart']), concat(convertFromUtc(body('Get_item_end')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(body('Get_item_end')?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' · ', string(div(add(sub(ticks(body('Get_item_end')?['TaskEnd']), ticks(body('Get_item_end')?['TaskStart'])), 300000000), 600000000)), ' min'), concat('Started ', convertFromUtc(coalesce(body('Get_item_end')?['TaskActualStart'], body('Get_item_end')?['TaskStart']), 'India Standard Time', 'HH:mm'), ' · ran ', string(div(add(sub(ticks(utcNow()), ticks(coalesce(body('Get_item_end')?['TaskActualStart'], body('Get_item_end')?['TaskStart']))), 300000000), 600000000)), ' min'))}",
+              "wrap": true,
+              "isSubtle": true,
+              "spacing": "None"
              }
             ],
             "actions": [
              {
               "type": "Action.Submit",
               "id": "done",
-              "title": "Done",
+              "title": "✓ Done",
               "data": {
                "choice": "done"
               }
