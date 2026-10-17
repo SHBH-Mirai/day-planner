@@ -2,6 +2,9 @@
 
 Date: 2026-10-17 · Owner: Shubh · Status: built and verified 2026-10-17 (START/STOP on time, Done and Skip write back; +15 still to be confirmed)
 
+> Updated 2026-10-17: the flow now has a **Started** button, reads `Settings`, and runs
+> START and STOP in parallel (see `2026-10-17-power-automate-planner-design.md`). +15 verified.
+
 ## Purpose
 
 Get Day Planner's start/end nudges in Microsoft Teams, even when the web app is

@@ -16,10 +16,29 @@ npm run lint
 Copy `.env.example` to `.env.local`. `VITE_STORAGE=memory` runs without
 sign-in; `sharepoint` uses a SharePoint list (see `docs/setup-microsoft.md`).
 
+## Teams (Power Automate)
+
+Day Planner also runs in Teams with no code to host: four Power Automate
+flows in the solution **Day Planner** post cards from the Flow bot in your
+chat and read and write the same SharePoint lists on `/sites/Development`.
+
+| Flow | When | What it does |
+|---|---|---|
+| Day Planner - Teams nudges | a task is created or changed | START card with **Started**, STOP card with **Done / +15 min / Skip** |
+| Day Planner - Morning | 06:00 IST | active templates for today become tasks, then the today card |
+| Day Planner - Evening | 22:30 IST | saves the day's row in `DailySummaries`, then the summary and tomorrow card |
+| Day Planner - Add task | **Add task** on either card | form loop: saves tasks, refuses end before start, warns on overlaps |
+
+- **Templates and settings** are edited in the SharePoint lists `Templates` and
+  `Settings` (Microsoft Lists on web or phone). `Settings` turns start or end
+  nudges off and sets the default task length.
+- **Definitions** live in `flows/*.json` (the flows' Dataverse `clientdata`).
+- **This web app** stays as the fallback; edit or delete tasks here or in the list.
+
 ## Known limits
 
-- **Nudges only fire while the tab is open.** Closed-tab nudges need v2
-  (backend + scheduler + Web Push, or an Electron tray app).
+- **Browser nudges only fire while the tab is open.** Teams nudges (above) don't
+  need it.
 - **Background tabs can delay nudges by up to about a minute.** Chrome
   throttles timers on pages hidden for more than 5 minutes to roughly one
   wake-up per minute.
