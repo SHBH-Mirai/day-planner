@@ -7,6 +7,8 @@ import { findNoBreakRuns } from '../domain/validate'
 import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
 import { startScheduler } from '../scheduler/startScheduler'
 import type { Nudge } from '../scheduler/dueNudges'
+import type { RoutineRepository } from '../storage/RoutineRepository'
+import type { SettingsRepository } from '../storage/SettingsRepository'
 import type { TaskRepository } from '../storage/TaskRepository'
 import { NudgeBanner } from './NudgeBanner'
 import { Fab } from './neu/Fab'
@@ -32,6 +34,9 @@ interface Props {
   onSignInAgain?: () => void
   /** Running as a Teams tab: Teams cards nudge, so browser pop-up hints are hidden. */
   inTeams?: boolean
+  /** Settings and routines for the Setup screen; without them there's no gear. */
+  settingsRepo?: SettingsRepository
+  routineRepo?: RoutineRepository
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
