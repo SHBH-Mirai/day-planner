@@ -453,7 +453,7 @@
          "items": [
           {
            "type": "TextBlock",
-           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
            "wrap": true,
            "weight": "Bolder",
            "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
@@ -526,7 +526,7 @@
          "items": [
           {
            "type": "TextBlock",
-           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
            "wrap": true,
            "weight": "Bolder",
            "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
@@ -709,7 +709,7 @@
           "items": [
            {
             "type": "TextBlock",
-            "text": "YouTube",
+            "text": "Content",
             "wrap": true,
             "size": "Small",
             "weight": "Bolder",
