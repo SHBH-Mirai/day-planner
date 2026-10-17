@@ -128,3 +128,9 @@ input, select {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+.ring { position: relative; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.ring svg { position: absolute; inset: 0; }
+.ring-track { stroke: var(--neu-dark); opacity: 0.45; }
+.ring-fill { stroke: var(--neu-accent); }
+.ring-label { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
