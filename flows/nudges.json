@@ -217,7 +217,7 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "text": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 1)))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",
@@ -498,7 +498,7 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'YouTube', concat(toUpper(substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 1)))}",
+                    "text": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 1)))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",

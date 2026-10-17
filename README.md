@@ -37,6 +37,8 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 - **Phone:** the canvas app *Day Planner* (same solution) is one **+ Add task** button that runs Quick add.
   Pin it from Power Apps mobile (Android: ⋯ → Pin to Home; iPhone: Shortcut → Add to Siri → Shortcuts app → Add to Home Screen).
   The Power Automate mobile app and its widget were retired on 31 Aug 2026.
+- **Categories:** cards show Office, Freelance and **Content** (YouTube + Reels). Content is stored as `youtube`,
+  so SharePoint, `DailySummaries.YoutubeMin` and this web app (which still says YouTube) are unchanged.
 - **This web app** stays as the fallback; edit or delete tasks here or in the list.
 
 ## Known limits
