@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { extendTask } from '../domain/extend'
-import { summarize } from '../domain/summary'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
@@ -12,11 +11,13 @@ import type { TaskRepository } from '../storage/TaskRepository'
 import { NudgeBanner } from './NudgeBanner'
 import { Fab } from './neu/Fab'
 import { formatMinutes } from './neu/format'
+import { MotionPrefs } from './neu/MotionPrefs'
 import { NeuButton } from './neu/NeuButton'
 import { NeuSurface } from './neu/NeuSurface'
 import { ProgressRing } from './neu/ProgressRing'
 import { Sheet } from './neu/Sheet'
 import { TaskRow } from './neu/TaskRow'
+import { dayTotals } from './neu/totals'
 import { SummaryView } from './SummaryView'
 import { TaskForm } from './TaskForm'
 import { useTasks } from './useTasks'
@@ -31,23 +32,6 @@ interface Props {
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
-
-/**
- * Minutes done so far against minutes planned (skipped tasks don't count).
- * A done task counts its real time only when Started was pressed; ticked late
- * without it, the planned length is the honest guess.
- */
-function focus(tasks: Task[]): { done: number; planned: number } {
-  const { perTask } = summarize(tasks)
-  const started = new Set(tasks.filter((t) => t.actualStart).map((t) => t.id))
-  return {
-    done: perTask.reduce(
-      (sum, t) => sum + (t.status === 'done' ? (started.has(t.id) ? (t.actualMin ?? t.plannedMin) : t.plannedMin) : 0),
-      0,
-    ),
-    planned: perTask.reduce((sum, t) => sum + (t.status === 'skipped' ? 0 : t.plannedMin), 0),
-  }
-}
 
 /** Re-renders once a minute so the "now" marker moves along. */
 function useMinuteTick() {
@@ -74,6 +58,8 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
 
   const [editing, setEditing] = useState<Task | null>(null)
   const [adding, setAdding] = useState(false)
+  // A new task that failed to save waits in the Retry queue; a second Add would save it twice.
+  const [addFailed, setAddFailed] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
@@ -116,21 +102,54 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
     setShowSummary(false)
     setEditing(null)
     setAdding(false)
+    setAddFailed(false)
     setNotice(null)
   }
 
   function closeSheet() {
     setAdding(false)
     setEditing(null)
+    setAddFailed(false)
+  }
+
+  // Retry saved the waiting new task (the create count moved): the sheet's job is done.
+  const [seenCreated, setSeenCreated] = useState(shown.createdCount)
+  if (shown.createdCount !== seenCreated) {
+    setSeenCreated(shown.createdCount)
+    if (addFailed) {
+      setAddFailed(false)
+      setAdding(false)
+    }
   }
 
   const nowMs = now().getTime()
   const isNow = (t: Task) =>
     !viewTomorrow && t.status === 'planned' && Date.parse(t.start) <= nowMs && nowMs < Date.parse(t.end)
   const doneCount = shown.tasks.filter((t) => t.status === 'done').length
-  const minutes = focus(shown.tasks)
+  const minutes = dayTotals(shown.tasks)
+  const sheetOpen = adding || editing !== null
+
+  const errorBanner = error && (
+    <div className="banner banner-error" role="alert">
+      {error}{' '}
+      {needsSignIn && onSignInAgain && (
+        <button className="primary" onClick={onSignInAgain}>
+          Sign in again
+        </button>
+      )}{' '}
+      <button
+        onClick={() => {
+          today.retry()
+          next.retry()
+        }}
+      >
+        Retry
+      </button>
+    </div>
+  )
 
   return (
+    <MotionPrefs>
     <main className="today">
       <header className="today-header">
         <div>
@@ -163,24 +182,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
         </NeuSurface>
       )}
 
-      {error && (
-        <div className="banner banner-error" role="alert">
-          {error}{' '}
-          {needsSignIn && onSignInAgain && (
-            <button className="primary" onClick={onSignInAgain}>
-              Sign in again
-            </button>
-          )}{' '}
-          <button
-            onClick={() => {
-              today.retry()
-              next.retry()
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {!sheetOpen && errorBanner}
 
       <NudgeBanner
         nudges={liveNudges}
@@ -219,7 +221,9 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
         </div>
       ))}
 
-      <Sheet open={adding || editing !== null} onClose={closeSheet} title={editing ? 'Edit task' : 'New task'}>
+      <Sheet open={sheetOpen} onClose={closeSheet} title={editing ? 'Edit task' : 'New task'}>
+        {errorBanner}
+        {addFailed && <p className="muted">This task is waiting to be saved. Press Retry to save it.</p>}
         <TaskForm
           key={`${viewTomorrow ? 'tomorrow' : 'today'}-${editing ? `edit-${editing.id}` : `new-${shown.createdCount}`}`}
           day={shownDay}
@@ -227,8 +231,10 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
           initial={editing ?? undefined}
           onSubmit={async (draft) => {
             if (!editing) {
+              if (addFailed) return false
               setNotice(null)
               const ok = await shown.add(draft)
+              if (!ok) setAddFailed(true)
               const start = new Date(draft.start)
               if (ok && tasksForDay([{ ...draft, id: '', originalEnd: draft.end, status: 'planned' }], shownDay).length === 0) {
                 setNotice(`Saved for ${dayTitle.format(start)}`)
@@ -274,5 +280,6 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
 
       <Fab aria-label="New task" onClick={() => setAdding(true)} />
     </main>
+    </MotionPrefs>
   )
 }

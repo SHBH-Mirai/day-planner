@@ -39,7 +39,8 @@ describe('SummaryView', () => {
     render(<SummaryView tasks={[done, planned, skipped]} />)
     const stats = screen.getByRole('group', { name: 'Day totals' })
     expect(within(stats).getByText('Planned').nextSibling).toHaveTextContent('1h 30m')
-    expect(within(stats).getByText('Actual').nextSibling).toHaveTextContent('1h 15m')
+    // Ticked done without Started, so it counts its planned hour (one rule with the focus strip).
+    expect(within(stats).getByText('Actual').nextSibling).toHaveTextContent(/^1h$/)
     expect(within(stats).getByText('Done').nextSibling).toHaveTextContent('1')
     expect(within(stats).getByText('Skipped').nextSibling).toHaveTextContent('1')
   })

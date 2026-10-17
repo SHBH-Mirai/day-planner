@@ -3,20 +3,19 @@ import { summarize } from '../domain/summary'
 import { CATEGORY_LABEL } from './labels'
 import { formatMinutes } from './neu/format'
 import { NeuSurface } from './neu/NeuSurface'
+import { dayTotals } from './neu/totals'
 
 export function SummaryView({ tasks }: { tasks: Task[] }) {
   const { perTask, perCategory } = summarize(tasks)
-  const planned = perTask.reduce((sum, t) => sum + (t.status === 'skipped' ? 0 : t.plannedMin), 0)
-  const actual = perTask.reduce((sum, t) => sum + (t.actualMin ?? 0), 0)
-  const done = perTask.filter((t) => t.status === 'done').length
-  const skipped = perTask.filter((t) => t.status === 'skipped').length
-  const withTime = CATEGORIES.filter((c) => perCategory[c] > 0)
+  // Headline numbers and the bar share one rule with the focus strip, so the screens agree.
+  const totals = dayTotals(tasks)
+  const withTime = CATEGORIES.filter((c) => totals.perCategory[c] > 0)
 
   const stats: [string, string][] = [
-    ['Planned', formatMinutes(planned)],
-    ['Actual', formatMinutes(actual)],
-    ['Done', String(done)],
-    ['Skipped', String(skipped)],
+    ['Planned', formatMinutes(totals.planned)],
+    ['Actual', formatMinutes(totals.done)],
+    ['Done', String(totals.doneCount)],
+    ['Skipped', String(totals.skippedCount)],
   ]
 
   return (
@@ -40,15 +39,15 @@ export function SummaryView({ tasks }: { tasks: Task[] }) {
                 key={c}
                 className="category-segment"
                 data-category={c}
-                aria-label={`${CATEGORY_LABEL[c]} ${perCategory[c]} min`}
-                style={{ flexGrow: perCategory[c] }}
+                aria-label={`${CATEGORY_LABEL[c]} ${totals.perCategory[c]} min`}
+                style={{ flexGrow: totals.perCategory[c] }}
               />
             ))}
           </div>
           <p className="category-legend">
             {withTime.map((c) => (
               <span key={c} data-category={c}>
-                {CATEGORY_LABEL[c]} {formatMinutes(perCategory[c])}
+                {CATEGORY_LABEL[c]} {formatMinutes(totals.perCategory[c])}
               </span>
             ))}
           </p>

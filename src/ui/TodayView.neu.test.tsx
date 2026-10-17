@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
@@ -37,6 +37,35 @@ describe('TodayView, neumorphic layout', () => {
     render(<TodayView repo={repo} day={DAY} now={() => late} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
     expect(await screen.findByText('15m / 15m')).toBeInTheDocument()
+  })
+
+  test('a failed add shows its error and Retry inside the sheet', async () => {
+    const repo = new InMemoryTaskRepository()
+    vi.spyOn(repo, 'create').mockRejectedValueOnce(new Error('offline'))
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(screen.getByRole('button', { name: 'New task' }))
+    await userEvent.type(screen.getByLabelText('Title'), 'Proposal')
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    const sheet = screen.getByRole('dialog', { name: 'New task' })
+    expect(await within(sheet).findByText(/Couldn.t save/)).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+  })
+
+  test('pressing Add again after a failed add does not make a duplicate; Retry saves it once and closes the sheet', async () => {
+    const repo = new InMemoryTaskRepository()
+    const realCreate = repo.create.bind(repo)
+    vi.spyOn(repo, 'create').mockRejectedValueOnce(new Error('offline')).mockImplementation(realCreate)
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(screen.getByRole('button', { name: 'New task' }))
+    await userEvent.type(screen.getByLabelText('Title'), 'Proposal')
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await screen.findByText(/Couldn.t save/)
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(screen.getByText(/Press Retry/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await findCard('Proposal')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(await repo.listForDay(DAY)).toHaveLength(1)
   })
 
   test('marks the task that is running now', async () => {
