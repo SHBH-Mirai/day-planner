@@ -8,6 +8,10 @@ import { ist } from '../test-utils/makeTask'
 const D = '2026-10-17'
 const DAY = new Date('2026-10-17T12:00:00+05:30')
 
+// The new layout: a row's actions unfold when you tap it.
+const unfold = (title: string) =>
+  userEvent.click(within(screen.getByRole('article', { name: title })).getByRole('button', { name: new RegExp(title) }))
+
 describe('TodayView nudges', () => {
   beforeEach(() => {
     sessionStorage.clear()
@@ -56,6 +60,7 @@ describe('TodayView nudges', () => {
   test('the nudge text follows later changes to its task', async () => {
     await setup()
     await screen.findByText('▶ START: Lunch until 10:30')
+    await unfold('Lunch')
     await userEvent.click(within(screen.getByRole('article', { name: 'Lunch' })).getByRole('button', { name: 'Edit' }))
     fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-17T10:45' } })
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -73,12 +78,14 @@ describe('TodayView nudges', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     await setup()
     await screen.findByText('⏹ STOP: Deep work. Done?')
+    await unfold('Deep work')
     await userEvent.click(within(screen.getByRole('article', { name: 'Deep work' })).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(screen.queryByText('⏹ STOP: Deep work. Done?')).not.toBeInTheDocument())
   })
 
   test('an edit form left open cannot undo a Done', async () => {
     const repo = await setup()
+    await unfold('Deep work')
     await userEvent.click(within(screen.getByRole('article', { name: 'Deep work' })).getByRole('button', { name: 'Edit' }))
     const nudge = (await screen.findByText('⏹ STOP: Deep work. Done?')).closest('[role="status"]') as HTMLElement
     await userEvent.click(within(nudge).getByRole('button', { name: 'Done' }))

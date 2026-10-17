@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 
 interface Props {
   open: boolean
@@ -47,14 +47,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          className="sheet-backdrop"
-          data-testid="sheet-backdrop"
-          onClick={onClose}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
+        <Backdrop onClose={onClose}>
           <motion.div
             ref={panelRef}
             className="sheet"
@@ -76,8 +69,26 @@ export function Sheet({ open, onClose, title, children }: Props) {
             </div>
             {children}
           </motion.div>
-        </motion.div>
+        </Backdrop>
       )}
     </AnimatePresence>
+  )
+}
+
+/** The dimmed layer behind the sheet. While it fades out it lets clicks through, so a quick tap on + still works. */
+function Backdrop({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const present = useIsPresent()
+  return (
+    <motion.div
+      className="sheet-backdrop"
+      data-testid="sheet-backdrop"
+      onClick={present ? onClose : undefined}
+      style={{ pointerEvents: present ? 'auto' : 'none' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {children}
+    </motion.div>
   )
 }

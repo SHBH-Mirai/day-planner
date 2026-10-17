@@ -184,3 +184,12 @@ input, select {
   position: fixed; right: 24px; bottom: 24px; z-index: 10; width: 60px; height: 60px; padding: 0;
   border-radius: 50%; font-size: 30px; line-height: 1; color: var(--neu-accent); box-shadow: var(--neu-raise);
 }
+
+.day-switch { margin: 18px 0 14px; padding: 6px; border-radius: 16px; }
+.day-switch > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.day-switch button { box-shadow: none; background: transparent; border-radius: 12px; font-weight: 600; color: var(--neu-muted); }
+.day-switch button[aria-pressed='true'] { background: var(--neu-bg); color: var(--neu-accent); box-shadow: var(--neu-raise-sm); }
+
+.focus-strip { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin: 0 0 18px; color: var(--neu-muted); }
+.focus-strip strong { color: var(--neu-text); font-variant-numeric: tabular-nums; }
+.pill { border-radius: 999px; display: inline-block; font-size: 14px; }

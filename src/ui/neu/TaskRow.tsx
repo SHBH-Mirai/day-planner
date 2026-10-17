@@ -3,6 +3,7 @@ import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import type { Task } from '../../domain/task'
 import { formatLocalTime } from '../../domain/time'
 import { CATEGORY_LABEL } from '../labels'
+import { formatMinutes } from './format'
 import { swipeAction, swipeTarget } from './swipe'
 
 interface Props {
@@ -20,8 +21,7 @@ interface Props {
 const CATEGORY_ICON = { office: '💼', freelance: '✍️', youtube: '🎬' } as const
 
 function minutes(task: Task): string {
-  const m = Math.round((Date.parse(task.end) - Date.parse(task.start)) / 60_000)
-  return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m}m`
+  return formatMinutes(Math.round((Date.parse(task.end) - Date.parse(task.start)) / 60_000))
 }
 
 /**
@@ -87,7 +87,10 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
               {task.title}
             </span>
             <span className="task-row-meta">
-              {formatLocalTime(task.start)}–{formatLocalTime(task.end)} · <span className="tag">{CATEGORY_LABEL[task.category]}</span>
+              <span className="task-row-time">
+                {formatLocalTime(task.start)}–{formatLocalTime(task.end)}
+              </span>{' '}
+              · <span className="tag">{CATEGORY_LABEL[task.category]}</span>
               {isNow && <span className="now-badge"> · Now</span>}
               {!planned && <span className="status"> · {task.status}</span>}
             </span>
