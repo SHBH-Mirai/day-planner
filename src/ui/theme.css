@@ -193,3 +193,22 @@ input, select {
 .focus-strip { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin: 0 0 18px; color: var(--neu-muted); }
 .focus-strip strong { color: var(--neu-text); font-variant-numeric: tabular-nums; }
 .pill { border-radius: 999px; display: inline-block; font-size: 14px; }
+
+.summary h2 { font-size: 18px; margin: 0 0 14px; }
+.summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.stat span { font-size: 13px; color: var(--neu-muted); }
+.stat strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.category-bar-wrap { padding: 14px 16px; margin-bottom: 18px; }
+.category-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 3px; }
+.category-segment { display: block; min-width: 6px; }
+.category-segment[data-category='office'], .category-legend [data-category='office'] { --cat: var(--cat-office); }
+.category-segment[data-category='freelance'], .category-legend [data-category='freelance'] { --cat: var(--cat-freelance); }
+.category-segment[data-category='youtube'], .category-legend [data-category='youtube'] { --cat: var(--cat-youtube); }
+.category-segment { background: var(--cat); }
+.category-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 0; font-size: 13px; color: var(--neu-muted); }
+.category-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--cat); }
+.summary-tables { padding: 6px 12px; }
+.summary table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; }
+.summary th, .summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, var(--neu-dark) 60%, transparent); }
+.summary td { font-variant-numeric: tabular-nums; }

@@ -25,6 +25,35 @@ describe('SummaryView', () => {
     expect(within(within(table).getByRole('row', { name: /Report/ })).getByText('—')).toBeInTheDocument()
   })
 
+  test('big numbers: planned and actual time, done and skipped counts', () => {
+    const done = makeTask({
+      title: 'Client work',
+      status: 'done',
+      start: ist(D, '09:00'),
+      end: ist(D, '10:00'),
+      originalEnd: ist(D, '10:00'),
+      actualEnd: ist(D, '10:15'),
+    })
+    const planned = makeTask({ title: 'Report', start: ist(D, '11:00'), end: ist(D, '11:30') })
+    const skipped = makeTask({ title: 'Gym', status: 'skipped', start: ist(D, '18:00'), end: ist(D, '19:00') })
+    render(<SummaryView tasks={[done, planned, skipped]} />)
+    const stats = screen.getByRole('group', { name: 'Day totals' })
+    expect(within(stats).getByText('Planned').nextSibling).toHaveTextContent('1h 30m')
+    expect(within(stats).getByText('Actual').nextSibling).toHaveTextContent('1h 15m')
+    expect(within(stats).getByText('Done').nextSibling).toHaveTextContent('1')
+    expect(within(stats).getByText('Skipped').nextSibling).toHaveTextContent('1')
+  })
+
+  test('a bar split by category, one labelled segment per category with time', () => {
+    const office = makeTask({ category: 'office', start: ist(D, '09:00'), end: ist(D, '10:00') })
+    const content = makeTask({ category: 'youtube', start: ist(D, '20:00'), end: ist(D, '21:30') })
+    render(<SummaryView tasks={[office, content]} />)
+    const bar = screen.getByRole('img', { name: 'Time by category' })
+    expect(within(bar).getByLabelText('Office 60 min')).toBeInTheDocument()
+    expect(within(bar).getByLabelText('Content 90 min')).toBeInTheDocument()
+    expect(within(bar).queryByLabelText(/Freelance/)).not.toBeInTheDocument()
+  })
+
   test('shows minutes per category', () => {
     const t = makeTask({ category: 'youtube', start: ist(D, '20:00'), end: ist(D, '21:30') })
     render(<SummaryView tasks={[t]} />)
