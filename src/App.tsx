@@ -125,7 +125,12 @@ function SharePointApp({
           : undefined
       }
     >
-      <TodayView repo={repo} day={day} onSignInAgain={() => void signInAgain(client, config.scopes, host)} />
+      <TodayView
+        repo={repo}
+        day={day}
+        inTeams={host === 'teams'}
+        onSignInAgain={() => void signInAgain(client, config.scopes, host)}
+      />
     </AuthGate>
   )
 }

@@ -228,3 +228,21 @@ describe('TodayView, neumorphic layout', () => {
     expect(screen.getByRole('table', { name: 'Tasks' })).toBeInTheDocument()
   })
 })
+
+describe('TodayView inside Teams', () => {
+  test('hides the blocked-pop-ups warning in Teams, but keeps it in a browser', async () => {
+    vi.stubGlobal('Notification', { permission: 'denied', requestPermission: vi.fn() })
+    try {
+      const repo = new InMemoryTaskRepository()
+      const { unmount } = render(<TodayView repo={repo} day={DAY} now={() => NOW} inTeams />)
+      await screen.findByRole('heading', { name: 'Today' })
+      expect(screen.queryByText(/Notifications are blocked/)).not.toBeInTheDocument()
+      unmount()
+
+      render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+      expect(await screen.findByText(/Notifications are blocked/)).toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})

@@ -62,3 +62,29 @@ describe('NudgeBanner', () => {
     expect(screen.getByText(/Notifications are blocked/)).toBeInTheDocument()
   })
 })
+
+describe('NudgeBanner inside Teams', () => {
+  const handlers = {
+    onStarted: vi.fn(),
+    onDone: vi.fn(),
+    onSkip: vi.fn(),
+    onExtend: vi.fn(() => ({ newEnd: ist(D, '10:15'), affected: [] })),
+    onDismiss: vi.fn(),
+    onEnableNotifications: vi.fn(),
+  }
+
+  test('does not warn that pop-ups are blocked (Teams cards do the nudging)', () => {
+    render(<NudgeBanner nudges={[]} permission="denied" askForNotifications={false} {...handlers} />)
+    expect(screen.queryByText(/Notifications are blocked/)).not.toBeInTheDocument()
+  })
+
+  test('does not offer to enable pop-ups either', () => {
+    render(<NudgeBanner nudges={[]} permission="default" askForNotifications={false} {...handlers} />)
+    expect(screen.queryByRole('button', { name: 'Enable notifications' })).not.toBeInTheDocument()
+  })
+
+  test('still shows a due nudge', () => {
+    render(<NudgeBanner nudges={[nudge('end')]} permission="denied" askForNotifications={false} {...handlers} />)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+})
