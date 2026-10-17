@@ -7,6 +7,8 @@ import { findNoBreakRuns } from '../domain/validate'
 import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
 import { startScheduler } from '../scheduler/startScheduler'
 import type { Nudge } from '../scheduler/dueNudges'
+import type { RoutineRepository } from '../storage/RoutineRepository'
+import type { SettingsRepository } from '../storage/SettingsRepository'
 import type { TaskRepository } from '../storage/TaskRepository'
 import { NudgeBanner } from './NudgeBanner'
 import { Fab } from './neu/Fab'
@@ -19,6 +21,7 @@ import { Sheet } from './neu/Sheet'
 import { TaskRow } from './neu/TaskRow'
 import { UndoBar } from './neu/UndoBar'
 import { dayTotals } from './neu/totals'
+import { SetupView } from './SetupView'
 import { SummaryView } from './SummaryView'
 import { TaskForm } from './TaskForm'
 import { useTasks } from './useTasks'
@@ -32,6 +35,9 @@ interface Props {
   onSignInAgain?: () => void
   /** Running as a Teams tab: Teams cards nudge, so browser pop-up hints are hidden. */
   inTeams?: boolean
+  /** Settings and routines for the Setup screen; without them there's no gear. */
+  settingsRepo?: SettingsRepository
+  routineRepo?: RoutineRepository
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -53,7 +59,7 @@ function useMinuteTick() {
   }, [])
 }
 
-export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, inTeams = false }: Props) {
+export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, inTeams = false, settingsRepo, routineRepo }: Props) {
   const dayKey = day.toDateString()
   const tomorrow = useMemo(() => {
     const d = new Date(dayKey)
@@ -72,6 +78,19 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   // A new task that failed to save waits in the Retry queue; a second Add would save it twice.
   const [addFailed, setAddFailed] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [setupOpen, setSetupOpen] = useState(false)
+  // The + form's default length comes from Setup; 30 until the saved value arrives.
+  const [defaultLengthMin, setDefaultLengthMin] = useState(30)
+  useEffect(() => {
+    let live = true
+    settingsRepo?.get().then(
+      (s) => live && setDefaultLengthMin(s.defaultLengthMin),
+      () => {},
+    )
+    return () => {
+      live = false
+    }
+  }, [settingsRepo])
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
   // The last Done or Skip on a row, kept for a few seconds so a mis-tap can be taken back.
@@ -180,9 +199,26 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
           <h1>{viewTomorrow ? 'Tomorrow' : 'Today'}</h1>
           <p className="muted">{dayTitle.format(shownDay)}</p>
         </div>
-        {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.filter((t) => t.status !== 'skipped').length} />}
+        <div className="header-actions">
+          {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.filter((t) => t.status !== 'skipped').length} />}
+          {settingsRepo && routineRepo && (
+            <NeuButton
+              className="gear"
+              aria-label="Setup"
+              pressed={setupOpen}
+              onClick={() => {
+                // Fresh list, so tasks the Morning flow made since the app opened count as already on today.
+                if (!setupOpen) void today.reload()
+                setSetupOpen((o) => !o)
+              }}
+            >
+              <span aria-hidden="true">⚙</span>
+            </NeuButton>
+          )}
+        </div>
       </header>
 
+      {!setupOpen && (
       <NeuSurface variant="inset" className="day-switch">
         <div role="group" aria-label="View">
           <NeuButton pressed={!viewTomorrow && !showSummary} onClick={() => switchDay(false)}>
@@ -199,8 +235,9 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
           </NeuButton>
         </div>
       </NeuSurface>
+      )}
 
-      {!viewTomorrow && !showSummary && (
+      {!viewTomorrow && !showSummary && !setupOpen && (
         <NeuSurface variant="inset" className="focus-strip">
           <span>Focus today</span>
           <strong>
@@ -257,6 +294,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
           day={shownDay}
           others={others}
           initial={editing ?? undefined}
+          defaultLengthMin={defaultLengthMin}
           onSubmit={async (draft) => {
             if (!editing) {
               if (addFailed) return false
@@ -287,7 +325,17 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         />
       </Sheet>
 
-      {showSummary ? (
+      {setupOpen && settingsRepo && routineRepo ? (
+        <SetupView
+          settingsRepo={settingsRepo}
+          routineRepo={routineRepo}
+          day={day}
+          todayTasks={today.tasks}
+          addToToday={(draft) => today.add(draft)}
+          onBack={() => setSetupOpen(false)}
+          onSettingsSaved={(s) => setDefaultLengthMin(s.defaultLengthMin)}
+        />
+      ) : showSummary ? (
         <SummaryView tasks={shown.tasks} />
       ) : (
         <m.ol
@@ -338,7 +386,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
           setUndo(null)
         }}
       />
-      <Fab aria-label="New task" onClick={() => setAdding(true)} />
+      {!setupOpen && <Fab aria-label="New task" onClick={() => setAdding(true)} />}
     </main>
     </MotionPrefs>
   )

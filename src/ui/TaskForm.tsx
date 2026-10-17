@@ -4,8 +4,6 @@ import { validateTask } from '../domain/validate'
 import { fromInputValue, toInputValue } from './datetimeInput'
 import { CATEGORY_LABEL } from './labels'
 
-const DEFAULT_LENGTH_MS = 30 * 60_000
-
 interface Props {
   day: Date
   /** Other tasks on the day, for overlap warnings and the pre-filled slot. */
@@ -15,22 +13,24 @@ interface Props {
   /** Resolves true when saved. The form keeps its values when it resolves false. */
   onSubmit: (draft: TaskDraft) => Promise<boolean>
   onCancel?: () => void
+  /** Length of a new task, in minutes (from Setup). Editing keeps the task's own times. */
+  defaultLengthMin?: number
 }
 
-/** Next free slot: after the latest task, else 09:00 on the day. 30 minutes long. */
-function nextSlot(day: Date, others: Task[]): { start: string; end: string } {
+/** Next free slot: after the latest task, else 09:00 on the day, `lengthMin` long. */
+function nextSlot(day: Date, others: Task[], lengthMin: number): { start: string; end: string } {
   const latestEnd = Math.max(...others.map((t) => Date.parse(t.end)))
   const start = Number.isFinite(latestEnd)
     ? new Date(latestEnd)
     : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9, 0)
-  return { start: start.toISOString(), end: new Date(start.getTime() + DEFAULT_LENGTH_MS).toISOString() }
+  return { start: start.toISOString(), end: new Date(start.getTime() + lengthMin * 60_000).toISOString() }
 }
 
-export function TaskForm({ day, others, initial, onSubmit, onCancel }: Props) {
+export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLengthMin = 30 }: Props) {
   // Until a time is typed, the new-task slot follows `others`, which may still be loading.
   // Typing either time pins both.
   const [typed, setTyped] = useState(initial ? { start: toInputValue(initial.start), end: toInputValue(initial.end) } : null)
-  const slot = nextSlot(day, others)
+  const slot = nextSlot(day, others, defaultLengthMin)
   const { start, end } = typed ?? { start: toInputValue(slot.start), end: toInputValue(slot.end) }
   const setStart = (value: string) => setTyped({ start: value, end })
   const setEnd = (value: string) => setTyped({ start, end: value })

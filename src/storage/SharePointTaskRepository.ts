@@ -1,33 +1,25 @@
 import type { Task, TaskDraft } from '../domain/task'
 import { dayBounds } from '../domain/time'
 import { fromItem, toFields, type GraphListItem } from './sharePointMapping'
-import { RepositoryError, type TaskRepository } from './TaskRepository'
+import { graphList, type GraphList, type GraphListOptions } from './graphRequest'
+import type { TaskRepository } from './TaskRepository'
 
-export type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-
-interface Options {
-  siteId: string
-  listId: string
-  getToken: () => Promise<string>
-  fetchFn?: FetchFn
-  /** Give up on a request after this long, so one hung call can't block later saves. */
-  timeoutMs?: number
-}
+export type { FetchFn } from './graphRequest'
 
 const byStart = (a: Task, b: Task) => Date.parse(a.start) - Date.parse(b.start)
 
 /** Saves tasks as items in a SharePoint list through Microsoft Graph. */
 export class SharePointTaskRepository implements TaskRepository {
+  private readonly list: GraphList
   private readonly base: string
-  private readonly getToken: () => Promise<string>
-  private readonly fetchFn: FetchFn
-  private readonly timeoutMs: number
 
-  constructor({ siteId, listId, getToken, fetchFn = (input, init) => fetch(input, init), timeoutMs = 30_000 }: Options) {
-    this.base = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`
-    this.getToken = getToken
-    this.fetchFn = fetchFn
-    this.timeoutMs = timeoutMs
+  constructor(options: GraphListOptions) {
+    this.list = graphList(options)
+    this.base = this.list.items
+  }
+
+  private request(url: string, init?: RequestInit): Promise<Response> {
+    return this.list.request(url, init)
   }
 
   async listForDay(day: Date): Promise<Task[]> {
@@ -56,28 +48,5 @@ export class SharePointTaskRepository implements TaskRepository {
 
   async remove(id: string): Promise<void> {
     await this.request(`${this.base}/${id}`, { method: 'DELETE' })
-  }
-
-  private async request(url: string, init: RequestInit = {}): Promise<Response> {
-    const token = await this.getToken()
-    let res: Response
-    try {
-      res = await this.fetchFn(url, {
-        ...init,
-        signal: AbortSignal.timeout(this.timeoutMs),
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          // GUESS: lets the date filter run even if TaskStart isn't indexed yet.
-          Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
-        },
-      })
-    } catch (error) {
-      throw new RepositoryError('network', error instanceof Error ? error.message : 'Network error')
-    }
-    if (res.ok) return res
-    if (res.status === 401 || res.status === 403) throw new RepositoryError('auth', `Graph ${res.status}`)
-    if (res.status === 404) throw new RepositoryError('notFound', 'Item not found')
-    throw new RepositoryError('unknown', `Graph ${res.status}`)
   }
 }

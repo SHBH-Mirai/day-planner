@@ -11,7 +11,11 @@ import {
   type AuthConfig,
 } from './auth/msal'
 import { detectHostIfFramed, type Host } from './auth/host'
+import { InMemoryRoutineRepository } from './storage/InMemoryRoutineRepository'
+import { InMemorySettingsRepository } from './storage/InMemorySettingsRepository'
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
+import { SharePointRoutineRepository } from './storage/SharePointRoutineRepository'
+import { SharePointSettingsRepository } from './storage/SharePointSettingsRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
 import { followTheme, teamsThemeApi, type TeamsThemeApi } from './ui/neu/theme'
 import { TodayView } from './ui/TodayView'
@@ -39,6 +43,8 @@ function App({
 
 function MemoryApp({ day }: { day: Date }) {
   const [repo] = useState(() => new InMemoryTaskRepository())
+  const [settingsRepo] = useState(() => new InMemorySettingsRepository())
+  const [routineRepo] = useState(() => new InMemoryRoutineRepository())
   useEffect(() => followTheme(), [])
   // Loud on purpose: a deploy missing VITE_STORAGE=sharepoint lands here.
   return (
@@ -46,7 +52,7 @@ function MemoryApp({ day }: { day: Date }) {
       <div className="banner banner-warning memory-banner" role="alert">
         Not saved: memory mode. Tasks disappear when you close or refresh this tab.
       </div>
-      <TodayView repo={repo} day={day} />
+      <TodayView repo={repo} day={day} settingsRepo={settingsRepo} routineRepo={routineRepo} />
     </>
   )
 }
@@ -81,16 +87,20 @@ function SharePointApp({
 
   useEffect(() => followTheme(host === 'teams' ? teamsTheme() : undefined), [host, teamsTheme])
 
-  const repo = useMemo(
-    () =>
-      client &&
-      new SharePointTaskRepository({
-        siteId: env.VITE_SP_SITE_ID ?? '',
-        listId: env.VITE_SP_LIST_ID ?? '',
-        getToken: () => getAccessToken(client, config.scopes),
-      }),
-    [client, config, env],
-  )
+  const repos = useMemo(() => {
+    if (!client) return null
+    const list = (listId: string | undefined) => ({
+      siteId: env.VITE_SP_SITE_ID ?? '',
+      listId: listId ?? '',
+      getToken: () => getAccessToken(client, config.scopes),
+    })
+    return {
+      tasks: new SharePointTaskRepository(list(env.VITE_SP_LIST_ID)),
+      settings: new SharePointSettingsRepository(list(env.VITE_SP_SETTINGS_LIST_ID)),
+      routines: new SharePointRoutineRepository(list(env.VITE_SP_TEMPLATES_LIST_ID)),
+    }
+  }, [client, config, env])
+  const repo = repos?.tasks
 
   if (failed instanceof SignInRedirectError) {
     return (
@@ -128,6 +138,8 @@ function SharePointApp({
       <TodayView
         repo={repo}
         day={day}
+        settingsRepo={repos?.settings}
+        routineRepo={repos?.routines}
         inTeams={host === 'teams'}
         onSignInAgain={() => void signInAgain(client, config.scopes, host)}
       />
