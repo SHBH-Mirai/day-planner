@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import { extendTask } from '../domain/extend'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
@@ -178,15 +178,15 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       <NeuSurface variant="inset" className="day-switch">
         <div role="group" aria-label="View">
           <NeuButton pressed={!viewTomorrow && !showSummary} onClick={() => switchDay(false)}>
-            {!viewTomorrow && !showSummary && <motion.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+            {!viewTomorrow && !showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Today
           </NeuButton>
           <NeuButton pressed={viewTomorrow && !showSummary} onClick={() => switchDay(true)}>
-            {(viewTomorrow && !showSummary) && <motion.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+            {(viewTomorrow && !showSummary) && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Tomorrow
           </NeuButton>
           <NeuButton pressed={showSummary} onClick={() => setShowSummary(true)}>
-            {showSummary && <motion.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+            {showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Summary
           </NeuButton>
         </div>
@@ -278,7 +278,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       {showSummary ? (
         <SummaryView tasks={shown.tasks} />
       ) : (
-        <motion.ol
+        <m.ol
           className="timeline"
           key={viewTomorrow ? 'tomorrow' : 'today'}
           initial={{ opacity: 0, x: viewTomorrow ? 32 : -32 }}
@@ -313,7 +313,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
               />
             ))}
           </AnimatePresence>
-        </motion.ol>
+        </m.ol>
       )}
 
       <UndoBar

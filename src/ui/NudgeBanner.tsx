@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import type { Task } from '../domain/task'
 import { formatLocalTime } from '../domain/time'
 import { nudgeText, type PermissionState } from '../notify/notify'
@@ -48,7 +48,7 @@ export function NudgeBanner({ nudges, permission, onStarted, onDone, onSkip, onE
         const id = n.task.id
         const due = n.kind === 'start' ? n.task.start : n.task.end
         return (
-          <motion.div
+          <m.div
             key={n.key}
             className={`nudge nudge-${n.kind} neu-raised`}
             role="status"
@@ -80,7 +80,7 @@ export function NudgeBanner({ nudges, permission, onStarted, onDone, onSkip, onE
               )}
               <button onClick={() => onDismiss(n.key)}>Dismiss</button>
             </div>
-          </motion.div>
+          </m.div>
         )
       })}
       </AnimatePresence>

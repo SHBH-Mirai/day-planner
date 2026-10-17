@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { AnimatePresence, m, useIsPresent } from 'motion/react'
 
 interface Props {
   open: boolean
@@ -55,7 +55,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
     <AnimatePresence>
       {open && (
         <Backdrop key={openings} onClose={onClose}>
-          <motion.div
+          <m.div
             ref={panelRef}
             className="sheet"
             // Focusable itself, so Esc and the Tab trap still work after a click on an empty part of it.
@@ -77,7 +77,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
               </button>
             </div>
             {children}
-          </motion.div>
+          </m.div>
         </Backdrop>
       )}
     </AnimatePresence>
@@ -90,7 +90,7 @@ function Backdrop({ onClose, children }: { onClose: () => void; children: ReactN
   // Only a press that starts on the backdrop closes it: a text selection let go out here must not.
   const pressedHere = useRef(false)
   return (
-    <motion.div
+    <m.div
       className="sheet-backdrop"
       data-testid="sheet-backdrop"
       onPointerDown={(e) => (pressedHere.current = e.target === e.currentTarget)}
@@ -104,6 +104,6 @@ function Backdrop({ onClose, children }: { onClose: () => void; children: ReactN
       exit={{ opacity: 0 }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }

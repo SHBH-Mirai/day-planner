@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react'
-import { AnimatePresence, motion, type PanInfo } from 'motion/react'
+import { AnimatePresence, m, type PanInfo } from 'motion/react'
 import type { Task } from '../../domain/task'
 import { formatLocalTime } from '../../domain/time'
 import { CATEGORY_LABEL } from '../labels'
@@ -62,8 +62,8 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
   }
 
   return (
-    <motion.li layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
-      <motion.article
+    <m.li layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
+      <m.article
         ref={rowRef}
         aria-label={task.title}
         className={['task-row', 'neu-raised', isNow && 'now'].filter(Boolean).join(' ')}
@@ -115,7 +115,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
         </div>
         <AnimatePresence initial={false}>
           {open && (
-            <motion.div
+            <m.div
               className="task-row-actions"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -126,10 +126,10 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
               {planned && <button onClick={thenFocus(onSkip)}>Skip</button>}
               <button onClick={onEdit}>Edit</button>
               <button onClick={confirmDelete}>Delete</button>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.article>
-    </motion.li>
+      </m.article>
+    </m.li>
   )
 }

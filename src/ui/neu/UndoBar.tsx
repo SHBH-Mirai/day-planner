@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 
 interface Props {
   /** What just happened, e.g. "Marked done: Standup"; null hides the bar. */
@@ -11,7 +11,7 @@ export function UndoBar({ message, onUndo }: Props) {
   return (
     <AnimatePresence>
       {message && (
-        <motion.div
+        <m.div
           className="undo-bar neu-raised"
           role="status"
           aria-label="Undo"
@@ -24,7 +24,7 @@ export function UndoBar({ message, onUndo }: Props) {
           <button className="primary" onClick={onUndo}>
             Undo
           </button>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   )

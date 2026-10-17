@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 
 interface Props {
   done: number
@@ -19,7 +19,7 @@ export function ProgressRing({ done, total, size = 76 }: Props) {
     <div className="ring neu-raised" role="img" aria-label={`${done} of ${total} done`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <circle className="ring-track" cx={c} cy={c} r={r} fill="none" strokeWidth={STROKE} />
-        <motion.circle
+        <m.circle
           className="ring-fill"
           cx={c}
           cy={c}
