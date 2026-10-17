@@ -134,3 +134,35 @@ input, select {
 .ring-track { stroke: var(--neu-dark); opacity: 0.45; }
 .ring-fill { stroke: var(--neu-accent); }
 .ring-label { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.task-row { position: relative; padding: 12px 14px; touch-action: pan-y; }
+.task-row[data-category='office'] { --cat: var(--cat-office); }
+.task-row[data-category='freelance'] { --cat: var(--cat-freelance); }
+.task-row[data-category='youtube'] { --cat: var(--cat-youtube); }
+.task-row[data-status='done'], .task-row[data-status='skipped'] { box-shadow: var(--neu-press); opacity: 0.6; }
+.task-row[data-status='skipped'] .task-row-title { text-decoration: line-through; }
+.task-row-main { display: flex; align-items: center; gap: 12px; }
+.tick {
+  width: 28px; height: 28px; padding: 0; flex: none; border-radius: 50%;
+  box-shadow: var(--neu-press); display: inline-flex; align-items: center; justify-content: center;
+}
+.tick:hover { box-shadow: var(--neu-press), 0 0 0 2px var(--cat, var(--neu-accent)); }
+.tick-done { background: var(--neu-accent); color: var(--neu-on-accent); box-shadow: none; font-weight: 700; }
+.task-row-toggle {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 0; background: none; box-shadow: none; text-align: left; border-radius: 8px;
+}
+.task-row-toggle:active { box-shadow: none; }
+.task-row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.task-row-meta { font-size: 13px; color: var(--neu-muted); font-variant-numeric: tabular-nums; }
+.task-row-meta .tag { color: var(--cat); font-weight: 600; }
+.now-badge { color: var(--neu-accent); font-weight: 700; }
+.task-row-length { font-size: 13px; color: var(--neu-muted); font-variant-numeric: tabular-nums; }
+.task-row-actions { display: flex; flex-wrap: wrap; gap: 8px; overflow: hidden; padding-top: 12px; }
+.task-row.now::after {
+  content: ''; position: absolute; inset: -3px; border-radius: calc(var(--radius) + 3px);
+  border: 2px solid var(--neu-accent); pointer-events: none; animation: neu-pulse 1.8s ease-in-out infinite;
+}
+@keyframes neu-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
