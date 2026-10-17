@@ -24,9 +24,9 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 
 | Flow | When | What it does |
 |---|---|---|
-| Day Planner - Teams nudges | a task is created or changed | START card with **Started**, STOP card with **Done / +15 min / Skip** |
-| Day Planner - Morning | 06:00 IST | active templates for today become tasks, then the today card |
-| Day Planner - Evening | 22:30 IST | saves the day's row in `DailySummaries`, then the summary and tomorrow card |
+| Day Planner - Teams nudges | a task is created or changed | **Starting now** card (Up next, **Let's go** / **+15 min later**), **Time's up** card with progress bar (**Done / +15 min / Skip**) |
+| Day Planner - Morning | 06:00 IST | active templates become tasks, then the timeline card (NOW marker, progress bar) |
+| Day Planner - Evening | 22:30 IST | saves the day's row in `DailySummaries`, then the **Shutdown** card (focus time, category bar, tomorrow's first task, **Move skipped to tomorrow**) |
 | Day Planner - Add task | **Add task** on either card | form loop: saves tasks, refuses end before start, warns on overlaps |
 | Day Planner - Quick add | **+ Add task** in the *Day Planner* Power App | opens the Add task form for today |
 

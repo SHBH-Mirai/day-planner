@@ -184,6 +184,23 @@
       ]
      }
     },
+    "Init_moved": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "moved",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_skipped": [
+       "Succeeded"
+      ]
+     }
+    },
     "Get_today": {
      "type": "OpenApiConnection",
      "inputs": {
@@ -201,7 +218,7 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Init_skipped": [
+      "Init_moved": [
        "Succeeded"
       ]
      }
@@ -496,40 +513,61 @@
      "inputs": {
       "from": "@body('Get_tomorrow')?['value']",
       "select": {
-       "type": "ColumnSet",
-       "separator": true,
+       "type": "Container",
+       "style": "@{if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), 'accent', 'default')}",
        "spacing": "Small",
-       "columns": [
+       "items": [
         {
-         "type": "Column",
-         "width": "stretch",
-         "items": [
+         "type": "ColumnSet",
+         "columns": [
           {
-           "type": "TextBlock",
-           "text": "@{item()?['Title']}",
-           "wrap": true,
-           "weight": "Bolder"
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm')}",
+             "wrap": true,
+             "isSubtle": true
+            }
+           ]
           },
           {
-           "type": "TextBlock",
-           "text": "@{concat(convertFromUtc(item()?['TaskStart'], 'India Standard Time', 'HH:mm'), ' – ', convertFromUtc(item()?['TaskEnd'], 'India Standard Time', 'HH:mm'), if(equals(item()?['TaskStatus']?['Value'], 'planned'), '', concat(' · ', item()?['TaskStatus']?['Value'])))}",
-           "wrap": true,
-           "isSubtle": true,
-           "spacing": "None"
-          }
-         ]
-        },
-        {
-         "type": "Column",
-         "width": "auto",
-         "verticalContentAlignment": "Center",
-         "items": [
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼'))}",
+             "wrap": true
+            }
+           ]
+          },
           {
-           "type": "TextBlock",
-           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
-           "wrap": true,
-           "weight": "Bolder",
-           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+           "type": "Column",
+           "width": "stretch",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{concat(if(equals(item()?['TaskStatus']?['Value'], 'done'), '✓ ', ''), if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), 'NOW · ', ''), item()?['Title'], if(equals(item()?['TaskStatus']?['Value'], 'skipped'), ' (skipped)', ''))}",
+             "wrap": true,
+             "weight": "@{if(or(equals(item()?['TaskStatus']?['Value'], 'done'), equals(item()?['TaskStatus']?['Value'], 'skipped')), 'Default', 'Bolder')}",
+             "isSubtle": "@or(equals(item()?['TaskStatus']?['Value'], 'done'), equals(item()?['TaskStatus']?['Value'], 'skipped'))"
+            }
+           ]
+          },
+          {
+           "type": "Column",
+           "width": "auto",
+           "items": [
+            {
+             "type": "TextBlock",
+             "text": "@{if(and(equals(item()?['TaskStatus']?['Value'], 'planned'), lessOrEquals(ticks(item()?['TaskStart']), ticks(utcNow())), less(ticks(utcNow()), ticks(item()?['TaskEnd']))), concat(string(div(add(sub(ticks(item()?['TaskEnd']), ticks(utcNow())), 300000000), 600000000)), ' min left'), concat(string(div(add(sub(ticks(item()?['TaskEnd']), ticks(item()?['TaskStart'])), 300000000), 600000000)), 'm'))}",
+             "wrap": true,
+             "isSubtle": true,
+             "horizontalAlignment": "Right"
+            }
+           ]
           }
          ]
         }
@@ -563,7 +601,7 @@
             "items": [
              {
               "type": "TextBlock",
-              "text": "@{concat('Your day · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd d MMM'))}",
+              "text": "@{concat('Shutdown · ', convertFromUtc(utcNow(), 'India Standard Time', 'ddd, d MMM'))}",
               "wrap": true,
               "weight": "Bolder"
              }
@@ -588,148 +626,73 @@
         ]
        },
        {
-        "type": "ColumnSet",
-        "spacing": "Medium",
-        "columns": [
-         {
-          "type": "Column",
-          "width": "stretch",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": "Planned",
-            "wrap": true,
-            "isSubtle": true,
-            "size": "Small"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{if(less(variables('planned'), 60), concat(string(variables('planned')), 'm'), concat(string(div(variables('planned'), 60)), 'h ', string(mod(variables('planned'), 60)), 'm'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
-           }
-          ]
-         },
-         {
-          "type": "Column",
-          "width": "stretch",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": "Actual",
-            "wrap": true,
-            "isSubtle": true,
-            "size": "Small"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{if(less(variables('actual'), 60), concat(string(variables('actual')), 'm'), concat(string(div(variables('actual'), 60)), 'h ', string(mod(variables('actual'), 60)), 'm'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
-           }
-          ]
-         },
-         {
-          "type": "Column",
-          "width": "stretch",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": "Skipped",
-            "wrap": true,
-            "isSubtle": true,
-            "size": "Small"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{string(variables('skipped'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
-           }
-          ]
-         }
-        ]
+        "type": "TextBlock",
+        "text": "@{concat('Nice work. ', if(less(variables('actual'), 60), concat(string(variables('actual')), 'm'), concat(string(div(variables('actual'), 60)), 'h ', string(mod(variables('actual'), 60)), 'm')), ' focused.')}",
+        "wrap": true,
+        "size": "Large",
+        "weight": "Bolder",
+        "spacing": "Medium"
        },
        {
         "type": "ColumnSet",
+        "spacing": "Small",
         "columns": [
          {
           "type": "Column",
-          "width": "stretch",
+          "width": "@max(variables('office'), 1)",
+          "isVisible": "@greater(variables('office'), 0)",
+          "style": "accent",
+          "minHeight": "8px",
           "items": [
            {
             "type": "TextBlock",
-            "text": "Office",
-            "wrap": true,
-            "size": "Small",
-            "weight": "Bolder",
-            "color": "Accent"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{if(less(variables('office'), 60), concat(string(variables('office')), 'm'), concat(string(div(variables('office'), 60)), 'h ', string(mod(variables('office'), 60)), 'm'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
+            "text": " ",
+            "size": "Small"
            }
           ]
          },
          {
           "type": "Column",
-          "width": "stretch",
+          "width": "@max(variables('freelance'), 1)",
+          "isVisible": "@greater(variables('freelance'), 0)",
+          "style": "good",
+          "minHeight": "8px",
           "items": [
            {
             "type": "TextBlock",
-            "text": "Freelance",
-            "wrap": true,
-            "size": "Small",
-            "weight": "Bolder",
-            "color": "Good"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{if(less(variables('freelance'), 60), concat(string(variables('freelance')), 'm'), concat(string(div(variables('freelance'), 60)), 'h ', string(mod(variables('freelance'), 60)), 'm'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
+            "text": " ",
+            "size": "Small"
            }
           ]
          },
          {
           "type": "Column",
-          "width": "stretch",
+          "width": "@max(variables('youtube'), 1)",
+          "isVisible": "@greater(variables('youtube'), 0)",
+          "style": "attention",
+          "minHeight": "8px",
           "items": [
            {
             "type": "TextBlock",
-            "text": "Content",
-            "wrap": true,
-            "size": "Small",
-            "weight": "Bolder",
-            "color": "Attention"
-           },
-           {
-            "type": "TextBlock",
-            "text": "@{if(less(variables('youtube'), 60), concat(string(variables('youtube')), 'm'), concat(string(div(variables('youtube'), 60)), 'h ', string(mod(variables('youtube'), 60)), 'm'))}",
-            "wrap": true,
-            "size": "Large",
-            "weight": "Bolder",
-            "spacing": "None"
+            "text": " ",
+            "size": "Small"
            }
           ]
          }
-        ]
+        ],
+        "isVisible": "@greater(add(add(variables('office'), variables('freelance')), variables('youtube')), 0)"
        },
        {
         "type": "TextBlock",
-        "text": "Tasks",
+        "text": "@{concat('💼 Office ', if(less(variables('office'), 60), concat(string(variables('office')), 'm'), concat(string(div(variables('office'), 60)), 'h ', string(mod(variables('office'), 60)), 'm')), '   ✍️ Freelance ', if(less(variables('freelance'), 60), concat(string(variables('freelance')), 'm'), concat(string(div(variables('freelance'), 60)), 'h ', string(mod(variables('freelance'), 60)), 'm')), '   🎬 Content ', if(less(variables('youtube'), 60), concat(string(variables('youtube')), 'm'), concat(string(div(variables('youtube'), 60)), 'h ', string(mod(variables('youtube'), 60)), 'm')))}",
+        "wrap": true,
+        "isSubtle": true,
+        "size": "Small",
+        "spacing": "Small"
+       },
+       {
+        "type": "TextBlock",
+        "text": "Tomorrow starts with",
         "wrap": true,
         "weight": "Bolder",
         "isSubtle": true,
@@ -738,32 +701,30 @@
        },
        {
         "type": "Container",
-        "items": "@if(empty(body('Summary_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks today.\",\"isSubtle\":true,\"wrap\":true}]'), body('Summary_rows'))"
-       },
-       {
-        "type": "TextBlock",
-        "text": "Tomorrow",
-        "wrap": true,
-        "weight": "Bolder",
-        "isSubtle": true,
-        "spacing": "Medium",
-        "separator": true
+        "items": "@if(empty(body('Tomorrow_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true}]'), take(body('Tomorrow_rows'), 1))"
        },
        {
         "type": "Container",
-        "items": "@if(empty(body('Tomorrow_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"Nothing planned yet.\",\"isSubtle\":true,\"wrap\":true}]'), body('Tomorrow_rows'))"
+        "id": "details",
+        "isVisible": false,
+        "items": [
+         {
+          "type": "TextBlock",
+          "text": "Today, task by task",
+          "wrap": true,
+          "weight": "Bolder",
+          "isSubtle": true,
+          "spacing": "Medium",
+          "separator": true
+         },
+         {
+          "type": "Container",
+          "items": "@if(empty(body('Summary_rows')), json('[{\"type\":\"TextBlock\",\"text\":\"No tasks today.\",\"isSubtle\":true,\"wrap\":true}]'), body('Summary_rows'))"
+         }
+        ]
        }
       ],
-      "actions": [
-       {
-        "type": "Action.Submit",
-        "id": "add",
-        "title": "+ Plan tomorrow",
-        "data": {
-         "choice": "add"
-        }
-       }
-      ]
+      "actions": "@if(greater(variables('skipped'), 0), json(concat('[{\"type\":\"Action.Submit\",\"id\":\"add\",\"title\":\"+ Plan tomorrow\",\"data\":{\"choice\":\"add\"}},{\"type\":\"Action.Submit\",\"id\":\"moveskipped\",\"title\":\"↪ Move ', string(variables('skipped')), ' skipped to tomorrow\",\"data\":{\"choice\":\"moveskipped\"}},{\"type\":\"Action.ToggleVisibility\",\"title\":\"Details\",\"targetElements\":[\"details\"]}]')), json('[{\"type\":\"Action.Submit\",\"id\":\"add\",\"title\":\"+ Plan tomorrow\",\"data\":{\"choice\":\"add\"}},{\"type\":\"Action.ToggleVisibility\",\"title\":\"Details\",\"targetElements\":[\"details\"]}]'))"
      }
     },
     "Post_evening": {
@@ -781,7 +742,7 @@
        "poster": "Flow bot",
        "location": "Chat with Flow bot",
        "body/body/messageBody": "@{string(outputs('Card'))}",
-       "body/body/updateMessage": "Opening the Add task form…",
+       "body/body/updateMessage": "Got it.",
        "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
       },
       "host": {
@@ -790,23 +751,6 @@
        "operationId": "PostCardAndWaitForResponse"
       },
       "authentication": "@parameters('$authentication')"
-     }
-    },
-    "Add_task": {
-     "type": "Workflow",
-     "runAfter": {
-      "Post_evening": [
-       "Succeeded"
-      ]
-     },
-     "inputs": {
-      "host": {
-       "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
-      },
-      "body": {
-       "text": "@addDays(concat(outputs('Today'), 'T00:00:00Z'), 1, 'yyyy-MM-dd')",
-       "text_1": "09:00"
-      }
      }
     },
     "No_answer": {
@@ -818,10 +762,194 @@
      },
      "inputs": "no answer"
     },
+    "Choice_evening": {
+     "type": "Compose",
+     "runAfter": {
+      "Post_evening": [
+       "Succeeded"
+      ]
+     },
+     "inputs": "@coalesce(body('Post_evening')?['data']?['choice'], body('Post_evening')?['submitActionId'], '')"
+    },
+    "Is_move": {
+     "type": "If",
+     "runAfter": {
+      "Choice_evening": [
+       "Succeeded"
+      ]
+     },
+     "expression": {
+      "and": [
+       {
+        "equals": [
+         "@outputs('Choice_evening')",
+         "moveskipped"
+        ]
+       }
+      ]
+     },
+     "actions": {
+      "Skipped_today": {
+       "type": "Query",
+       "inputs": {
+        "from": "@body('Get_today')?['value']",
+        "where": "@equals(item()?['TaskStatus']?['Value'], 'skipped')"
+       }
+      },
+      "Each_skipped": {
+       "type": "Foreach",
+       "runAfter": {
+        "Skipped_today": [
+         "Succeeded"
+        ]
+       },
+       "foreach": "@body('Skipped_today')",
+       "runtimeConfiguration": {
+        "concurrency": {
+         "repetitions": 1
+        }
+       },
+       "actions": {
+        "New_start": {
+         "type": "Compose",
+         "inputs": "@addDays(items('Each_skipped')?['TaskStart'], 1)"
+        },
+        "Already_there": {
+         "type": "Query",
+         "runAfter": {
+          "New_start": [
+           "Succeeded"
+          ]
+         },
+         "inputs": {
+          "from": "@body('Get_tomorrow')?['value']",
+          "where": "@and(equals(item()?['Title'], items('Each_skipped')?['Title']), equals(ticks(item()?['TaskStart']), ticks(outputs('New_start'))))"
+         }
+        },
+        "Not_there": {
+         "type": "If",
+         "runAfter": {
+          "Already_there": [
+           "Succeeded"
+          ]
+         },
+         "expression": {
+          "and": [
+           {
+            "equals": [
+             "@length(body('Already_there'))",
+             0
+            ]
+           }
+          ]
+         },
+         "actions": {
+          "Create_moved": {
+           "type": "OpenApiConnection",
+           "inputs": {
+            "parameters": {
+             "dataset": "https://datenshi.sharepoint.com/sites/Development",
+             "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+             "item/Title": "@items('Each_skipped')?['Title']",
+             "item/TaskStart": "@outputs('New_start')",
+             "item/TaskEnd": "@addDays(coalesce(items('Each_skipped')?['TaskOriginalEnd'], items('Each_skipped')?['TaskEnd']), 1)",
+             "item/TaskOriginalEnd": "@addDays(coalesce(items('Each_skipped')?['TaskOriginalEnd'], items('Each_skipped')?['TaskEnd']), 1)",
+             "item/TaskCategory/Value": "@coalesce(items('Each_skipped')?['TaskCategory']?['Value'], 'office')",
+             "item/TaskStatus/Value": "planned"
+            },
+            "host": {
+             "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+             "connectionName": "shared_sharepointonline",
+             "operationId": "PostItem"
+            },
+            "authentication": "@parameters('$authentication')"
+           }
+          },
+          "Count_moved": {
+           "type": "IncrementVariable",
+           "runAfter": {
+            "Create_moved": [
+             "Succeeded"
+            ]
+           },
+           "inputs": {
+            "name": "moved",
+            "value": 1
+           }
+          }
+         },
+         "else": {
+          "actions": {}
+         }
+        }
+       }
+      },
+      "Moved_card": {
+       "type": "Compose",
+       "runAfter": {
+        "Each_skipped": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "body": [
+         {
+          "type": "TextBlock",
+          "text": "@{concat('↪ Moved ', string(variables('moved')), if(equals(variables('moved'), 1), ' task', ' tasks'), ' to tomorrow')}",
+          "wrap": true,
+          "weight": "Bolder"
+         }
+        ],
+        "actions": []
+       }
+      },
+      "Post_moved": {
+       "type": "OpenApiConnection",
+       "runAfter": {
+        "Moved_card": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "parameters": {
+         "poster": "Flow bot",
+         "location": "Chat with Flow bot",
+         "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com",
+         "body/messageBody": "@{string(outputs('Moved_card'))}"
+        },
+        "host": {
+         "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+         "connectionName": "shared_teams",
+         "operationId": "PostCardToConversation"
+        },
+        "authentication": "@parameters('$authentication')"
+       }
+      }
+     },
+     "else": {
+      "actions": {
+       "Add_task": {
+        "type": "Workflow",
+        "inputs": {
+         "host": {
+          "workflowReferenceName": "c64a024e-c3c9-f111-b377-7c1e520e2265"
+         },
+         "body": {
+          "text": "@addDays(concat(outputs('Today'), 'T00:00:00Z'), 1, 'yyyy-MM-dd')",
+          "text_1": "09:00"
+         }
+        }
+       }
+      }
+     }
+    },
     "Finished": {
      "type": "Compose",
      "runAfter": {
-      "Add_task": [
+      "Is_move": [
        "Succeeded",
        "Skipped",
        "Failed"
