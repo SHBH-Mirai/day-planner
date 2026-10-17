@@ -74,3 +74,17 @@ describe('TaskForm', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('Keep me')
   })
 })
+
+describe('TaskForm default length', () => {
+  test('a new task is as long as the default length from Setup', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} defaultLengthMin={45} />)
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:00')
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
+  })
+
+  test('editing a task keeps its own times, whatever the default length', () => {
+    const standup = makeTask({ title: 'Standup', start: ist('2026-10-17', '09:00'), end: ist('2026-10-17', '09:15') })
+    render(<TaskForm day={DAY} others={[]} initial={standup} onSubmit={vi.fn(async () => true)} defaultLengthMin={90} />)
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:15')
+  })
+})
