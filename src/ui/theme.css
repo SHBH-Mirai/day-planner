@@ -274,3 +274,6 @@ input, select {
 .routine-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .routine-days { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .routine-days button[aria-pressed='true'] { background: var(--neu-accent-text); color: var(--neu-on-accent); box-shadow: none; }
+
+.header-actions { display: flex; align-items: center; gap: 14px; }
+.gear { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; line-height: 1; }

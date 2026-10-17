@@ -98,3 +98,11 @@ describe('App theme', () => {
     expect(document.documentElement.dataset.theme).toBe('light')
   })
 })
+
+describe('App Setup', () => {
+  test('memory mode has a gear that opens Setup', async () => {
+    render(<App env={{ VITE_STORAGE: 'memory' }} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Setup' }))
+    expect(await screen.findByRole('region', { name: 'Setup' })).toBeInTheDocument()
+  })
+})

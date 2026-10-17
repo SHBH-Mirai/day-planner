@@ -3,6 +3,8 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import { InMemoryTaskRepository } from '../storage/InMemoryTaskRepository'
+import { InMemorySettingsRepository } from '../storage/InMemorySettingsRepository'
+import { InMemoryRoutineRepository } from '../storage/InMemoryRoutineRepository'
 import { ist } from '../test-utils/makeTask'
 
 const D = '2026-10-17'
@@ -244,5 +246,68 @@ describe('TodayView inside Teams', () => {
     } finally {
       vi.unstubAllGlobals()
     }
+  })
+})
+
+describe('TodayView, Setup', () => {
+  const withRepos = async () => {
+    const settingsRepo = new InMemorySettingsRepository()
+    const routineRepo = new InMemoryRoutineRepository()
+    await routineRepo.create({ title: 'Gym', category: 'office', startTime: '18:00', durationMin: 60, days: ['Sun'], active: true })
+    return { settingsRepo, routineRepo }
+  }
+
+  test('there is no gear without the settings and routines lists', async () => {
+    render(<TodayView repo={new InMemoryTaskRepository()} day={DAY} now={() => NOW} />)
+    await screen.findByRole('heading', { name: 'Today' })
+    expect(screen.queryByRole('button', { name: 'Setup' })).not.toBeInTheDocument()
+  })
+
+  test('the gear opens Setup in place of the day, and Back returns to the same tab', async () => {
+    const repos = await withRepos()
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} {...repos} />)
+    await findCard('Standup')
+    await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Setup' }))
+    expect(await screen.findByRole('region', { name: 'Setup' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'New task' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(await screen.findByRole('heading', { name: 'Tomorrow' })).toBeInTheDocument()
+  })
+
+  test('Add to today in Setup puts the routine on today’s list', async () => {
+    const repos = await withRepos()
+    const repo = new InMemoryTaskRepository()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} {...repos} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Setup' }))
+    const row = await screen.findByRole('article', { name: 'Gym' })
+    await userEvent.click(within(row).getByRole('button', { name: 'Add to today' }))
+    expect(await within(row).findByText('Added to today')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(await findCard('Gym')).toBeInTheDocument()
+  })
+
+  test('a new default length from Setup is used by the + form', async () => {
+    const repos = await withRepos()
+    render(<TodayView repo={new InMemoryTaskRepository()} day={DAY} now={() => NOW} {...repos} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Setup' }))
+    await userEvent.click(await screen.findByRole('button', { name: '60 min' }))
+    await screen.findByText('Saved')
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await userEvent.click(screen.getByRole('button', { name: 'New task' }))
+    expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:00')
+    expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T10:00')
+  })
+
+  test('the default length saved earlier is used straight away', async () => {
+    const repos = await withRepos()
+    await repos.settingsRepo.save({ startNudges: true, endNudges: true, defaultLengthMin: 45 })
+    render(<TodayView repo={new InMemoryTaskRepository()} day={DAY} now={() => NOW} {...repos} />)
+    await screen.findByRole('heading', { name: 'Today' })
+    await waitFor(async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'New task' }))
+      expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
+    })
   })
 })
