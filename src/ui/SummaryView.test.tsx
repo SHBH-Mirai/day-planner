@@ -20,8 +20,8 @@ describe('SummaryView', () => {
     render(<SummaryView tasks={[done, planned]} />)
     const table = screen.getByRole('table', { name: 'Tasks' })
     const doneRow = within(table).getByRole('row', { name: /Client work/ })
-    expect(within(doneRow).getByText('60')).toBeInTheDocument()
-    expect(within(doneRow).getByText('75')).toBeInTheDocument()
+    // Ticked done without Started, so Actual shows its planned hour (one rule with the totals).
+    expect(within(doneRow).getAllByRole('cell').map((c) => c.textContent)).toEqual(['60', '60'])
     expect(within(within(table).getByRole('row', { name: /Report/ })).getByText('—')).toBeInTheDocument()
   })
 
@@ -53,6 +53,21 @@ describe('SummaryView', () => {
     expect(within(bar).getByLabelText('Office 60 min')).toBeInTheDocument()
     expect(within(bar).getByLabelText('Content 90 min')).toBeInTheDocument()
     expect(within(bar).queryByLabelText(/Freelance/)).not.toBeInTheDocument()
+  })
+
+  test('the category table agrees with the bar for a task ticked done late without Started', () => {
+    const late = makeTask({
+      category: 'office',
+      status: 'done',
+      start: ist(D, '09:00'),
+      end: ist(D, '10:30'),
+      originalEnd: ist(D, '10:30'),
+      actualEnd: ist(D, '15:51'),
+    })
+    render(<SummaryView tasks={[late]} />)
+    expect(within(screen.getByRole('img', { name: 'Time by category' })).getByLabelText('Office 90 min')).toBeInTheDocument()
+    const table = screen.getByRole('table', { name: 'By category' })
+    expect(within(within(table).getByRole('row', { name: /Office/ })).getByText('90')).toBeInTheDocument()
   })
 
   test('shows minutes per category', () => {
