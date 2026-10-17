@@ -20,6 +20,10 @@ async function seeded(...slots: [string, string, string][]) {
 
 const card = (title: string) => screen.getByRole('article', { name: title })
 const findCard = (title: string) => screen.findByRole('article', { name: title })
+// The new layout: actions unfold when you tap a row; new tasks are added in a sheet opened by the + button.
+const unfold = async (title: string) =>
+  userEvent.click(within(await findCard(title)).getByRole('button', { name: new RegExp(title) }))
+const openNewTask = () => userEvent.click(screen.getByRole('button', { name: 'New task' }))
 
 describe('TodayView', () => {
   test('shows tasks in time order with times and category', async () => {
@@ -34,6 +38,7 @@ describe('TodayView', () => {
   test('Started records actualStart, Done records status and actualEnd', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Standup')
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Started' }))
     await waitFor(() => expect(within(card('Standup')).queryByRole('button', { name: 'Started' })).not.toBeInTheDocument())
     await userEvent.click(within(card('Standup')).getByRole('button', { name: 'Done' }))
@@ -45,6 +50,7 @@ describe('TodayView', () => {
   test('Skip marks the task skipped', async () => {
     const repo = await seeded(['Gym', '18:00', '19:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Gym')
     await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Skip' }))
     await waitFor(() => expect(card('Gym')).toHaveAttribute('data-status', 'skipped'))
   })
@@ -53,6 +59,7 @@ describe('TodayView', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const repo = await seeded(['Gym', '18:00', '19:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Gym')
     await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Gym' })).not.toBeInTheDocument())
     expect(await repo.listForDay(DAY)).toEqual([])
@@ -63,6 +70,7 @@ describe('TodayView', () => {
     const realCreate = repo.create.bind(repo)
     vi.spyOn(repo, 'create').mockRejectedValueOnce(new Error('offline')).mockImplementation(realCreate)
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await openNewTask()
     await userEvent.type(await screen.findByLabelText('Title'), 'Proposal')
     await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
     expect(await screen.findByText(/Couldn.t save/)).toBeInTheDocument()
@@ -80,6 +88,7 @@ describe('TodayView', () => {
   test('Edit changes a task', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Standup')
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
     const title = screen.getByLabelText('Title')
     await userEvent.clear(title)
@@ -93,6 +102,7 @@ describe('TodayView', () => {
     const [standup] = await repo.listForDay(DAY)
     await repo.update({ ...standup, end: ist(D, '09:30') }) // as if +15 was pressed
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Standup')
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
     await userEvent.type(screen.getByLabelText('Title'), ' notes')
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -104,6 +114,7 @@ describe('TodayView', () => {
   test('an edit that moves the times re-plans originalEnd', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Standup')
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
     fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-17T09:45' } })
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
@@ -128,6 +139,7 @@ describe('TodayView', () => {
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
     expect(await screen.findByText(/Couldn.t save/)).toBeInTheDocument()
     expect(card('Standup')).toHaveAttribute('data-status', 'done')
+    await unfold('Gym')
     await userEvent.click(within(card('Gym')).getByRole('button', { name: 'Skip' }))
     await waitFor(() => expect(card('Gym')).toHaveAttribute('data-status', 'skipped'))
     expect(screen.getByText(/Couldn.t save/)).toBeInTheDocument()
@@ -142,6 +154,7 @@ describe('TodayView', () => {
     vi.spyOn(repo, 'listForDay').mockRejectedValueOnce(new Error('offline'))
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     expect(await screen.findByText(/Couldn.t load/)).toBeInTheDocument()
+    await openNewTask()
     await userEvent.type(screen.getByLabelText('Title'), 'Proposal')
     await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
     await findCard('Proposal')
@@ -152,6 +165,7 @@ describe('TodayView', () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await findCard('Standup')
+    await openNewTask()
     expect(screen.getByLabelText('Start')).toHaveValue('2026-10-17T09:15')
     expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:45')
   })
@@ -163,6 +177,7 @@ describe('TodayView', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }))
     expect(await screen.findByRole('heading', { name: 'Tomorrow' })).toBeInTheDocument()
     expect(screen.queryByRole('article', { name: 'Standup' })).not.toBeInTheDocument()
+    await openNewTask()
     expect(screen.getByLabelText('Start')).toHaveValue('2026-10-18T09:00')
     await userEvent.type(screen.getByLabelText('Title'), 'Gym')
     await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
@@ -176,6 +191,7 @@ describe('TodayView', () => {
   test('a task dated another day is not listed under today, and says where it went', async () => {
     const repo = new InMemoryTaskRepository()
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await openNewTask()
     await userEvent.type(await screen.findByLabelText('Title'), 'Edit video')
     fireEvent.change(screen.getByLabelText('Start'), { target: { value: '2026-10-18T10:00' } })
     fireEvent.change(screen.getByLabelText('End'), { target: { value: '2026-10-18T11:00' } })

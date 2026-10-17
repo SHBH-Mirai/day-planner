@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { extendTask } from '../domain/extend'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
@@ -8,8 +9,16 @@ import { startScheduler } from '../scheduler/startScheduler'
 import type { Nudge } from '../scheduler/dueNudges'
 import type { TaskRepository } from '../storage/TaskRepository'
 import { NudgeBanner } from './NudgeBanner'
+import { Fab } from './neu/Fab'
+import { formatMinutes } from './neu/format'
+import { MotionPrefs } from './neu/MotionPrefs'
+import { NeuButton } from './neu/NeuButton'
+import { NeuSurface } from './neu/NeuSurface'
+import { ProgressRing } from './neu/ProgressRing'
+import { Sheet } from './neu/Sheet'
+import { TaskRow } from './neu/TaskRow'
+import { dayTotals } from './neu/totals'
 import { SummaryView } from './SummaryView'
-import { TaskCard } from './TaskCard'
 import { TaskForm } from './TaskForm'
 import { useTasks } from './useTasks'
 
@@ -23,6 +32,15 @@ interface Props {
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/** Re-renders once a minute so the "now" marker moves along. */
+function useMinuteTick() {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+}
 
 export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: Props) {
   const dayKey = day.toDateString()
@@ -39,7 +57,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   const shownDay = viewTomorrow ? tomorrow : day
 
   const [editing, setEditing] = useState<Task | null>(null)
+  const [adding, setAdding] = useState(false)
+  // A new task that failed to save waits in the Retry queue; a second Add would save it twice.
+  const [addFailed, setAddFailed] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
 
   const [nudges, setNudges] = useState<Nudge[]>([])
@@ -77,50 +99,90 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
 
   function switchDay(toTomorrow: boolean) {
     setViewTomorrow(toTomorrow)
+    setShowSummary(false)
     setEditing(null)
+    setAdding(false)
+    setAddFailed(false)
     setNotice(null)
   }
 
+  function closeSheet() {
+    setAdding(false)
+    setEditing(null)
+    setAddFailed(false)
+  }
+
+  // Retry saved the waiting new task (the create count moved): the sheet's job is done.
+  const [seenCreated, setSeenCreated] = useState(shown.createdCount)
+  if (shown.createdCount !== seenCreated) {
+    setSeenCreated(shown.createdCount)
+    if (addFailed) {
+      setAddFailed(false)
+      setAdding(false)
+    }
+  }
+
+  const nowMs = now().getTime()
+  const isNow = (t: Task) =>
+    !viewTomorrow && t.status === 'planned' && Date.parse(t.start) <= nowMs && nowMs < Date.parse(t.end)
+  const doneCount = shown.tasks.filter((t) => t.status === 'done').length
+  const minutes = dayTotals(shown.tasks)
+  const sheetOpen = adding || editing !== null
+
+  const errorBanner = error && (
+    <div className="banner banner-error" role="alert">
+      {error}{' '}
+      {needsSignIn && onSignInAgain && (
+        <button className="primary" onClick={onSignInAgain}>
+          Sign in again
+        </button>
+      )}{' '}
+      <button
+        onClick={() => {
+          today.retry()
+          next.retry()
+        }}
+      >
+        Retry
+      </button>
+    </div>
+  )
+
   return (
+    <MotionPrefs>
     <main className="today">
       <header className="today-header">
         <div>
           <h1>{viewTomorrow ? 'Tomorrow' : 'Today'}</h1>
           <p className="muted">{dayTitle.format(shownDay)}</p>
         </div>
-        <div className="header-actions">
-          <div className="day-switch" role="group" aria-label="Day">
-            <button aria-pressed={!viewTomorrow} onClick={() => switchDay(false)}>
-              Today
-            </button>
-            <button aria-pressed={viewTomorrow} onClick={() => switchDay(true)}>
-              Tomorrow
-            </button>
-          </div>
-          <button onClick={() => setShowSummary((s) => !s)} aria-pressed={showSummary}>
-            Summary
-          </button>
-        </div>
+        {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.length} />}
       </header>
 
-      {error && (
-        <div className="banner banner-error" role="alert">
-          {error}{' '}
-          {needsSignIn && onSignInAgain && (
-            <button className="primary" onClick={onSignInAgain}>
-              Sign in again
-            </button>
-          )}{' '}
-          <button
-            onClick={() => {
-              today.retry()
-              next.retry()
-            }}
-          >
-            Retry
-          </button>
+      <NeuSurface variant="inset" className="day-switch">
+        <div role="group" aria-label="View">
+          <NeuButton pressed={!viewTomorrow && !showSummary} onClick={() => switchDay(false)}>
+            Today
+          </NeuButton>
+          <NeuButton pressed={viewTomorrow && !showSummary} onClick={() => switchDay(true)}>
+            Tomorrow
+          </NeuButton>
+          <NeuButton pressed={showSummary} onClick={() => setShowSummary(true)}>
+            Summary
+          </NeuButton>
         </div>
+      </NeuSurface>
+
+      {!viewTomorrow && !showSummary && (
+        <NeuSurface variant="inset" className="focus-strip">
+          <span>Focus today</span>
+          <strong>
+            {formatMinutes(minutes.done)} / {formatMinutes(minutes.planned)}
+          </strong>
+        </NeuSurface>
       )}
+
+      {!sheetOpen && errorBanner}
 
       <NudgeBanner
         nudges={liveNudges}
@@ -154,54 +216,70 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       {notice && <div className="banner">{notice}</div>}
 
       {findNoBreakRuns(shown.tasks).map((run) => (
-        <div key={run.fromUtc} className="banner banner-warning">
+        <div key={run.fromUtc} className="banner banner-warning pill">
           3h+ without a break: {formatLocalTime(run.fromUtc)}–{formatLocalTime(run.toUtc)}
         </div>
       ))}
 
-      <TaskForm
-        key={`${viewTomorrow ? 'tomorrow' : 'today'}-${editing ? `edit-${editing.id}` : `new-${shown.createdCount}`}`}
-        day={shownDay}
-        others={others}
-        initial={editing ?? undefined}
-        onSubmit={async (draft) => {
-          if (!editing) {
-            setNotice(null)
-            const ok = await shown.add(draft)
-            const start = new Date(draft.start)
-            if (ok && tasksForDay([{ ...draft, id: '', originalEnd: draft.end, status: 'planned' }], shownDay).length === 0) {
-              setNotice(`Saved for ${dayTitle.format(start)}`)
-              if (start.toDateString() === dayKey) void today.reload()
-              if (start.toDateString() === tomorrow.toDateString()) void next.reload()
+      <Sheet open={sheetOpen} onClose={closeSheet} title={editing ? 'Edit task' : 'New task'}>
+        {errorBanner}
+        {addFailed && <p className="muted">This task is waiting to be saved. Press Retry to save it.</p>}
+        <TaskForm
+          key={`${viewTomorrow ? 'tomorrow' : 'today'}-${editing ? `edit-${editing.id}` : `new-${shown.createdCount}`}`}
+          day={shownDay}
+          others={others}
+          initial={editing ?? undefined}
+          onSubmit={async (draft) => {
+            if (!editing) {
+              if (addFailed) return false
+              setNotice(null)
+              const ok = await shown.add(draft)
+              if (!ok) setAddFailed(true)
+              const start = new Date(draft.start)
+              if (ok && tasksForDay([{ ...draft, id: '', originalEnd: draft.end, status: 'planned' }], shownDay).length === 0) {
+                setNotice(`Saved for ${dayTitle.format(start)}`)
+                if (start.toDateString() === dayKey) void today.reload()
+                if (start.toDateString() === tomorrow.toDateString()) void next.reload()
+              }
+              if (ok) setAdding(false)
+              return ok
             }
+            // Start from the latest copy: a nudge may have changed the task while the form was open.
+            const current = shown.tasks.find((t) => t.id === editing.id) ?? editing
+            // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
+            const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
+            const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
+            if (ok) setEditing(null)
             return ok
-          }
-          // Start from the latest copy: a nudge may have changed the task while the form was open.
-          const current = shown.tasks.find((t) => t.id === editing.id) ?? editing
-          // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
-          const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
-          const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
-          if (ok) setEditing(null)
-          return ok
-        }}
-        onCancel={editing ? () => setEditing(null) : undefined}
-      />
+          }}
+          onCancel={closeSheet}
+        />
+      </Sheet>
 
-      <ol className="timeline">
-        {shown.tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onStarted={() => shown.save({ ...task, actualStart: stamp() })}
-            onDone={() => shown.save({ ...task, status: 'done', actualEnd: stamp() })}
-            onSkip={() => shown.save({ ...task, status: 'skipped' })}
-            onEdit={() => setEditing(task)}
-            onDelete={() => shown.remove(task.id)}
-          />
-        ))}
-      </ol>
+      {showSummary ? (
+        <SummaryView tasks={shown.tasks} />
+      ) : (
+        <ol className="timeline">
+          <AnimatePresence initial={false}>
+            {shown.tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                isNow={isNow(task)}
+                onStarted={() => void shown.save({ ...task, actualStart: stamp() })}
+                onDone={() => void shown.save({ ...task, status: 'done', actualEnd: stamp() })}
+                onPlus15={() => void shown.save(extendTask(task, 15, shown.tasks, now()).updated)}
+                onSkip={() => void shown.save({ ...task, status: 'skipped' })}
+                onEdit={() => setEditing(task)}
+                onDelete={() => void shown.remove(task.id)}
+              />
+            ))}
+          </AnimatePresence>
+        </ol>
+      )}
 
-      {showSummary && <SummaryView tasks={shown.tasks} />}
+      <Fab aria-label="New task" onClick={() => setAdding(true)} />
     </main>
+    </MotionPrefs>
   )
 }

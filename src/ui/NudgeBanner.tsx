@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import type { Task } from '../domain/task'
 import { formatLocalTime } from '../domain/time'
 import { nudgeText, type PermissionState } from '../notify/notify'
@@ -42,11 +43,21 @@ export function NudgeBanner({ nudges, permission, onStarted, onDone, onSkip, onE
         </div>
       )}
 
+      <AnimatePresence initial={false}>
       {nudges.map((n) => {
         const id = n.task.id
         const due = n.kind === 'start' ? n.task.start : n.task.end
         return (
-          <div key={n.key} className={`nudge nudge-${n.kind}`} role="status" data-category={n.task.category}>
+          <motion.div
+            key={n.key}
+            className={`nudge nudge-${n.kind} neu-raised`}
+            role="status"
+            data-category={n.task.category}
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+          >
             <strong>{nudgeText(n)}</strong>
             {n.missed && <span className="muted"> missed at {formatLocalTime(due)}</span>}
             <div className="nudge-actions">
@@ -69,9 +80,10 @@ export function NudgeBanner({ nudges, permission, onStarted, onDone, onSkip, onE
               )}
               <button onClick={() => onDismiss(n.key)}>Dismiss</button>
             </div>
-          </div>
+          </motion.div>
         )
       })}
+      </AnimatePresence>
     </div>
   )
 }
