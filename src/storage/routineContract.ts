@@ -38,6 +38,15 @@ export function runRoutineContract(name: string, makeRepo: () => RoutineReposito
       expect(await repo.list()).toEqual([{ ...r, active: false, days: ['Fri'], durationMin: 30 }])
     })
 
+    test('setActive pauses and resumes a routine, changing nothing else', async () => {
+      const repo = makeRepo()
+      const r = await repo.create(draft('Gym'))
+      await repo.setActive(r.id, false)
+      expect(await repo.list()).toEqual([{ ...r, active: false }])
+      await repo.setActive(r.id, true)
+      expect(await repo.list()).toEqual([r])
+    })
+
     test('remove deletes it, and removing a missing one is notFound', async () => {
       const repo = makeRepo()
       const r = await repo.create(draft('Gym'))

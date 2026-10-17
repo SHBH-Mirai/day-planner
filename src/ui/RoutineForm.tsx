@@ -46,7 +46,7 @@ export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
       </label>
       <label>
         Length (min)
-        <input type="number" min={5} max={720} step={5} value={durationMin} onChange={(e) => setDurationMin(e.target.value)} />
+        <input type="number" min={5} max={720} step={1} value={durationMin} onChange={(e) => setDurationMin(e.target.value)} />
       </label>
       <label>
         Category

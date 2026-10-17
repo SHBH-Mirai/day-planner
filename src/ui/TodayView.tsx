@@ -202,7 +202,16 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         <div className="header-actions">
           {!viewTomorrow && <ProgressRing done={doneCount} total={shown.tasks.filter((t) => t.status !== 'skipped').length} />}
           {settingsRepo && routineRepo && (
-            <NeuButton className="gear" aria-label="Setup" pressed={setupOpen} onClick={() => setSetupOpen((o) => !o)}>
+            <NeuButton
+              className="gear"
+              aria-label="Setup"
+              pressed={setupOpen}
+              onClick={() => {
+                // Fresh list, so tasks the Morning flow made since the app opened count as already on today.
+                if (!setupOpen) void today.reload()
+                setSetupOpen((o) => !o)
+              }}
+            >
               <span aria-hidden="true">⚙</span>
             </NeuButton>
           )}

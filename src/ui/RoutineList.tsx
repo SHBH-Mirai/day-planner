@@ -2,11 +2,12 @@ import { WEEKDAYS, type Routine } from '../domain/routine'
 import { formatMinutes } from './neu/format'
 import { Switch } from './neu/Switch'
 
-export type AddState = 'on-today' | 'added' | undefined
+/** Where a routine stands for "Add to today". */
+export type AddState = 'invalid' | 'on-today' | 'adding' | 'added' | 'failed' | undefined
 
 interface Props {
   routines: Routine[]
-  /** Per routine: already on today, just added, or neither. */
+  /** Per routine: broken, already on today, being added, added, waiting for Retry, or free to add. */
   addState: (r: Routine) => AddState
   onToggleActive: (r: Routine, active: boolean) => void
   onAddToToday: (r: Routine) => void
@@ -32,7 +33,7 @@ export function RoutineList({ routines, addState, onToggleActive, onAddToToday, 
                   <div className="task-row-meta">
                     {r.startTime} · {formatMinutes(r.durationMin)}
                   </div>
-                  <div className="routine-chips" aria-label={`Days: ${r.days.join(', ')}`}>
+                  <div className="routine-chips" role="img" aria-label={`Days: ${r.days.join(', ')}`}>
                     {WEEKDAYS.map((d) => (
                       <span key={d} data-on={r.days.includes(d)} aria-hidden="true">
                         {SHORT[d]}
@@ -40,15 +41,21 @@ export function RoutineList({ routines, addState, onToggleActive, onAddToToday, 
                     ))}
                   </div>
                 </div>
-                <Switch label="Active" checked={r.active} onChange={(on) => onToggleActive(r, on)} />
+                <Switch label={`Active: ${r.title}`} checked={r.active} onChange={(on) => onToggleActive(r, on)} />
               </div>
               <div className="routine-actions">
-                {state === 'on-today' ? (
+                {state === 'invalid' ? (
+                  <span className="form-warnings">Needs fixing: open Edit</span>
+                ) : state === 'on-today' ? (
                   <span className="muted">Already on today</span>
                 ) : state === 'added' ? (
                   <span className="setup-saved">Added to today</span>
+                ) : state === 'failed' ? (
+                  <span className="form-warnings">Waiting to be saved: press Retry</span>
                 ) : (
-                  <button onClick={() => onAddToToday(r)}>Add to today</button>
+                  <button disabled={state === 'adding'} onClick={() => onAddToToday(r)}>
+                    {state === 'adding' ? 'Adding…' : 'Add to today'}
+                  </button>
                 )}
                 <button onClick={() => onEdit(r)}>Edit</button>
                 <button onClick={() => onDelete(r)}>Delete</button>

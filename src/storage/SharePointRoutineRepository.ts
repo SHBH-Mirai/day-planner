@@ -34,6 +34,10 @@ export class SharePointRoutineRepository implements RoutineRepository {
     return routine
   }
 
+  async setActive(id: string, active: boolean): Promise<void> {
+    await this.graph.request(`${this.graph.items}/${id}/fields`, { method: 'PATCH', body: JSON.stringify({ Active: active }) })
+  }
+
   async remove(id: string): Promise<void> {
     await this.graph.request(`${this.graph.items}/${id}`, { method: 'DELETE' })
   }

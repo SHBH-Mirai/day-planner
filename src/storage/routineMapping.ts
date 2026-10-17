@@ -31,6 +31,7 @@ export function fromRoutineItem(item: RoutineItem): Routine {
     startTime: typeof f.StartTime === 'string' ? f.StartTime : '',
     durationMin: typeof f.DurationMin === 'number' ? f.DurationMin : 0,
     days: WEEKDAYS.filter((d: Weekday) => days.includes(d)),
-    active: typeof f.Active === 'boolean' ? f.Active : true,
+    // Empty Active is off: the Morning flow's `Active eq 1` filter skips it too.
+    active: f.Active === true,
   }
 }

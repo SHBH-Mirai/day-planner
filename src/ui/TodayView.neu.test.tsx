@@ -311,3 +311,18 @@ describe('TodayView, Setup', () => {
     })
   })
 })
+
+describe('TodayView, Setup sees the latest today', () => {
+  test('a task the Morning flow added after the app opened counts as already on today', async () => {
+    const settingsRepo = new InMemorySettingsRepository()
+    const routineRepo = new InMemoryRoutineRepository()
+    await routineRepo.create({ title: 'Gym', category: 'office', startTime: '18:00', durationMin: 60, days: ['Sat'], active: true })
+    const repo = new InMemoryTaskRepository()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} settingsRepo={settingsRepo} routineRepo={routineRepo} />)
+    await screen.findByRole('heading', { name: 'Today' })
+    await repo.create({ title: 'Gym', start: ist(D, '18:00'), end: ist(D, '19:00'), category: 'office' })
+    await userEvent.click(screen.getByRole('button', { name: 'Setup' }))
+    const row = await screen.findByRole('article', { name: 'Gym' })
+    expect(await within(row).findByText('Already on today')).toBeInTheDocument()
+  })
+})

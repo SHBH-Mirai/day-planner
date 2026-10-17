@@ -32,7 +32,7 @@ export function graphList({ siteId, listId, getToken, fetchFn = (input, init) =>
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
-            // GUESS: lets the date filter run even if TaskStart isn't indexed yet.
+            // GUESS: lets filters on non-indexed columns (e.g. TaskStart) run anyway.
             Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly',
           },
         })

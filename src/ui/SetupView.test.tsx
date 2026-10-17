@@ -133,7 +133,7 @@ describe('SetupView, routines', () => {
 
   test('the Active switch pauses a routine', async () => {
     const { row, routineRepo } = await setupRoutines()
-    await userEvent.click(within(row).getByRole('switch', { name: 'Active' }))
+    await userEvent.click(within(row).getByRole('switch', { name: 'Active: Gym' }))
     await waitFor(async () => expect((await routineRepo.list())[0].active).toBe(false))
   })
 
@@ -161,5 +161,83 @@ describe('SetupView, routines', () => {
     expect(within(row).getByText('Already on today')).toBeInTheDocument()
     expect(within(row).queryByRole('button', { name: 'Add to today' })).not.toBeInTheDocument()
     expect(addToToday).not.toHaveBeenCalled()
+  })
+})
+
+describe('SetupView, review fixes', () => {
+  const base = (over: Partial<Parameters<typeof SetupView>[0]> = {}) => ({
+    settingsRepo: new InMemorySettingsRepository(),
+    routineRepo: new InMemoryRoutineRepository(),
+    day: DAY,
+    todayTasks: [],
+    addToToday: vi.fn(async () => true),
+    onBack: vi.fn(),
+    ...over,
+  })
+
+  test('a routine with a broken start time still shows, marked as needing a fix', async () => {
+    const routineRepo = new InMemoryRoutineRepository()
+    await routineRepo.create({ title: 'Broken', category: 'office', startTime: '', durationMin: 30, days: ['Mon'], active: true })
+    render(<SetupView {...base({ routineRepo })} />)
+    const row = await screen.findByRole('article', { name: 'Broken' })
+    expect(within(row).getByText('Needs fixing: open Edit')).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Add to today' })).not.toBeInTheDocument()
+  })
+
+  test('Add to today cannot be pressed twice while saving, and a failed add waits for Retry', async () => {
+    const routineRepo = new InMemoryRoutineRepository()
+    await routineRepo.create({ title: 'Gym', category: 'office', startTime: '18:00', durationMin: 60, days: ['Sun'], active: true })
+    let finish!: (ok: boolean) => void
+    const addToToday = vi.fn(() => new Promise<boolean>((r) => (finish = r)))
+    render(<SetupView {...base({ routineRepo, addToToday })} />)
+    const row = await screen.findByRole('article', { name: 'Gym' })
+    await userEvent.click(within(row).getByRole('button', { name: 'Add to today' }))
+    expect(within(row).getByRole('button', { name: 'Adding…' })).toBeDisabled()
+    finish(false)
+    expect(await within(row).findByText('Waiting to be saved: press Retry')).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Add to today' })).not.toBeInTheDocument()
+    expect(addToToday).toHaveBeenCalledTimes(1)
+  })
+
+  test('settings that fail to load say so, and Retry loads them', async () => {
+    const settingsRepo = new InMemorySettingsRepository()
+    vi.spyOn(settingsRepo, 'get').mockRejectedValueOnce(new RepositoryError('network', 'offline'))
+    render(<SetupView {...base({ settingsRepo })} />)
+    expect(await screen.findByText("Couldn't load your settings.")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByRole('switch', { name: 'Start cards in Teams' })).toBeInTheDocument()
+  })
+
+  test('a failed routine save shows its error inside the sheet', async () => {
+    const routineRepo = new InMemoryRoutineRepository()
+    vi.spyOn(routineRepo, 'create').mockRejectedValueOnce(new RepositoryError('network', 'offline'))
+    render(<SetupView {...base({ routineRepo })} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'New routine' }))
+    const sheet = screen.getByRole('dialog', { name: 'New routine' })
+    await userEvent.type(within(sheet).getByLabelText('Title'), 'Read')
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Mon' }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save routine' }))
+    expect(await within(sheet).findByText("Couldn't save the routine.")).toBeInTheDocument()
+  })
+
+  test('a save that worked is not reported as failed when only the reload fails', async () => {
+    const routineRepo = new InMemoryRoutineRepository()
+    render(<SetupView {...base({ routineRepo })} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'New routine' }))
+    vi.spyOn(routineRepo, 'list').mockRejectedValue(new RepositoryError('network', 'offline'))
+    const sheet = screen.getByRole('dialog', { name: 'New routine' })
+    await userEvent.type(within(sheet).getByLabelText('Title'), 'Read')
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Mon' }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save routine' }))
+    expect(await screen.findByRole('article', { name: 'Read' })).toBeInTheDocument()
+    expect(screen.queryByText("Couldn't save the routine.")).not.toBeInTheDocument()
+  })
+
+  test('the day chips are read out as a picture of the days', async () => {
+    const routineRepo = new InMemoryRoutineRepository()
+    await routineRepo.create({ title: 'Gym', category: 'office', startTime: '18:00', durationMin: 60, days: ['Mon', 'Sun'], active: true })
+    render(<SetupView {...base({ routineRepo })} />)
+    const row = await screen.findByRole('article', { name: 'Gym' })
+    expect(within(row).getByRole('img', { name: 'Days: Mon, Sun' })).toBeInTheDocument()
   })
 })

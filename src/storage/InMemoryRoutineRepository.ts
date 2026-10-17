@@ -23,6 +23,12 @@ export class InMemoryRoutineRepository implements RoutineRepository {
     return routine
   }
 
+  async setActive(id: string, active: boolean): Promise<void> {
+    const r = this.routines.get(id)
+    if (!r) throw new RepositoryError('notFound', 'Routine not found')
+    this.routines.set(id, { ...r, active })
+  }
+
   async remove(id: string): Promise<void> {
     if (!this.routines.delete(id)) throw new RepositoryError('notFound', 'Routine not found')
   }

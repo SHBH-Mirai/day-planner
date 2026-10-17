@@ -6,6 +6,8 @@ export interface RoutineRepository {
   list(): Promise<Routine[]>
   create(draft: RoutineDraft): Promise<Routine>
   update(routine: Routine): Promise<Routine>
+  /** Pause or resume, touching nothing else on the row. */
+  setActive(id: string, active: boolean): Promise<void>
   /** In SharePoint this sends the item to the recycle bin. */
   remove(id: string): Promise<void>
 }

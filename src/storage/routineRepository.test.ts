@@ -38,7 +38,7 @@ describe('routine mapping', () => {
     ).toEqual({ id: '7', title: 'Gym', category: 'youtube', startTime: '18:00', durationMin: 60, days: ['Mon', 'Sun'], active: true })
   })
 
-  test('fills gaps: no category is office, no days is none, no Active is active', () => {
+  test('fills gaps: no category is office, no days is none, no Active is off (as the Morning flow sees it)', () => {
     expect(fromRoutineItem({ id: '8', fields: { Title: 'Read', StartTime: '21:00', DurationMin: 30 } })).toEqual({
       id: '8',
       title: 'Read',
@@ -46,7 +46,7 @@ describe('routine mapping', () => {
       startTime: '21:00',
       durationMin: 30,
       days: [],
-      active: true,
+      active: false,
     })
   })
 })
@@ -59,5 +59,16 @@ describe('SharePointRoutineRepository', () => {
     const patch = graph.requests.find((q) => q.method === 'PATCH')
     expect(patch?.url).toContain(`/items/${r.id}/fields`)
     expect(patch?.body).toMatchObject({ Active: false, Days: ['Mon'], 'Days@odata.type': 'Collection(Edm.String)' })
+  })
+})
+
+describe('SharePointRoutineRepository setActive', () => {
+  test('pauses a routine by writing only Active', async () => {
+    const { graph, repo } = sharePoint()
+    const r = await repo.create({ title: 'Gym', category: 'office', startTime: '07:15', durationMin: 45, days: ['Mon'], active: true })
+    await repo.setActive(r.id, false)
+    const patch = graph.requests.find((q) => q.method === 'PATCH')
+    expect(patch?.body).toEqual({ Active: false })
+    expect((await repo.list())[0]).toMatchObject({ active: false, days: ['Mon'], startTime: '07:15' })
   })
 })
