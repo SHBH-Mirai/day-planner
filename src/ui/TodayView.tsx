@@ -30,6 +30,8 @@ interface Props {
   now?: () => Date
   /** Shown as "Sign in again" when the Microsoft sign-in has expired. */
   onSignInAgain?: () => void
+  /** Running as a Teams tab: Teams cards nudge, so browser pop-up hints are hidden. */
+  inTeams?: boolean
 }
 
 const dayTitle = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -51,7 +53,7 @@ function useMinuteTick() {
   }, [])
 }
 
-export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: Props) {
+export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, inTeams = false }: Props) {
   const dayKey = day.toDateString()
   const tomorrow = useMemo(() => {
     const d = new Date(dayKey)
@@ -212,6 +214,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
       <NudgeBanner
         nudges={liveNudges}
         permission={permission}
+        askForNotifications={!inTeams}
         onStarted={(id) => {
           const t = todayTask(id)
           if (t) void today.save({ ...t, actualStart: stamp() })

@@ -19,6 +19,8 @@ interface Props {
   onExtend: (taskId: string) => ExtendResult
   onDismiss: (key: string) => void
   onEnableNotifications: () => void
+  /** False inside Teams: pop-ups can't be enabled there, and Teams cards do the nudging. */
+  askForNotifications?: boolean
 }
 
 function extendMessage({ newEnd, affected }: ExtendResult): string {
@@ -26,18 +28,28 @@ function extendMessage({ newEnd, affected }: ExtendResult): string {
   return `Extended to ${formatLocalTime(newEnd)}. ${pushed}`
 }
 
-export function NudgeBanner({ nudges, permission, onStarted, onDone, onSkip, onExtend, onDismiss, onEnableNotifications }: Props) {
+export function NudgeBanner({
+  nudges,
+  permission,
+  onStarted,
+  onDone,
+  onSkip,
+  onExtend,
+  onDismiss,
+  onEnableNotifications,
+  askForNotifications = true,
+}: Props) {
   const [extended, setExtended] = useState<Record<string, string>>({})
 
   return (
     <div className="nudges">
-      {permission === 'default' && (
+      {askForNotifications && permission === 'default' && (
         <div className="banner">
           Get a pop-up at each task's start and end.{' '}
           <button onClick={onEnableNotifications}>Enable notifications</button>
         </div>
       )}
-      {permission === 'denied' && (
+      {askForNotifications && permission === 'denied' && (
         <div className="banner banner-warning">
           Notifications are blocked for this site, so nudges only show here on the page. Allow them in the browser's site settings.
         </div>
