@@ -45,7 +45,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
     if (!e.shiftKey && document.activeElement === last) {
       e.preventDefault()
       first.focus()
-    } else if (e.shiftKey && document.activeElement === first) {
+    } else if (e.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) {
       e.preventDefault()
       last.focus()
     }

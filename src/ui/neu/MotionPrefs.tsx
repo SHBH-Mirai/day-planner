@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import { LazyMotion, MotionConfig } from 'motion/react'
 
-const loadFeatures = () => import('./motionFeatures').then((mod) => mod.default)
+// One retry: a redeploy or a blip while the app starts shouldn't cost the animations.
+const load = () => import('./motionFeatures').then((mod) => mod.default)
+const loadFeatures = () => load().catch(load)
 
 /**
  * Motion follows the device's "reduce motion" setting (movement becomes simple fades),

@@ -83,6 +83,13 @@ describe('SharePointTaskRepository requests', () => {
     await expect(repoWith(async () => json(403)).listForDay(DAY)).rejects.toMatchObject({ kind: 'auth' })
   })
 
+  test('a request that never answers times out as a network error', async () => {
+    const hanging: FetchFn = (_url, init) =>
+      new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('timed out', 'TimeoutError'))))
+    const repo = new SharePointTaskRepository({ siteId: SITE, listId: LIST, getToken: async () => 'tok', fetchFn: hanging, timeoutMs: 20 })
+    await expect(repo.listForDay(DAY)).rejects.toMatchObject({ kind: 'network' })
+  })
+
   test('a fetch that throws becomes a network error', async () => {
     const offline: FetchFn = async () => {
       throw new TypeError('Failed to fetch')

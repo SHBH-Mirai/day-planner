@@ -74,6 +74,13 @@ describe('Sheet, focus anywhere in the panel', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('Shift+Tab from the panel itself stays inside the sheet', async () => {
+    renderSheet(true)
+    screen.getByRole('dialog').focus()
+    await userEvent.tab({ shift: true })
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
+  })
+
   it('a text selection that ends on the backdrop does not close the sheet', () => {
     const { onClose } = renderSheet(true)
     fireEvent.pointerDown(screen.getByLabelText('Title'))

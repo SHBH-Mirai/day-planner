@@ -73,7 +73,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
   // The last Done or Skip on a row, kept for a few seconds so a mis-tap can be taken back.
-  const [undo, setUndo] = useState<{ message: string; restore: () => void } | null>(null)
+  const [undo, setUndo] = useState<{ taskId: string; message: string; restore: () => void } | null>(null)
+  /** Only after the first day switch does the list slide in; on first load it shows at once. */
+  const [slide, setSlide] = useState(false)
+  /** An Undo for a task that was then deleted or edited would save a stale or missing task. */
+  const dropUndoFor = (id: string) => setUndo((u) => (u?.taskId === id ? null : u))
   useEffect(() => {
     if (!undo) return
     const id = setTimeout(() => setUndo(null), 6_000)
@@ -116,6 +120,8 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
   function switchDay(toTomorrow: boolean) {
     setViewTomorrow(toTomorrow)
     setShowSummary(false)
+    setUndo(null)
+    setSlide(true)
     setEditing(null)
     setAdding(false)
     setAddFailed(false)
@@ -268,7 +274,10 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
             // Moving the times is a re-plan, so originalEnd follows; any other edit keeps it (and any +15 overrun).
             const moved = Date.parse(draft.start) !== Date.parse(current.start) || Date.parse(draft.end) !== Date.parse(current.end)
             const ok = await shown.save({ ...current, ...draft, originalEnd: moved ? draft.end : current.originalEnd })
-            if (ok) setEditing(null)
+            if (ok) {
+                dropUndoFor(editing.id)
+                setEditing(null)
+              }
             return ok
           }}
           onCancel={closeSheet}
@@ -281,7 +290,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
         <m.ol
           className="timeline"
           key={viewTomorrow ? 'tomorrow' : 'today'}
-          initial={{ opacity: 0, x: viewTomorrow ? 32 : -32 }}
+          initial={slide ? { opacity: 0, x: viewTomorrow ? 32 : -32 } : false}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
@@ -295,21 +304,24 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain }: 
                 onDone={() => {
                   void shown.save({ ...task, status: 'done', actualEnd: stamp() })
                   const list = shown
-                  setUndo({ message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+                  setUndo({ taskId: task.id, message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
                 }}
                 onPlus15={() => {
                   const { updated, affected } = extendTask(task, 15, shown.tasks, now())
                   void shown.save(updated)
-                  const pushed = affected.length ? `Pushes back: ${affected.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
+                  const pushed = affected.length ? `Now overlaps: ${affected.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
                   setNotice(`${task.title}: extended to ${formatLocalTime(updated.end)}. ${pushed}`)
                 }}
                 onSkip={() => {
                   void shown.save({ ...task, status: 'skipped' })
                   const list = shown
-                  setUndo({ message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
+                  setUndo({ taskId: task.id, message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
                 }}
                 onEdit={() => setEditing(task)}
-                onDelete={() => void shown.remove(task.id)}
+                onDelete={() => {
+                  dropUndoFor(task.id)
+                  void shown.remove(task.id)
+                }}
               />
             ))}
           </AnimatePresence>

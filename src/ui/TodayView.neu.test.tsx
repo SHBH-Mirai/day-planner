@@ -124,7 +124,7 @@ describe('TodayView, neumorphic layout', () => {
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+15 min' }))
-    expect(await screen.findByText('Standup: extended to 09:30. Pushes back: Review')).toBeInTheDocument()
+    expect(await screen.findByText('Standup: extended to 09:30. Now overlaps: Review')).toBeInTheDocument()
   })
 
   test('the "now" marker moves on the minute, not up to a minute late', async () => {
@@ -141,6 +141,33 @@ describe('TodayView, neumorphic layout', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  test('the task list is visible straight away, not faded out waiting for animations', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const card = await findCard('Standup')
+    expect(card.closest('ol')).not.toHaveStyle({ opacity: '0' })
+  })
+
+  test('deleting a task right after Done removes its Undo, so Undo cannot save a deleted task', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    expect(await screen.findByRole('status', { name: 'Undo' })).toBeInTheDocument()
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument())
+  })
+
+  test('switching day clears the Undo bar', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    expect(await screen.findByRole('status', { name: 'Undo' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }))
+    expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument()
   })
 
   test('marks the task that is running now', async () => {

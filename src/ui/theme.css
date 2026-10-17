@@ -229,7 +229,7 @@ input, select {
 
 .undo-bar {
   position: fixed; left: 50%; bottom: 24px; z-index: 15; translate: -50% 0;
-  display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 18px; max-width: calc(100vw - 120px);
+  display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 18px; max-width: calc(100vw - 184px);
 }
 .undo-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

@@ -89,8 +89,9 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
             className="task-row-toggle"
             aria-expanded={open}
             onPointerDown={() => (dragged.current = false)}
-            onClick={() => {
-              if (dragged.current) {
+            onClick={(e) => {
+              // A keyboard press (detail 0) is never the tail of a swipe.
+              if (dragged.current && e.detail !== 0) {
                 dragged.current = false
                 return
               }
