@@ -742,7 +742,7 @@
        "poster": "Flow bot",
        "location": "Chat with Flow bot",
        "body/body/messageBody": "@{string(outputs('Card'))}",
-       "body/body/updateMessage": "Opening the Add task form…",
+       "body/body/updateMessage": "Got it.",
        "body/body/recipient/to": "ShubhamDubey@Datenshi.onmicrosoft.com"
       },
       "host": {
