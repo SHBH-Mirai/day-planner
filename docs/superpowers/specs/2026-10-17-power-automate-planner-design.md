@@ -21,9 +21,10 @@ Shubh chose not to sign up.
   and STOP cards arrive on time, and Done and Skip write back. See `2026-10-17-teams-nudges-design.md`.
 - DATA (2026-10-17): the lists `Settings`, `Templates` and `DailySummaries` exist on
   `/sites/Development`, with the column names below read back from SharePoint.
-- GUESS, to verify in plan step 1: a child flow must sit in a Power Automate solution, and a
-  solution needs Dataverse in the environment. If it isn't available, the fallback is to copy
-  the Add-task steps into the Morning and Evening flows.
+- DATA (2026-10-17): the default environment has Dataverse at `datenshi.crm8.dynamics.com`.
+  Solution `DayPlanner` was created, and "Day Planner - Teams nudges" was added to it, so every
+  flow lives in one solution and its definition can be read and written through the Dataverse
+  Web API (DOCS: [Work with cloud flows using code][code]).
 
 ## Data (SharePoint, site `/sites/Development`)
 
@@ -45,8 +46,8 @@ All times in SharePoint are UTC. Card text shows India Standard Time as `HH:mm`.
 - Two **parallel branches**, so a START card waiting for a press never delays STOP:
   - **START**: runs if `TaskActualStart` is empty and the start is less than 10 minutes ago.
     Delay until `TaskStart`, check freshness, then post and wait for "▶ START: {Title} until
-    {TaskEnd}" with a **Started** button. The wait times out at `TaskEnd`. GUESS: if an action
-    timeout can't be set by expression, use a fixed 1 h timeout instead. Started sets
+    {TaskEnd}" with a **Started** button. The wait has a fixed 3 h timeout (`PT3H`). A press
+    after the task changed does nothing, because the item is re-read first. Started sets
     `TaskActualStart = utcNow()`. A timeout ends the branch as success, not failure.
   - **STOP**: as built today. "⏹ STOP: {Title}. Done?" with **Done / +15 min / Skip**.
     - Done sets status done and `TaskActualEnd`.
@@ -117,3 +118,4 @@ only. This duplication is deliberate and limited to those three.
 - The `feat/teams-bot` branch stays on GitHub unmerged, as a reference.
 
 [tc]: https://learn.microsoft.com/en-us/connectors/teams/
+[code]: https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code
