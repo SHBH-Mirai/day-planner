@@ -166,3 +166,21 @@ input, select {
   border: 2px solid var(--neu-accent); pointer-events: none; animation: neu-pulse 1.8s ease-in-out infinite;
 }
 @keyframes neu-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center;
+  background: color-mix(in srgb, var(--neu-dark) 55%, transparent);
+}
+.sheet {
+  width: 100%; max-width: 720px; max-height: 90vh; overflow: auto; padding: 18px 18px 28px;
+  background: var(--neu-bg); border-radius: 24px 24px 0 0; border: var(--neu-border);
+  box-shadow: 0 -8px 24px var(--neu-dark);
+}
+.sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.sheet-header h2 { margin: 0; font-size: 18px; }
+.sheet-close { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
+
+.fab {
+  position: fixed; right: 24px; bottom: 24px; z-index: 10; width: 60px; height: 60px; padding: 0;
+  border-radius: 50%; font-size: 30px; line-height: 1; color: var(--neu-accent); box-shadow: var(--neu-raise);
+}
