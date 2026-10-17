@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { IPublicClientApplication } from '@azure/msal-browser'
 import App from './App'
@@ -68,5 +68,33 @@ describe('App inside Teams', () => {
     render(<App env={{ VITE_STORAGE: 'sharepoint' }} createClient={createClient} detect={async () => 'teams'} />)
     await screen.findByRole('button', { name: 'Sign in with Microsoft' })
     expect(createClient).toHaveBeenCalledWith(expect.anything(), 'teams')
+  })
+
+  test('follows the Teams theme', async () => {
+    const client = {
+      getActiveAccount: () => null,
+      getAllAccounts: () => [],
+      loginRedirect: vi.fn(async () => {}),
+    } as unknown as IPublicClientApplication
+    const teamsTheme = () => ({ getTheme: async () => 'dark', onChange: () => {} })
+    render(
+      <App
+        env={{ VITE_STORAGE: 'sharepoint' }}
+        createClient={async () => client}
+        detect={async () => 'teams'}
+        teamsTheme={teamsTheme}
+      />,
+    )
+    await screen.findByRole('button', { name: 'Sign in with Microsoft' })
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+  })
+})
+
+describe('App theme', () => {
+  test('memory storage puts a theme on the page', async () => {
+    delete document.documentElement.dataset.theme
+    render(<App env={{ VITE_STORAGE: 'memory' }} />)
+    await screen.findByRole('heading', { name: 'Today' })
+    expect(document.documentElement.dataset.theme).toBe('light')
   })
 })

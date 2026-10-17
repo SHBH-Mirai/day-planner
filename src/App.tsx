@@ -13,6 +13,7 @@ import {
 import { detectHostIfFramed, type Host } from './auth/host'
 import { InMemoryTaskRepository } from './storage/InMemoryTaskRepository'
 import { SharePointTaskRepository } from './storage/SharePointTaskRepository'
+import { followTheme, teamsThemeApi, type TeamsThemeApi } from './ui/neu/theme'
 import { TodayView } from './ui/TodayView'
 import { useToday } from './ui/useToday'
 
@@ -21,16 +22,24 @@ interface Props {
   createClient?: (config: AuthConfig, host?: Host) => Promise<IPublicClientApplication>
   /** Where are we running? Default: Teams if framed and Teams answers, else browser. */
   detect?: () => Promise<Host>
+  /** Teams theme source, used only when running in Teams. */
+  teamsTheme?: () => TeamsThemeApi
 }
 
-function App({ env = import.meta.env, createClient = createMsal, detect = detectHostIfFramed }: Props) {
+function App({
+  env = import.meta.env,
+  createClient = createMsal,
+  detect = detectHostIfFramed,
+  teamsTheme = teamsThemeApi,
+}: Props) {
   const day = useToday()
   if (env.VITE_STORAGE !== 'sharepoint') return <MemoryApp day={day} />
-  return <SharePointApp day={day} env={env} createClient={createClient} detect={detect} />
+  return <SharePointApp day={day} env={env} createClient={createClient} detect={detect} teamsTheme={teamsTheme} />
 }
 
 function MemoryApp({ day }: { day: Date }) {
   const [repo] = useState(() => new InMemoryTaskRepository())
+  useEffect(() => followTheme(), [])
   // Loud on purpose: a deploy missing VITE_STORAGE=sharepoint lands here.
   return (
     <>
@@ -47,11 +56,13 @@ function SharePointApp({
   env,
   createClient,
   detect,
+  teamsTheme,
 }: {
   day: Date
   env: AppEnv
   createClient: NonNullable<Props['createClient']>
   detect: NonNullable<Props['detect']>
+  teamsTheme: NonNullable<Props['teamsTheme']>
 }) {
   const config = useMemo(() => authConfigFromEnv(env), [env])
   const [client, setClient] = useState<IPublicClientApplication | null>(null)
@@ -67,6 +78,8 @@ function SharePointApp({
       })
       .then(setClient, (e: unknown) => setFailed(e instanceof SignInRedirectError ? e : 'config'))
   }, [createClient, detect, config])
+
+  useEffect(() => followTheme(host === 'teams' ? teamsTheme() : undefined), [host, teamsTheme])
 
   const repo = useMemo(
     () =>
