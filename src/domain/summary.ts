@@ -15,12 +15,25 @@ export interface DaySummary {
   perCategory: Record<Category, number>
 }
 
+/** Planned length in minutes, never below 0. */
+export function plannedMinutes(t: Task): number {
+  return Math.max(0, minutesBetween(t.start, t.originalEnd))
+}
+
+/**
+ * Minutes a task took: real time when Started was pressed, else its planned length,
+ * since a task ticked done without Started has no real start to count from. Never below 0.
+ */
+export function spentMinutes(t: Task): number {
+  return t.actualStart && t.actualEnd ? Math.max(0, minutesBetween(t.actualStart, t.actualEnd)) : plannedMinutes(t)
+}
+
 export function summarize(tasks: Task[]): DaySummary {
   const perCategory: Record<Category, number> = { office: 0, freelance: 0, youtube: 0 }
 
   const perTask = tasks.map((t): TaskSummary => {
-    const plannedMin = minutesBetween(t.start, t.originalEnd)
-    const actualMin = t.actualEnd ? minutesBetween(t.actualStart ?? t.start, t.actualEnd) : null
+    const plannedMin = plannedMinutes(t)
+    const actualMin = t.actualEnd ? spentMinutes(t) : null
 
     if (t.status === 'done') perCategory[t.category] += actualMin ?? plannedMin
     else if (t.status === 'planned') perCategory[t.category] += plannedMin

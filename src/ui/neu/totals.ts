@@ -1,5 +1,5 @@
+import { plannedMinutes, spentMinutes } from '../../domain/summary'
 import type { Category, Task } from '../../domain/task'
-import { minutesBetween } from '../../domain/time'
 
 export interface DayTotals {
   /** Planned minutes of every task that isn't skipped. */
@@ -24,10 +24,10 @@ export function dayTotals(tasks: Task[]): DayTotals {
       totals.skippedCount++
       continue
     }
-    const plannedMin = Math.max(0, minutesBetween(t.start, t.originalEnd))
+    const plannedMin = plannedMinutes(t)
     totals.planned += plannedMin
     if (t.status === 'done') {
-      const spent = t.actualStart && t.actualEnd ? Math.max(0, minutesBetween(t.actualStart, t.actualEnd)) : plannedMin
+      const spent = spentMinutes(t)
       totals.doneCount++
       totals.done += spent
       totals.perCategory[t.category] += spent
