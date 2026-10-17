@@ -32,6 +32,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
   const nextId = useRef(0)
   /** The newest save started for each key, so an older one that answers late can't queue itself again. */
   const newest = useRef(new Map<string, number>())
+  /** Saves sent that haven't answered yet, so a second Retry tap doesn't send them twice. */
+  const inFlight = useRef(new Set<number>())
   const dayKey = day.toDateString()
 
   const load = useCallback(async (): Promise<void> => {
@@ -70,6 +72,7 @@ export function useTasks(repo: TaskRepository, day: Date) {
   async function attempt(run: () => Promise<void>, key?: string, id = ++nextId.current): Promise<boolean> {
     const k = key ?? `new-${id}`
     if (id > (newest.current.get(k) ?? 0)) newest.current.set(k, id)
+    inFlight.current.add(id)
     try {
       await run()
       setPending((p) => p.filter((x) => x.key !== k || x.id > id))
@@ -77,6 +80,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
     } catch (e) {
       if (newest.current.get(k) === id) setPending((p) => [...p.filter((x) => x.key !== k), { id, key: k, run, auth: isAuth(e) }])
       return false
+    } finally {
+      inFlight.current.delete(id)
     }
   }
 
@@ -102,7 +107,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
 
   const retry = () => {
     if (loadFailed) void load()
-    for (const p of pending) void attempt(p.run, p.key, p.id)
+    // Skip a save still on its way, or one a newer save of the same task has replaced.
+    for (const p of pending) if (!inFlight.current.has(p.id) && newest.current.get(p.key) === p.id) void attempt(p.run, p.key, p.id)
   }
 
   const needsSignIn = loadFailed === 'auth' || pending.some((p) => p.auth)

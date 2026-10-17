@@ -13,10 +13,10 @@ const offline = () => new Error('offline')
 const settle = () => act(() => new Promise((r) => setTimeout(r, 0)))
 
 /** A save that answers only when the test says so. */
-function held() {
-  let resolve!: (t: Task) => void
+function held<T = Task>() {
+  let resolve!: (t: T) => void
   let reject!: (e: unknown) => void
-  const promise = new Promise<Task>((res, rej) => {
+  const promise = new Promise<T>((res, rej) => {
     resolve = res
     reject = rej
   })
@@ -91,6 +91,52 @@ describe('useTasks pending saves', () => {
     act(() => hook.result.current.retry())
     await settle()
     expect((await stored())?.title).toBe('New')
+  })
+
+  test('Retry does not resend the older save while a newer save of the same task is on its way', async () => {
+    const { repo, task, hook, stored } = await withOneTask()
+    const slow = held<void>()
+    const realUpdate = repo.update.bind(repo)
+    // Every save after the failed one waits for the line, then lands in the order it was sent.
+    vi.spyOn(repo, 'update')
+      .mockRejectedValueOnce(offline())
+      .mockImplementation(async (t) => {
+        await slow.promise
+        return realUpdate(t)
+      })
+    await act(() => hook.result.current.save({ ...task, title: 'Old' }))
+    let saving!: Promise<boolean>
+    act(() => {
+      saving = hook.result.current.save({ ...task, title: 'New' })
+    })
+    act(() => hook.result.current.retry())
+    slow.resolve()
+    await act(() => saving)
+    await settle()
+    expect((await stored())?.title).toBe('New')
+    expect(hook.result.current.error).toBeNull()
+  })
+
+  test('pressing Retry twice before the first answers saves a new task once', async () => {
+    const repo = new InMemoryTaskRepository()
+    const hook = renderHook(() => useTasks(repo, DAY))
+    await settle()
+    const slow = held<void>()
+    const realCreate = repo.create.bind(repo)
+    vi.spyOn(repo, 'create')
+      .mockRejectedValueOnce(offline())
+      .mockImplementation(async (d) => {
+        await slow.promise
+        return realCreate(d)
+      })
+    const draft: TaskDraft = { title: 'Gym', start: ist(D, '18:00'), end: ist(D, '19:00'), category: 'office' }
+    await act(() => hook.result.current.add(draft))
+    act(() => hook.result.current.retry())
+    act(() => hook.result.current.retry())
+    slow.resolve()
+    await settle()
+    expect(await repo.listForDay(DAY)).toHaveLength(1)
+    expect(hook.result.current.error).toBeNull()
   })
 
   test('deleting a task drops its failed save', async () => {
