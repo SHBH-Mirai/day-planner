@@ -28,6 +28,7 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 | Day Planner - Morning | 06:00 IST | active templates for today become tasks, then the today card |
 | Day Planner - Evening | 22:30 IST | saves the day's row in `DailySummaries`, then the summary and tomorrow card |
 | Day Planner - Add task | **Add task** on either card | form loop: saves tasks, refuses end before start, warns on overlaps |
+| Day Planner - Quick add | Run by hand (portal, any time) | opens the Add task form for today |
 
 - **Templates and settings** are edited in the SharePoint lists `Templates` and
   `Settings` (Microsoft Lists on web or phone). `Settings` turns start or end
