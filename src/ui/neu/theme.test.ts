@@ -84,6 +84,17 @@ describe('followTheme', () => {
     expect(root().dataset.theme).toBe('dark')
   })
 
+  it('does not crash when Teams refuses the change subscription', () => {
+    const api: TeamsThemeApi = {
+      getTheme: () => new Promise(() => {}),
+      onChange: () => {
+        throw new Error('The library has not yet been initialized')
+      },
+    }
+    expect(() => followTheme(api, fakeMedia(true).media)).not.toThrow()
+    expect(root().dataset.theme).toBe('dark')
+  })
+
   it('follows the system setting in a plain browser, live', () => {
     const sys = fakeMedia(false)
     const stop = followTheme(undefined, sys.media)

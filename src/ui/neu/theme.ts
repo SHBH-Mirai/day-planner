@@ -40,7 +40,11 @@ export function followTheme(teams?: TeamsThemeApi, media: DarkQuery | undefined 
   if (teams) {
     apply(undefined)
     teams.getTheme().then(apply, () => apply(undefined))
-    teams.onChange(apply)
+    try {
+      teams.onChange(apply)
+    } catch {
+      // TeamsJS not ready: keep the theme we have rather than break the app.
+    }
     return () => {
       active = false
     }
@@ -58,7 +62,7 @@ export function followTheme(teams?: TeamsThemeApi, media: DarkQuery | undefined 
 /** The real Teams wiring. Only call it once `detectHost` says we're in Teams. */
 export function teamsThemeApi(): TeamsThemeApi {
   return {
-    getTheme: () => app.getContext().then((c) => c.app.theme),
+    getTheme: () => Promise.resolve().then(() => app.getContext()).then((c) => c.app.theme),
     onChange: (cb) => app.registerOnThemeChangeHandler(cb),
   }
 }

@@ -29,6 +29,6 @@ describe('SummaryView', () => {
     const t = makeTask({ category: 'youtube', start: ist(D, '20:00'), end: ist(D, '21:30') })
     render(<SummaryView tasks={[t]} />)
     const table = screen.getByRole('table', { name: 'By category' })
-    expect(within(within(table).getByRole('row', { name: /YouTube/ })).getByText('90')).toBeInTheDocument()
+    expect(within(within(table).getByRole('row', { name: /Content/ })).getByText('90')).toBeInTheDocument()
   })
 })
