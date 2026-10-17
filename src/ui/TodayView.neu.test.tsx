@@ -111,6 +111,38 @@ describe('TodayView, neumorphic layout', () => {
     }
   })
 
+  test('the ring leaves skipped tasks out of the total', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'], ['Gym', '18:00', '19:00'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: /Gym/ }))
+    await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Skip' }))
+    expect(await screen.findByRole('img', { name: '0 of 1 done' })).toBeInTheDocument()
+  })
+
+  test('+15 min in a row says the new end and what it pushes back', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'], ['Review', '09:20', '10:00'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+15 min' }))
+    expect(await screen.findByText('Standup: extended to 09:30. Pushes back: Review')).toBeInTheDocument()
+  })
+
+  test('the "now" marker moves on the minute, not up to a minute late', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-10-17T09:10:50+05:30'))
+      const repo = await seeded(['Standup', '09:11', '09:30'])
+      render(<TodayView repo={repo} day={DAY} />)
+      expect(await findCard('Standup')).not.toHaveClass('now')
+      await act(async () => {
+        vi.advanceTimersByTime(11_000)
+      })
+      expect(await findCard('Standup')).toHaveClass('now')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   test('marks the task that is running now', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'], ['Deep work', '10:00', '11:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)

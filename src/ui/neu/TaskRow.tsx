@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import type { Task } from '../../domain/task'
 import { formatLocalTime } from '../../domain/time'
@@ -30,7 +30,15 @@ function minutes(task: Task): string {
  */
 export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEdit, onDelete }: Props) {
   const [open, setOpen] = useState(false)
+  const titleId = useId()
   const toggleRef = useRef<HTMLButtonElement>(null)
+  // A mouse swipe ends in a click; this keeps that click from also unfolding the row.
+  const dragged = useRef(false)
+  /** Runs an action, then puts focus back on the row (the pressed button may disappear). */
+  const thenFocus = (action: () => void) => () => {
+    action()
+    toggleRef.current?.focus()
+  }
   const rowRef = useRef<HTMLElement>(null)
   const planned = task.status === 'planned'
 
@@ -63,13 +71,14 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
         data-status={task.status}
         onKeyDown={onKeyDown}
         drag={planned ? 'x' : false}
+        onDragStart={() => (dragged.current = true)}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.4}
         onDragEnd={onDragEnd}
       >
         <div className="task-row-main">
           {planned ? (
-            <button className="tick" aria-label="Done" onClick={onDone} />
+            <button className="tick" aria-label="Done" aria-describedby={titleId} onClick={thenFocus(onDone)} />
           ) : (
             <span className="tick tick-done" aria-hidden="true">
               {task.status === 'done' ? '✓' : '–'}
@@ -79,9 +88,16 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
             ref={toggleRef}
             className="task-row-toggle"
             aria-expanded={open}
-            onClick={() => setOpen((o) => !o)}
+            onPointerDown={() => (dragged.current = false)}
+            onClick={() => {
+              if (dragged.current) {
+                dragged.current = false
+                return
+              }
+              setOpen((o) => !o)
+            }}
           >
-            <span className="task-row-title">
+            <span className="task-row-title" id={titleId}>
               <span aria-hidden="true">{CATEGORY_ICON[task.category]} </span>
               {task.status === 'done' && <span className="visually-hidden">✓ </span>}
               {task.title}
@@ -105,9 +121,9 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
             >
-              {planned && !task.actualStart && <button onClick={onStarted}>Started</button>}
-              {planned && <button onClick={onPlus15}>+15 min</button>}
-              {planned && <button onClick={onSkip}>Skip</button>}
+              {planned && !task.actualStart && <button onClick={thenFocus(onStarted)}>Started</button>}
+              {planned && <button onClick={thenFocus(onPlus15)}>+15 min</button>}
+              {planned && <button onClick={thenFocus(onSkip)}>Skip</button>}
               <button onClick={onEdit}>Edit</button>
               <button onClick={confirmDelete}>Delete</button>
             </motion.div>

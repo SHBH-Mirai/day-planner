@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 
 interface Props {
@@ -14,6 +14,13 @@ const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([di
 export function Sheet({ open, onClose, title, children }: Props) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
+  // Each opening gets its own key, so reopening during the close animation never brings back an old draft.
+  const [openings, setOpenings] = useState(0)
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setOpenings((n) => n + 1)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -47,10 +54,12 @@ export function Sheet({ open, onClose, title, children }: Props) {
   return (
     <AnimatePresence>
       {open && (
-        <Backdrop onClose={onClose}>
+        <Backdrop key={openings} onClose={onClose}>
           <motion.div
             ref={panelRef}
             className="sheet"
+            // Focusable itself, so Esc and the Tab trap still work after a click on an empty part of it.
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -78,11 +87,17 @@ export function Sheet({ open, onClose, title, children }: Props) {
 /** The dimmed layer behind the sheet. While it fades out it lets clicks through, so a quick tap on + still works. */
 function Backdrop({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   const present = useIsPresent()
+  // Only a press that starts on the backdrop closes it: a text selection let go out here must not.
+  const pressedHere = useRef(false)
   return (
     <motion.div
       className="sheet-backdrop"
       data-testid="sheet-backdrop"
-      onClick={present ? onClose : undefined}
+      onPointerDown={(e) => (pressedHere.current = e.target === e.currentTarget)}
+      onClick={(e) => {
+        if (present && pressedHere.current && e.target === e.currentTarget) onClose()
+        pressedHere.current = false
+      }}
       style={{ pointerEvents: present ? 'auto' : 'none' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
