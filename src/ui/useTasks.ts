@@ -8,6 +8,8 @@ const byStart = (a: Task, b: Task) => Date.parse(a.start) - Date.parse(b.start)
 /** One save that failed and can be retried. */
 interface PendingSave {
   id: number
+  /** What it saves: a task id, or a key of its own for a new task. One queued save per key. */
+  key: string
   run: () => Promise<void>
   /** Failed because the Microsoft sign-in expired. */
   auth: boolean
@@ -18,7 +20,8 @@ const isAuth = (e: unknown) => e instanceof RepositoryError && e.kind === 'auth'
 /**
  * Loads one day's tasks and saves changes. Edits and deletes show on screen
  * straight away; a failed save stays queued (and the banner stays up) until a
- * retry succeeds, so a later successful save can never hide it.
+ * retry or a newer save of the same task succeeds, so a save of another task
+ * can never hide it.
  */
 export function useTasks(repo: TaskRepository, day: Date) {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -27,6 +30,8 @@ export function useTasks(repo: TaskRepository, day: Date) {
   /** Goes up on every successful create, so the add form can reset itself. */
   const [createdCount, setCreatedCount] = useState(0)
   const nextId = useRef(0)
+  /** The newest save started for each key, so an older one that answers late can't queue itself again. */
+  const newest = useRef(new Map<string, number>())
   const dayKey = day.toDateString()
 
   const load = useCallback(async (): Promise<void> => {
@@ -56,13 +61,21 @@ export function useTasks(repo: TaskRepository, day: Date) {
     }
   }, [repo, dayKey])
 
-  async function attempt(run: () => Promise<void>, id = ++nextId.current): Promise<boolean> {
+  /**
+   * Runs a save. A save sends the whole task, so a newer save of the same task carries
+   * every older change: it replaces an older queued one instead of waiting behind it,
+   * else Retry would send the old copy over the new one. Ids only go up, so a Retry that
+   * answers after a newer save of the same task can't undo it.
+   */
+  async function attempt(run: () => Promise<void>, key?: string, id = ++nextId.current): Promise<boolean> {
+    const k = key ?? `new-${id}`
+    if (id > (newest.current.get(k) ?? 0)) newest.current.set(k, id)
     try {
       await run()
-      setPending((p) => p.filter((x) => x.id !== id))
+      setPending((p) => p.filter((x) => x.key !== k || x.id > id))
       return true
     } catch (e) {
-      setPending((p) => (p.some((x) => x.id === id) ? p : [...p, { id, run, auth: isAuth(e) }]))
+      if (newest.current.get(k) === id) setPending((p) => [...p.filter((x) => x.key !== k), { id, key: k, run, auth: isAuth(e) }])
       return false
     }
   }
@@ -79,17 +92,17 @@ export function useTasks(repo: TaskRepository, day: Date) {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)).sort(byStart))
     return attempt(async () => {
       await repo.update(task)
-    })
+    }, task.id)
   }
 
   const remove = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id))
-    return attempt(() => repo.remove(id))
+    return attempt(() => repo.remove(id), id)
   }
 
   const retry = () => {
     if (loadFailed) void load()
-    for (const p of pending) void attempt(p.run, p.id)
+    for (const p of pending) void attempt(p.run, p.key, p.id)
   }
 
   const needsSignIn = loadFailed === 'auth' || pending.some((p) => p.auth)
