@@ -61,7 +61,6 @@ describe('TaskRow', () => {
   })
 
   it('runs each folded action', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const { h, row, toggle } = setup()
     await userEvent.click(toggle())
     await userEvent.click(within(row).getByRole('button', { name: 'Started' }))
@@ -69,6 +68,7 @@ describe('TaskRow', () => {
     await userEvent.click(within(row).getByRole('button', { name: 'Skip' }))
     await userEvent.click(within(row).getByRole('button', { name: 'Edit' }))
     await userEvent.click(within(row).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(row).getByRole('button', { name: 'Yes, delete' }))
     expect(h.onStarted).toHaveBeenCalledTimes(1)
     expect(h.onPush).toHaveBeenCalledTimes(1)
     expect(h.onSkip).toHaveBeenCalledTimes(1)
@@ -77,11 +77,11 @@ describe('TaskRow', () => {
   })
 
   it('asks before deleting, and keeps the task when you cancel', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const { h, row, toggle } = setup()
     await userEvent.click(toggle())
     await userEvent.click(within(row).getByRole('button', { name: 'Delete' }))
-    expect(confirm).toHaveBeenCalledWith('Delete "Standup"?')
+    expect(within(row).getByText('Delete "Standup"?')).toBeInTheDocument()
+    await userEvent.click(within(row).getByRole('button', { name: 'Cancel' }))
     expect(h.onDelete).not.toHaveBeenCalled()
   })
 

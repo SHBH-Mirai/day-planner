@@ -310,3 +310,8 @@ input, select {
   .table-row > input[type='number'] { grid-area: length; }
   .table-actions { grid-area: actions; justify-content: flex-end; }
 }
+
+/* In-place "Delete …? Yes, delete / Cancel" (the browser's confirm() is blocked in Teams desktop). */
+.confirm-inline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.confirm-inline > span { color: var(--neu-text); }
+.confirm-inline button.danger { background: var(--neu-danger-bg); color: var(--neu-danger); }

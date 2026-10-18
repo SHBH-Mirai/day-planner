@@ -56,11 +56,11 @@ describe('TodayView', () => {
   })
 
   test('Delete removes the task after confirming', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const repo = await seeded(['Gym', '18:00', '19:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await unfold('Gym')
     await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(await findCard('Gym')).getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Gym' })).not.toBeInTheDocument())
     expect(await repo.listForDay(DAY)).toEqual([])
   })

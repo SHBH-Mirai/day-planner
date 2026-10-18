@@ -111,13 +111,13 @@ describe('TaskTable', () => {
   })
 
   test('Remove asks first', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const h = setup([s])
     await userEvent.click(screen.getByRole('button', { name: 'Remove: Standup' }))
-    expect(confirm).toHaveBeenCalledWith('Delete "Standup"?')
+    expect(screen.getByText('Delete "Standup"?')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(h.onRemove).not.toHaveBeenCalled()
-    confirm.mockReturnValue(true)
     await userEvent.click(screen.getByRole('button', { name: 'Remove: Standup' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
     expect(h.onRemove).toHaveBeenCalledWith(s)
   })
 

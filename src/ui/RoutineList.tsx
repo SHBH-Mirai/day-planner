@@ -1,4 +1,5 @@
 import { WEEKDAYS, type Routine } from '../domain/routine'
+import { ConfirmButton } from './neu/ConfirmButton'
 import { formatMinutes } from './neu/format'
 import { Switch } from './neu/Switch'
 
@@ -58,7 +59,11 @@ export function RoutineList({ routines, addState, onToggleActive, onAddToToday, 
                   </button>
                 )}
                 <button onClick={() => onEdit(r)}>Edit</button>
-                <button onClick={() => onDelete(r)}>Delete</button>
+                <ConfirmButton
+                  label="Delete"
+                  question={`Delete "${r.title}"? It goes to the SharePoint recycle bin.`}
+                  onConfirm={() => onDelete(r)}
+                />
               </div>
             </article>
           </li>
