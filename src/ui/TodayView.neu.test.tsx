@@ -121,12 +121,36 @@ describe('TodayView, neumorphic layout', () => {
     expect(await screen.findByRole('img', { name: '0 of 1 done' })).toBeInTheDocument()
   })
 
-  test('+15 min in a row says the new end and what it pushes back', async () => {
+  test('+30 min in a row says the new end and what moved', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'], ['Review', '09:20', '10:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
-    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+15 min' }))
-    expect(await screen.findByText('Standup: extended to 09:30. Now overlaps: Review')).toBeInTheDocument()
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+30 min' }))
+    expect(await screen.findByText('Standup: ends at 09:45. Moved Review by 30 min.')).toBeInTheDocument()
+  })
+
+  test('Undo after +30 puts the pushed task and every moved task back', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'], ['Review', '09:20', '10:00'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+30 min' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const [s, r] = await repo.listForDay(DAY)
+      expect([s.end, r.start, r.end]).toEqual([ist(D, '09:15'), ist(D, '09:20'), ist(D, '10:00')])
+    })
+  })
+
+  test('deleting a task the push moved drops the Undo', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const repo = await seeded(['Standup', '09:00', '09:15'], ['Review', '09:20', '10:00'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+30 min' }))
+    expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument()
+    await userEvent.click(within(await findCard('Review')).getByRole('button', { name: /Review/ }))
+    await userEvent.click(within(await findCard('Review')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument())
   })
 
   test('the "now" marker moves on the minute, not up to a minute late', async () => {
@@ -209,16 +233,16 @@ describe('TodayView, neumorphic layout', () => {
     expect(await repo.listForDay(DAY)).toHaveLength(0)
   })
 
-  test('+15 min in the row pushes the end back by 15 minutes', async () => {
+  test('+30 min in the row pushes the end back by 30 minutes', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
-    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+15 min' }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: '+30 min' }))
     await waitFor(async () => {
       const [t] = await repo.listForDay(DAY)
-      expect(t.end).toBe(ist(D, '09:30'))
+      expect(t.end).toBe(ist(D, '09:45'))
     })
-    expect(await findCard('Standup')).toHaveTextContent('09:00–09:30')
+    expect(await findCard('Standup')).toHaveTextContent('09:00–09:45')
   })
 
   test('the day switch shows Summary in place of the timeline', async () => {

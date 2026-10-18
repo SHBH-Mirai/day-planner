@@ -7,7 +7,8 @@ import type { Nudge } from '../scheduler/dueNudges'
 
 interface ExtendResult {
   newEnd: string
-  affected: Task[]
+  /** The later tasks the push moved along with it. */
+  moved: Task[]
 }
 
 interface Props {
@@ -23,9 +24,9 @@ interface Props {
   askForNotifications?: boolean
 }
 
-function extendMessage({ newEnd, affected }: ExtendResult): string {
-  const pushed = affected.length ? `Pushes back: ${affected.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
-  return `Extended to ${formatLocalTime(newEnd)}. ${pushed}`
+function extendMessage({ newEnd, moved }: ExtendResult): string {
+  const rest = moved.length ? `Moved: ${moved.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
+  return `Extended to ${formatLocalTime(newEnd)}. ${rest}`
 }
 
 export function NudgeBanner({
@@ -85,7 +86,7 @@ export function NudgeBanner({
                     Done
                   </button>
                   <button onClick={() => setExtended((e) => ({ ...e, [n.key]: extendMessage(onExtend(id)) }))}>
-                    +15 min
+                    +30 min
                   </button>
                   <button onClick={() => onSkip(id)}>Skip</button>
                 </>

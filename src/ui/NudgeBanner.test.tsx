@@ -15,7 +15,7 @@ function setup(nudges: Nudge[], permission: NotificationPermission | 'unsupporte
     onStarted: vi.fn(),
     onDone: vi.fn(),
     onSkip: vi.fn(),
-    onExtend: vi.fn(() => ({ newEnd: ist(D, '10:15'), affected: [lunch] })),
+    onExtend: vi.fn(() => ({ newEnd: ist(D, '10:30'), moved: [lunch] })),
     onDismiss: vi.fn(),
     onEnableNotifications: vi.fn(),
   }
@@ -31,7 +31,7 @@ describe('NudgeBanner', () => {
     expect(h.onStarted).toHaveBeenCalledWith(task.id)
   })
 
-  test('an end nudge offers Done, +15 min and Skip', async () => {
+  test('an end nudge offers Done, +30 min and Skip', async () => {
     const h = setup([nudge('end')])
     await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
@@ -39,11 +39,11 @@ describe('NudgeBanner', () => {
     expect(h.onSkip).toHaveBeenCalledWith(task.id)
   })
 
-  test('+15 min shows the new end and what it pushes back', async () => {
+  test('+30 min shows the new end and what moved', async () => {
     const h = setup([nudge('end')])
-    await userEvent.click(screen.getByRole('button', { name: '+15 min' }))
+    await userEvent.click(screen.getByRole('button', { name: '+30 min' }))
     expect(h.onExtend).toHaveBeenCalledWith(task.id)
-    expect(screen.getByText('Extended to 10:15. Pushes back: Lunch')).toBeInTheDocument()
+    expect(screen.getByText('Extended to 10:30. Moved: Lunch')).toBeInTheDocument()
   })
 
   test('a missed nudge says when it was due', () => {
@@ -68,7 +68,7 @@ describe('NudgeBanner inside Teams', () => {
     onStarted: vi.fn(),
     onDone: vi.fn(),
     onSkip: vi.fn(),
-    onExtend: vi.fn(() => ({ newEnd: ist(D, '10:15'), affected: [] })),
+    onExtend: vi.fn(() => ({ newEnd: ist(D, '10:15'), moved: [] })),
     onDismiss: vi.fn(),
     onEnableNotifications: vi.fn(),
   }
