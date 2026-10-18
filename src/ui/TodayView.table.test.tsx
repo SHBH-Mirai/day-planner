@@ -79,6 +79,21 @@ describe('TodayView, task table', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
   })
 
+  test('moving a task later says how far the chain really moved', async () => {
+    const repo = new InMemoryTaskRepository()
+    await repo.create({ title: 'Standup', start: ist(D, '09:00'), end: ist(D, '09:15'), category: 'office' })
+    await repo.create({ title: 'Coffee', start: ist(D, '09:15'), end: ist(D, '09:25'), category: 'office' })
+    await repo.create({ title: 'Lunch', start: ist(D, '10:00'), end: ist(D, '10:30'), category: 'office' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await table()
+    const box = await screen.findByLabelText('Start: Standup')
+    fireEvent.change(box, { target: { value: '09:50' } })
+    fireEvent.blur(box)
+    expect(await screen.findByText('Standup: ends at 10:05. Moved Lunch by 15 min.')).toBeInTheDocument()
+    await waitFor(async () => expect(await saved(repo, 'Lunch')).toMatchObject({ start: ist(D, '10:15'), end: ist(D, '10:45') }))
+    expect(await saved(repo, 'Coffee')).toMatchObject({ start: ist(D, '09:15'), end: ist(D, '09:25') })
+  })
+
   test('moving a task earlier moves nothing else and re-sorts the rows', async () => {
     const repo = await seeded()
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)

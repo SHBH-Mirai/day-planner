@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
-import { describePush, pushChain, pushTask } from '../domain/push'
+import { chainShiftMin, describePush, pushChain, pushTask } from '../domain/push'
 import type { Task } from '../domain/task'
-import { formatLocalTime, minutesBetween, tasksForDay } from '../domain/time'
+import { formatLocalTime, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
 import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
 import { startScheduler } from '../scheduler/startScheduler'
@@ -185,7 +185,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     const before = [task, ...list.tasks.filter((t) => moved.some((m) => m.id === t.id))]
     setUndo({
       taskIds: before.map((t) => t.id),
-      message: describePush(task.title, end, moved, minutesBetween(task.end, end)),
+      message: describePush(task.title, end, moved, chainShiftMin(task, updated)),
       restore: () => before.forEach((t) => void list.save(t)),
     })
   }
