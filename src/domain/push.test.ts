@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { describePush, pushChain, pushTask, PUSH_MIN } from './push'
+import { chainShiftMin, describePush, pushChain, pushTask, PUSH_MIN } from './push'
 import type { Task } from './task'
 import { ist, makeTask } from '../test-utils/makeTask'
 
@@ -106,6 +106,14 @@ describe('pushTask', () => {
     expect(updated.end).toBe(ist(D, '10:12'))
     expect(deltaMin).toBe(42)
     expect(moved[0].start).toBe(ist(D, '10:12'))
+  })
+})
+
+describe('chainShiftMin', () => {
+  test('is how far the chain moves: from the old end, or from the new start when the task moved past it', () => {
+    const s = at('Standup', '09:00', '09:15')
+    expect(chainShiftMin(s, { ...s, end: ist(D, '09:45') })).toBe(30)
+    expect(chainShiftMin(s, { ...s, start: ist(D, '09:50'), end: ist(D, '10:05') })).toBe(15)
   })
 })
 

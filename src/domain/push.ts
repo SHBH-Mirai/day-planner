@@ -17,7 +17,7 @@ const shift = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOS
  * tasks never move. Moving earlier or shortening never pulls anything back.
  */
 export function pushChain(before: Task, after: Task, all: Task[]): Task[] {
-  const anchor = Math.max(Date.parse(before.end), Date.parse(after.start))
+  const anchor = chainAnchor(before, after)
   const delta = Date.parse(after.end) - anchor
   if (delta <= 0) return []
 
@@ -36,11 +36,20 @@ export function pushChain(before: Task, after: Task, all: Task[]): Task[] {
   return moved
 }
 
+/** Where the walk starts: the old end, or the new start when the task moved past its old end. */
+function chainAnchor(before: Task, after: Task): number {
+  return Math.max(Date.parse(before.end), Date.parse(after.start))
+}
+
+/** How far, in minutes, the chain behind a task moves when `before` becomes `after`. */
+export function chainShiftMin(before: Task, after: Task): number {
+  return Math.round((Date.parse(after.end) - chainAnchor(before, after)) / MINUTE_MS)
+}
+
 /** +30 on a task: it runs on (an overrun, so originalEnd stays) and the chain behind it moves. */
 export function pushTask(task: Task, all: Task[], now: Date): { updated: Task; moved: Task[]; deltaMin: number } {
   const { updated } = extendTask(task, PUSH_MIN, all, now)
-  const deltaMin = Math.round((Date.parse(updated.end) - Date.parse(task.end)) / MINUTE_MS)
-  return { updated, moved: pushChain(task, updated, all), deltaMin }
+  return { updated, moved: pushChain(task, updated, all), deltaMin: chainShiftMin(task, updated) }
 }
 
 /** The Undo bar's line after a push or a later re-plan. */
