@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
-import { extendTask } from '../domain/extend'
+import { describePush, pushTask } from '../domain/push'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
@@ -94,11 +94,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   useMinuteTick()
   const [notice, setNotice] = useState<string | null>(null)
   // The last Done or Skip on a row, kept for a few seconds so a mis-tap can be taken back.
-  const [undo, setUndo] = useState<{ taskId: string; message: string; restore: () => void } | null>(null)
+  const [undo, setUndo] = useState<{ taskIds: string[]; message: string; restore: () => void } | null>(null)
   /** Only after the first day switch does the list slide in; on first load it shows at once. */
   const [slide, setSlide] = useState(false)
   /** An Undo for a task that was then deleted or edited would save a stale or missing task. */
-  const dropUndoFor = (id: string) => setUndo((u) => (u?.taskId === id ? null : u))
+  const dropUndoFor = (id: string) => setUndo((u) => (u?.taskIds.includes(id) ? null : u))
   useEffect(() => {
     if (!undo) return
     const id = setTimeout(() => setUndo(null), 6_000)
@@ -127,6 +127,20 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
 
   const stamp = () => now().toISOString()
   const todayTask = (id: string) => today.tasks.find((t) => t.id === id)
+
+  /** +30: the task runs on and the touching chain behind it moves too; one Undo puts them all back. */
+  function push(list: typeof today, task: Task): { newEnd: string; moved: Task[] } {
+    const { updated, moved, deltaMin } = pushTask(task, list.tasks, now())
+    const before = [task, ...list.tasks.filter((t) => moved.some((m) => m.id === t.id))]
+    void list.save(updated)
+    for (const t of moved) void list.save(t)
+    setUndo({
+      taskIds: before.map((t) => t.id),
+      message: describePush(task.title, updated.end, moved, deltaMin),
+      restore: () => before.forEach((t) => void list.save(t)),
+    })
+    return { newEnd: updated.end, moved }
+  }
   const clearNudgesFor = (id: string) => setNudges((prev) => prev.filter((n) => n.task.id !== id))
   // A nudge only stays while its task is still planned: Done, Skip or Delete anywhere clears it.
   // It shows the latest copy of its task, so an edit or +15 updates the text.
@@ -269,10 +283,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         }}
         onExtend={(id) => {
           const t = todayTask(id)
-          if (!t) return { newEnd: '', affected: [] }
-          const { updated, affected } = extendTask(t, 15, today.tasks, now())
-          void today.save(updated)
-          return { newEnd: updated.end, affected }
+          return t ? push(today, t) : { newEnd: '', moved: [] }
         }}
         onDismiss={(key) => setNudges((prev) => prev.filter((n) => n.key !== key))}
         onEnableNotifications={async () => setPermission(await requestNotificationPermission())}
@@ -355,18 +366,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
                 onDone={() => {
                   void shown.save({ ...task, status: 'done', actualEnd: stamp() })
                   const list = shown
-                  setUndo({ taskId: task.id, message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+                  setUndo({ taskIds: [task.id], message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
                 }}
-                onPlus15={() => {
-                  const { updated, affected } = extendTask(task, 15, shown.tasks, now())
-                  void shown.save(updated)
-                  const pushed = affected.length ? `Now overlaps: ${affected.map((t) => t.title).join(', ')}` : 'Nothing else moves.'
-                  setNotice(`${task.title}: extended to ${formatLocalTime(updated.end)}. ${pushed}`)
-                }}
+                onPush={() => void push(shown, task)}
                 onSkip={() => {
                   void shown.save({ ...task, status: 'skipped' })
                   const list = shown
-                  setUndo({ taskId: task.id, message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
+                  setUndo({ taskIds: [task.id], message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
                 }}
                 onEdit={() => setEditing(task)}
                 onDelete={() => {

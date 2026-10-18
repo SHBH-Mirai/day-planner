@@ -46,14 +46,15 @@ describe('TodayView nudges', () => {
     expect(saved?.status).toBe('done')
   })
 
-  test('+15 min extends the task and shows what it pushes back', async () => {
+  test('+30 min extends the task and moves what it touches', async () => {
     const repo = await setup()
     const nudge = (await screen.findByText('⏹ STOP: Deep work. Done?')).closest('[role="status"]') as HTMLElement
-    await userEvent.click(within(nudge).getByRole('button', { name: '+15 min' }))
-    expect(await screen.findByText('Extended to 10:15. Pushes back: Lunch')).toBeInTheDocument()
+    await userEvent.click(within(nudge).getByRole('button', { name: '+30 min' }))
+    expect(await screen.findByText('Extended to 10:30. Moved: Lunch')).toBeInTheDocument()
     await waitFor(async () => {
-      const saved = (await repo.listForDay(DAY)).find((t) => t.title === 'Deep work')
-      expect(saved).toMatchObject({ end: ist(D, '10:15'), originalEnd: ist(D, '10:00') })
+      const saved = await repo.listForDay(DAY)
+      expect(saved.find((t) => t.title === 'Deep work')).toMatchObject({ end: ist(D, '10:30'), originalEnd: ist(D, '10:00') })
+      expect(saved.find((t) => t.title === 'Lunch')).toMatchObject({ start: ist(D, '10:30'), end: ist(D, '11:00') })
     })
   })
 

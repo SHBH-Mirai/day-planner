@@ -19,7 +19,7 @@ function setup(t: Task = task(), isNow = false) {
   const h = {
     onDone: vi.fn(),
     onStarted: vi.fn(),
-    onPlus15: vi.fn(),
+    onPush: vi.fn(),
     onSkip: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
@@ -55,7 +55,7 @@ describe('TaskRow', () => {
 
     await userEvent.click(toggle())
     expect(toggle()).toHaveAttribute('aria-expanded', 'true')
-    for (const name of ['Started', '+15 min', 'Skip', 'Edit', 'Delete']) {
+    for (const name of ['Started', '+30 min', 'Skip', 'Edit', 'Delete']) {
       expect(within(row).getByRole('button', { name })).toBeInTheDocument()
     }
   })
@@ -65,12 +65,12 @@ describe('TaskRow', () => {
     const { h, row, toggle } = setup()
     await userEvent.click(toggle())
     await userEvent.click(within(row).getByRole('button', { name: 'Started' }))
-    await userEvent.click(within(row).getByRole('button', { name: '+15 min' }))
+    await userEvent.click(within(row).getByRole('button', { name: '+30 min' }))
     await userEvent.click(within(row).getByRole('button', { name: 'Skip' }))
     await userEvent.click(within(row).getByRole('button', { name: 'Edit' }))
     await userEvent.click(within(row).getByRole('button', { name: 'Delete' }))
     expect(h.onStarted).toHaveBeenCalledTimes(1)
-    expect(h.onPlus15).toHaveBeenCalledTimes(1)
+    expect(h.onPush).toHaveBeenCalledTimes(1)
     expect(h.onSkip).toHaveBeenCalledTimes(1)
     expect(h.onEdit).toHaveBeenCalledTimes(1)
     expect(h.onDelete).toHaveBeenCalledTimes(1)

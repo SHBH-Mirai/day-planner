@@ -12,7 +12,7 @@ interface Props {
   isNow: boolean
   onDone: () => void
   onStarted: () => void
-  onPlus15: () => void
+  onPush: () => void
   onSkip: () => void
   onEdit: () => void
   onDelete: () => void
@@ -26,9 +26,9 @@ function minutes(task: Task): string {
 
 /**
  * One task on the timeline. Tap the circle to tick it done; tap the row to unfold
- * Started / +15 / Skip / Edit / Delete; swipe right to move it forward, left to skip.
+ * Started / +30 / Skip / Edit / Delete; swipe right to move it forward, left to skip.
  */
-export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEdit, onDelete }: Props) {
+export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit, onDelete }: Props) {
   const [open, setOpen] = useState(false)
   const titleId = useId()
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -123,7 +123,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPlus15, onSkip, onEd
               exit={{ height: 0, opacity: 0 }}
             >
               {planned && !task.actualStart && <button onClick={thenFocus(onStarted)}>Started</button>}
-              {planned && <button onClick={thenFocus(onPlus15)}>+15 min</button>}
+              {planned && <button onClick={thenFocus(onPush)}>+30 min</button>}
               {planned && <button onClick={thenFocus(onSkip)}>Skip</button>}
               <button onClick={onEdit}>Edit</button>
               <button onClick={confirmDelete}>Delete</button>
