@@ -159,14 +159,19 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     setUndo({ taskIds: [task.id], message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
   }
 
+  /** A change you made yourself: an Undo that covers this task would now overwrite it, so it goes. */
+  function edit(list: typeof today, task: Task) {
+    dropUndoFor(task.id)
+    void list.save(task)
+  }
+
   /** Back to planned: an unticked Done (its actual end goes) or an Unskip. */
   function reopen(task: Task) {
-    dropUndoFor(task.id)
-    void shown.save({ ...task, status: 'planned', actualEnd: undefined })
+    edit(shown, { ...task, status: 'planned', actualEnd: undefined })
   }
 
   function rename(task: Task, title: string) {
-    void shown.save({ ...task, title })
+    edit(shown, { ...task, title })
   }
 
   /** A new start or length is a re-plan (originalEnd follows); a later end pushes the chain like +30. */
@@ -316,17 +321,17 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         askForNotifications={!inTeams}
         onStarted={(id) => {
           const t = todayTask(id)
-          if (t) void today.save({ ...t, actualStart: stamp() })
+          if (t) edit(today, { ...t, actualStart: stamp() })
           clearNudgesFor(id)
         }}
         onDone={(id) => {
           const t = todayTask(id)
-          if (t) void today.save({ ...t, status: 'done', actualEnd: stamp() })
+          if (t) edit(today, { ...t, status: 'done', actualEnd: stamp() })
           clearNudgesFor(id)
         }}
         onSkip={(id) => {
           const t = todayTask(id)
-          if (t) void today.save({ ...t, status: 'skipped' })
+          if (t) edit(today, { ...t, status: 'skipped' })
           clearNudgesFor(id)
         }}
         onExtend={(id) => {
@@ -440,7 +445,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
                 key={task.id}
                 task={task}
                 isNow={isNow(task)}
-                onStarted={() => void shown.save({ ...task, actualStart: stamp() })}
+                onStarted={() => edit(shown, { ...task, actualStart: stamp() })}
                 onDone={() => markDone(task)}
                 onPush={() => void push(shown, task)}
                 onSkip={() => markSkipped(task)}

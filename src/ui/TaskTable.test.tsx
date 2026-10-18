@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskTable } from './TaskTable'
 import type { Task } from '../domain/task'
@@ -133,6 +133,20 @@ describe('TaskTable', () => {
     }
     expect(screen.getByRole('button', { name: 'Skip: Standup' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Remove: Standup' })).toBeEnabled()
+  })
+
+  test('each row is a list item holding its article', () => {
+    setup([s, r])
+    const items = within(screen.getByRole('list')).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(within(items[0]).getByRole('article', { name: 'Standup' })).toBeInTheDocument()
+  })
+
+  test("a done row's dimming is not overridden by an inline opacity", () => {
+    setup([{ ...s, status: 'done' }])
+    const row = screen.getByRole('article', { name: 'Standup' })
+    expect(row).toHaveAttribute('data-status', 'done')
+    expect(row.style.opacity).toBe('')
   })
 
   test('an empty day renders nothing, like the list', () => {

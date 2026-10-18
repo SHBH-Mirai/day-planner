@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TodayView } from './TodayView'
 import type { Task } from '../domain/task'
@@ -70,11 +70,11 @@ describe('TodayView, task table', () => {
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await table()
     const box = await screen.findByLabelText('Start: Standup')
-    fireEvent.change(box, { target: { value: '09:30' } })
+    fireEvent.change(box, { target: { value: '09:10' } })
     fireEvent.blur(box)
     await waitFor(async () => {
-      expect(await saved(repo, 'Standup')).toMatchObject({ start: ist(D, '09:30'), end: ist(D, '09:45'), originalEnd: ist(D, '09:45') })
-      expect(await saved(repo, 'Review')).toMatchObject({ start: ist(D, '09:50'), end: ist(D, '10:30') })
+      expect(await saved(repo, 'Standup')).toMatchObject({ start: ist(D, '09:10'), end: ist(D, '09:25'), originalEnd: ist(D, '09:25') })
+      expect(await saved(repo, 'Review')).toMatchObject({ start: ist(D, '09:30'), end: ist(D, '10:10') })
     })
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
   })
@@ -102,6 +102,31 @@ describe('TodayView, task table', () => {
       expect((await saved(repo, 'Standup')).end).toBe(ist(D, '10:15'))
       expect(await saved(repo, 'Review')).toMatchObject({ start: ist(D, '10:20'), end: ist(D, '11:00') })
     })
+  })
+
+  test('renaming a task the push moved drops the Undo, so Undo can never revert the rename', async () => {
+    const repo = await seeded()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await table()
+    await userEvent.click(await screen.findByRole('button', { name: '+30 min: Standup' }))
+    expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument()
+    const title = screen.getByRole('textbox', { name: 'Title: Review' })
+    await userEvent.clear(title)
+    await userEvent.type(title, 'Code review{Enter}')
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument())
+    expect((await repo.listForDay(DAY)).map((t) => t.title)).toContain('Code review')
+  })
+
+  test('starting a task the push moved drops the Undo', async () => {
+    const repo = await seeded()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const card = (title: string) => screen.findByRole('article', { name: title })
+    await userEvent.click(within(await card('Standup')).getByRole('button', { name: /Standup/ }))
+    await userEvent.click(within(await card('Standup')).getByRole('button', { name: '+30 min' }))
+    expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument()
+    await userEvent.click(within(await card('Review')).getByRole('button', { name: /Review/ }))
+    await userEvent.click(within(await card('Review')).getByRole('button', { name: 'Started' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument())
   })
 
   test('Done and rename in the table save', async () => {

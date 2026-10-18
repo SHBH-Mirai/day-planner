@@ -286,7 +286,7 @@ input, select {
 .task-table { padding: 4px 14px; border-radius: 18px; }
 .task-table ol { list-style: none; margin: 0; padding: 0; }
 .table-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 104px 72px auto; gap: 8px; align-items: center; padding: 10px 0; }
-.table-row + .table-row { border-top: var(--neu-border); }
+.table-item + .table-item .table-row { border-top: var(--neu-border); }
 .table-row input { padding: 6px 8px; border-radius: 10px; min-width: 0; }
 .table-row input[type='checkbox'] { width: 20px; height: 20px; padding: 0; accent-color: var(--neu-accent-text); box-shadow: none; }
 .table-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -302,6 +302,11 @@ input, select {
 .table-row[data-status='done'] .table-title input, .table-row[data-status='skipped'] .table-title input { text-decoration: line-through; }
 .table-row.now .table-title input { color: var(--neu-accent-text); }
 @media (max-width: 559px) {
-  .table-row { grid-template-columns: 22px minmax(0, 1fr) 96px 64px; }
-  .table-actions { grid-column: 2 / -1; justify-content: flex-end; }
+  /* Phone: title on its own line, then the controls. */
+  .table-row { grid-template-columns: 22px 96px 64px minmax(0, 1fr); grid-template-areas: 'done title title title' '. start length actions'; row-gap: 6px; }
+  .table-row > input[type='checkbox'] { grid-area: done; }
+  .table-title { grid-area: title; }
+  .table-row > input[type='time'] { grid-area: start; }
+  .table-row > input[type='number'] { grid-area: length; }
+  .table-actions { grid-area: actions; justify-content: flex-end; }
 }

@@ -10,17 +10,19 @@ const shift = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOS
 
 /**
  * The other tasks that move when `before` becomes `after`, already shifted.
- * Only a later end pushes: still-planned tasks from the old end on move by the same amount
- * while they overlap the chain; the first one clear of it stops the walk. Done, skipped and
- * started tasks never move. Moving earlier or shortening never pulls anything back.
+ * Only a later end pushes. The walk starts at the anchor: the old end, or the new start when
+ * the task moved past its old end (so a moved task only pushes what sits in its new slot).
+ * Still-planned tasks from the anchor on move by how far the new end reaches past it, while
+ * they overlap the chain; the first one clear of it stops the walk. Done, skipped and started
+ * tasks never move. Moving earlier or shortening never pulls anything back.
  */
 export function pushChain(before: Task, after: Task, all: Task[]): Task[] {
-  const oldEnd = Date.parse(before.end)
-  const delta = Date.parse(after.end) - oldEnd
+  const anchor = Math.max(Date.parse(before.end), Date.parse(after.start))
+  const delta = Date.parse(after.end) - anchor
   if (delta <= 0) return []
 
   const candidates = all
-    .filter((t) => t.id !== before.id && t.status === 'planned' && !t.actualStart && Date.parse(t.start) >= oldEnd)
+    .filter((t) => t.id !== before.id && t.status === 'planned' && !t.actualStart && Date.parse(t.start) >= anchor)
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
 
   const moved: Task[] = []

@@ -91,16 +91,14 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
   }
 
   return (
-    <m.li
-      layout
-      role="article"
+    // The list item animates (motion leaves an inline opacity); the article inside carries the
+    // status, so the CSS that dims done and skipped rows isn't overridden.
+    <m.li layout className="table-item" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <article
       aria-label={name}
       className={`table-row${isNow(task) ? ' now' : ''}`}
       data-status={task.status}
       data-category={task.category}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
     >
       <input
         type="checkbox"
@@ -160,6 +158,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
           ✕
         </button>
       </div>
+    </article>
     </m.li>
   )
 }

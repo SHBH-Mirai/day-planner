@@ -55,6 +55,29 @@ describe('pushChain', () => {
     expect([m.start, m.end]).toEqual([ist('2026-10-18', '00:00'), ist('2026-10-18', '00:20')])
   })
 
+  test('moving a task later only pushes what sits in its new slot', () => {
+    const s = at('Standup', '09:00', '09:15'),
+      coffee = at('Coffee', '09:15', '09:25'),
+      review = at('Review', '10:00', '11:00'),
+      lunch = at('Lunch', '13:00', '13:45')
+    const moved = pushChain(s, { ...s, start: ist(D, '13:00'), end: ist(D, '13:15') }, [s, coffee, review, lunch])
+    expect(moved.map((t) => [t.title, t.start, t.end])).toEqual([['Lunch', ist(D, '13:15'), ist(D, '14:00')]])
+  })
+
+  test('moving a task into a free gap moves nothing', () => {
+    const s = at('Standup', '09:00', '09:15'),
+      coffee = at('Coffee', '09:15', '09:25'),
+      review = at('Review', '10:00', '11:00')
+    expect(pushChain(s, { ...s, start: ist(D, '09:40'), end: ist(D, '09:55') }, [s, coffee, review])).toEqual([])
+  })
+
+  test('a small move later pushes what its new end now reaches', () => {
+    const s = at('Standup', '09:00', '09:15'),
+      review = at('Review', '09:20', '10:00')
+    const moved = pushChain(s, { ...s, start: ist(D, '09:10'), end: ist(D, '09:25') }, [s, review])
+    expect(moved.map((t) => [t.title, t.start, t.end])).toEqual([['Review', ist(D, '09:30'), ist(D, '10:10')]])
+  })
+
   test('does not change its inputs', () => {
     const a = at('A', '09:00', '09:30'),
       b = at('B', '09:30', '10:00')
