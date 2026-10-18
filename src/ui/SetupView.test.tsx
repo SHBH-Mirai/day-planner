@@ -139,11 +139,12 @@ describe('SetupView, routines', () => {
 
   test('Delete asks first; Cancel keeps it, OK sends it to the recycle bin', async () => {
     const { row, routineRepo } = await setupRoutines()
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     await userEvent.click(within(row).getByRole('button', { name: 'Delete' }))
-    expect(confirm).toHaveBeenCalledWith('Delete "Gym"? It goes to the SharePoint recycle bin.')
+    expect(within(row).getByText('Delete "Gym"? It goes to the SharePoint recycle bin.')).toBeInTheDocument()
+    await userEvent.click(within(row).getByRole('button', { name: 'Cancel' }))
     expect(await routineRepo.list()).toHaveLength(1)
     await userEvent.click(within(row).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(row).getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Gym' })).not.toBeInTheDocument())
     expect(await routineRepo.list()).toHaveLength(0)
   })

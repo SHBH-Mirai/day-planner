@@ -3,6 +3,7 @@ import { AnimatePresence, m } from 'motion/react'
 import type { Task } from '../domain/task'
 import { formatLocalTime, minutesBetween, withLocalTime } from '../domain/time'
 import { CATEGORY_LABEL } from './labels'
+import { ConfirmButton } from './neu/ConfirmButton'
 import { NeuSurface } from './neu/NeuSurface'
 
 export interface TaskTableProps {
@@ -154,9 +155,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
             Skip
           </button>
         )}
-        <button aria-label={`Remove: ${name}`} onClick={() => window.confirm(`Delete "${name}"?`) && onRemove(task)}>
-          ✕
-        </button>
+        <ConfirmButton label="✕" ariaLabel={`Remove: ${name}`} question={`Delete "${name}"?`} onConfirm={() => onRemove(task)} />
       </div>
     </article>
     </m.li>

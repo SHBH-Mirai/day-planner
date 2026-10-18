@@ -76,11 +76,11 @@ describe('TodayView nudges', () => {
   })
 
   test('deleting a task clears its nudge', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     await setup()
     await screen.findByText('⏹ STOP: Deep work. Done?')
     await unfold('Deep work')
     await userEvent.click(within(screen.getByRole('article', { name: 'Deep work' })).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(screen.getByRole('article', { name: 'Deep work' })).getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByText('⏹ STOP: Deep work. Done?')).not.toBeInTheDocument())
   })
 

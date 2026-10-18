@@ -195,14 +195,12 @@ export function SetupView({ settingsRepo, routineRepo, day, todayTasks, addToTod
           }
           onAddToToday={(r) => void addRoutineToToday(r)}
           onEdit={(r) => setEditing(r)}
-          onDelete={(r) => {
-            if (window.confirm(`Delete "${r.title}"? It goes to the SharePoint recycle bin.`)) {
-              void changeRoutines(async () => {
-                await routineRepo.remove(r.id)
-                return (list) => list.filter((x) => x.id !== r.id)
-              }, "Couldn't delete the routine.")
-            }
-          }}
+          onDelete={(r) =>
+            void changeRoutines(async () => {
+              await routineRepo.remove(r.id)
+              return (list) => list.filter((x) => x.id !== r.id)
+            }, "Couldn't delete the routine.")
+          }
         />
       </NeuSurface>
 

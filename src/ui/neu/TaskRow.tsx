@@ -3,6 +3,7 @@ import { AnimatePresence, m, type PanInfo } from 'motion/react'
 import type { Task } from '../../domain/task'
 import { formatLocalTime } from '../../domain/time'
 import { CATEGORY_LABEL } from '../labels'
+import { ConfirmButton } from './ConfirmButton'
 import { formatMinutes } from './format'
 import { swipeAction, swipeTarget } from './swipe'
 
@@ -41,10 +42,6 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
   }
   const rowRef = useRef<HTMLElement>(null)
   const planned = task.status === 'planned'
-
-  function confirmDelete() {
-    if (window.confirm(`Delete "${task.title}"?`)) onDelete()
-  }
 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape' && open) {
@@ -126,7 +123,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
               {planned && <button onClick={thenFocus(onPush)}>+30 min</button>}
               {planned && <button onClick={thenFocus(onSkip)}>Skip</button>}
               <button onClick={onEdit}>Edit</button>
-              <button onClick={confirmDelete}>Delete</button>
+              <ConfirmButton label="Delete" question={`Delete "${task.title}"?`} onConfirm={onDelete} />
             </m.div>
           )}
         </AnimatePresence>

@@ -142,7 +142,6 @@ describe('TodayView, neumorphic layout', () => {
   })
 
   test('deleting a task the push moved drops the Undo', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const repo = await seeded(['Standup', '09:00', '09:15'], ['Review', '09:20', '10:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
@@ -150,6 +149,7 @@ describe('TodayView, neumorphic layout', () => {
     expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument()
     await userEvent.click(within(await findCard('Review')).getByRole('button', { name: /Review/ }))
     await userEvent.click(within(await findCard('Review')).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(await findCard('Review')).getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument())
   })
 
@@ -177,13 +177,13 @@ describe('TodayView, neumorphic layout', () => {
   })
 
   test('deleting a task right after Done removes its Undo, so Undo cannot save a deleted task', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const repo = await seeded(['Standup', '09:00', '09:15'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
     expect(await screen.findByRole('status', { name: 'Undo' })).toBeInTheDocument()
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: /Standup/ }))
     await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Delete' }))
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument())
   })
 
