@@ -106,7 +106,7 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Init_moved": [
+      "Init_later_moved": [
        "Succeeded"
       ]
      }
@@ -343,10 +343,10 @@
              },
              {
               "type": "Action.Submit",
-              "id": "later15",
-              "title": "+15 min later",
+              "id": "later30",
+              "title": "+30 min later",
               "data": {
-               "choice": "later15"
+               "choice": "later30"
               }
              }
             ]
@@ -439,30 +439,282 @@
                {
                 "equals": [
                  "@outputs('Choice_start')",
-                 "later15"
+                 "later30"
                 ]
                }
               ]
              },
              "actions": {
-              "Update_item_later": {
-               "type": "OpenApiConnection",
-               "inputs": {
-                "parameters": {
-                 "dataset": "https://datenshi.sharepoint.com/sites/Development",
-                 "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
-                 "id": "@triggerOutputs()?['body/ID']",
-                 "item/Title": "@body('Get_item_started')?['Title']",
-                 "item/TaskStart": "@addMinutes(body('Get_item_started')?['TaskStart'], 15)",
-                 "item/TaskEnd": "@addMinutes(body('Get_item_started')?['TaskEnd'], 15)",
-                 "item/TaskOriginalEnd": "@addMinutes(coalesce(body('Get_item_started')?['TaskOriginalEnd'], body('Get_item_started')?['TaskEnd']), 15)"
+              "If_card_fresh": {
+               "type": "If",
+               "expression": {
+                "and": [
+                 {
+                  "equals": [
+                   "@ticks(body('Get_item_started')?['TaskStart'])",
+                   "@ticks(body('Get_item_start')?['TaskStart'])"
+                  ]
+                 },
+                 {
+                  "equals": [
+                   "@ticks(body('Get_item_started')?['TaskEnd'])",
+                   "@ticks(body('Get_item_start')?['TaskEnd'])"
+                  ]
+                 }
+                ]
+               },
+               "actions": {
+                "New_start": {
+                 "type": "Compose",
+                 "inputs": "@if(greater(ticks(utcNow()), ticks(addMinutes(body('Get_item_started')?['TaskStart'], 5))), addMinutes(formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00Z'), 30), addMinutes(body('Get_item_started')?['TaskStart'], 30))"
                 },
-                "host": {
-                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
-                 "connectionName": "shared_sharepointonline",
-                 "operationId": "PatchItem"
+                "New_end_later": {
+                 "type": "Compose",
+                 "runAfter": {
+                  "New_start": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": "@addSeconds(outputs('New_start'), div(sub(ticks(body('Get_item_started')?['TaskEnd']), ticks(body('Get_item_started')?['TaskStart'])), 10000000))"
                 },
-                "authentication": "@parameters('$authentication')"
+                "Update_item_later": {
+                 "type": "OpenApiConnection",
+                 "inputs": {
+                  "parameters": {
+                   "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                   "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                   "id": "@triggerOutputs()?['body/ID']",
+                   "item/Title": "@body('Get_item_started')?['Title']",
+                   "item/TaskStart": "@outputs('New_start')",
+                   "item/TaskEnd": "@outputs('New_end_later')",
+                   "item/TaskOriginalEnd": "@outputs('New_end_later')"
+                  },
+                  "host": {
+                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                   "connectionName": "shared_sharepointonline",
+                   "operationId": "PatchItem"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                 },
+                 "runAfter": {
+                  "New_end_later": [
+                   "Succeeded"
+                  ]
+                 }
+                },
+                "Later_anchor": {
+                 "type": "Compose",
+                 "runAfter": {
+                  "Update_item_later": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": "@formatDateTime(if(greater(ticks(body('Get_item_started')?['TaskEnd']), ticks(outputs('New_start'))), body('Get_item_started')?['TaskEnd'], outputs('New_start')), 'yyyy-MM-ddTHH:mm:ssZ')"
+                },
+                "Later_delta_sec": {
+                 "type": "Compose",
+                 "runAfter": {
+                  "Later_anchor": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": "@div(sub(ticks(outputs('New_end_later')), ticks(outputs('Later_anchor'))), 10000000)"
+                },
+                "Get_chain_later": {
+                 "type": "OpenApiConnection",
+                 "inputs": {
+                  "parameters": {
+                   "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                   "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                   "$filter": "ID ne @{triggerOutputs()?['body/ID']} and TaskStart ge '@{outputs('Later_anchor')}' and TaskStart lt '@{addDays(convertToUtc(concat(convertFromUtc(body('Get_item_started')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time'), 1)}'",
+                   "$orderby": "TaskStart asc",
+                   "$top": 100
+                  },
+                  "host": {
+                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                   "connectionName": "shared_sharepointonline",
+                   "operationId": "GetItems"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                 },
+                 "runAfter": {
+                  "Later_delta_sec": [
+                   "Succeeded"
+                  ]
+                 }
+                },
+                "Set_later_frontier_start": {
+                 "type": "SetVariable",
+                 "runAfter": {
+                  "Get_chain_later": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": {
+                  "name": "LaterFrontier",
+                  "value": "@outputs('New_end_later')"
+                 }
+                },
+                "Apply_to_each_later": {
+                 "type": "Foreach",
+                 "runAfter": {
+                  "Set_later_frontier_start": [
+                   "Succeeded"
+                  ]
+                 },
+                 "foreach": "@body('Get_chain_later')?['value']",
+                 "runtimeConfiguration": {
+                  "concurrency": {
+                   "repetitions": 1
+                  }
+                 },
+                 "actions": {
+                  "If_in_later_chain": {
+                   "type": "If",
+                   "expression": {
+                    "and": [
+                     {
+                      "equals": [
+                       "@items('Apply_to_each_later')?['TaskStatus']?['Value']",
+                       "planned"
+                      ]
+                     },
+                     {
+                      "equals": [
+                       "@empty(items('Apply_to_each_later')?['TaskActualStart'])",
+                       true
+                      ]
+                     },
+                     {
+                      "less": [
+                       "@ticks(items('Apply_to_each_later')?['TaskStart'])",
+                       "@ticks(variables('LaterFrontier'))"
+                      ]
+                     }
+                    ]
+                   },
+                   "actions": {
+                    "Move_later_item": {
+                     "type": "OpenApiConnection",
+                     "inputs": {
+                      "parameters": {
+                       "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                       "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                       "id": "@items('Apply_to_each_later')?['ID']",
+                       "item/Title": "@items('Apply_to_each_later')?['Title']",
+                       "item/TaskStart": "@addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))",
+                       "item/TaskEnd": "@addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec'))",
+                       "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_later')?['TaskOriginalEnd'], items('Apply_to_each_later')?['TaskEnd']), outputs('Later_delta_sec'))"
+                      },
+                      "host": {
+                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                       "connectionName": "shared_sharepointonline",
+                       "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                     }
+                    },
+                    "Next_later_frontier": {
+                     "type": "Compose",
+                     "runAfter": {
+                      "Move_later_item": [
+                       "Succeeded"
+                      ]
+                     },
+                     "inputs": "@if(greater(ticks(body('Move_later_item')?['TaskEnd']), ticks(variables('LaterFrontier'))), body('Move_later_item')?['TaskEnd'], variables('LaterFrontier'))"
+                    },
+                    "Set_later_frontier": {
+                     "type": "SetVariable",
+                     "runAfter": {
+                      "Next_later_frontier": [
+                       "Succeeded"
+                      ]
+                     },
+                     "inputs": {
+                      "name": "LaterFrontier",
+                      "value": "@outputs('Next_later_frontier')"
+                     }
+                    },
+                    "Append_later_moved": {
+                     "type": "AppendToArrayVariable",
+                     "runAfter": {
+                      "Set_later_frontier": [
+                       "Succeeded"
+                      ]
+                     },
+                     "inputs": {
+                      "name": "LaterMoved",
+                      "value": "@items('Apply_to_each_later')?['Title']"
+                     }
+                    }
+                   },
+                   "else": {
+                    "actions": {}
+                   }
+                  }
+                 }
+                },
+                "Later_note": {
+                 "type": "Compose",
+                 "runAfter": {
+                  "Apply_to_each_later": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": "@concat(body('Get_item_started')?['Title'], ': now ', convertFromUtc(outputs('New_start'), 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(outputs('New_end_later'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('LaterMoved')), 'Nothing else moves.', concat('Moved ', join(variables('LaterMoved'), ', '), ' by ', string(div(add(outputs('Later_delta_sec'), 30), 60)), ' min.')))"
+                },
+                "Post_later": {
+                 "type": "OpenApiConnection",
+                 "inputs": {
+                  "parameters": {
+                   "poster": "Flow bot",
+                   "location": "Chat with Flow bot",
+                   "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com;",
+                   "body/messageBody": "<p>@{outputs('Later_note')}</p>"
+                  },
+                  "host": {
+                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                   "connectionName": "shared_teams",
+                   "operationId": "PostMessageToConversation"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                 },
+                 "runAfter": {
+                  "Later_note": [
+                   "Succeeded"
+                  ]
+                 }
+                }
+               },
+               "else": {
+                "actions": {
+                 "Stale_note": {
+                  "type": "Compose",
+                  "inputs": "@concat(body('Get_item_started')?['Title'], ' changed since this card (now ', convertFromUtc(body('Get_item_started')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(body('Get_item_started')?['TaskEnd'], 'India Standard Time', 'HH:mm'), '). Nothing moved; use its newer card.')"
+                 },
+                 "Post_stale": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                   "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com;",
+                    "body/messageBody": "<p>@{outputs('Stale_note')}</p>"
+                   },
+                   "host": {
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation"
+                   },
+                   "authentication": "@parameters('$authentication')"
+                  },
+                  "runAfter": {
+                   "Stale_note": [
+                    "Succeeded"
+                   ]
+                  }
+                 }
+                }
                }
               }
              },
@@ -873,44 +1125,71 @@
            "type": "Compose",
            "inputs": "@coalesce(body('Post_STOP')?['data']?['choice'], body('Post_STOP')?['submitActionId'], '')"
           },
-          "New_end": {
-           "type": "Compose",
-           "runAfter": {
-            "Choice": [
-             "Succeeded"
-            ]
-           },
-           "inputs": "@if(greater(ticks(utcNow()), ticks(addMinutes(body('Get_item_end')?['TaskEnd'], 5))), addMinutes(formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00Z'), 30), addMinutes(body('Get_item_end')?['TaskEnd'], 30))"
-          },
-          "Update_item_after_stop": {
+          "Get_item_pressed": {
            "type": "OpenApiConnection",
            "inputs": {
             "parameters": {
              "dataset": "https://datenshi.sharepoint.com/sites/Development",
              "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
-             "id": "@triggerOutputs()?['body/ID']",
-             "item/Title": "@body('Get_item_end')?['Title']",
-             "item/TaskEnd": "@if(equals(outputs('Choice'), 'plus30'), outputs('New_end'), body('Get_item_end')?['TaskEnd'])",
-             "item/TaskActualEnd": "@if(equals(outputs('Choice'), 'done'), utcNow(), body('Get_item_end')?['TaskActualEnd'])",
-             "item/TaskStatus/Value": "@if(equals(outputs('Choice'), 'done'), 'done', if(equals(outputs('Choice'), 'skip'), 'skipped', 'planned'))"
+             "id": "@triggerOutputs()?['body/ID']"
             },
             "host": {
              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
              "connectionName": "shared_sharepointonline",
-             "operationId": "PatchItem"
+             "operationId": "GetItem"
             },
             "authentication": "@parameters('$authentication')"
            },
            "runAfter": {
-            "New_end": [
+            "Choice": [
              "Succeeded"
             ]
            }
           },
-          "If_plus30": {
+          "If_Get_item_pressed_gone": {
            "type": "If",
            "runAfter": {
-            "Update_item_after_stop": [
+            "Get_item_pressed": [
+             "Failed"
+            ]
+           },
+           "expression": {
+            "and": [
+             {
+              "equals": [
+               "@outputs('Get_item_pressed')?['statusCode']",
+               404
+              ]
+             }
+            ]
+           },
+           "actions": {
+            "Cancel_Get_item_pressed": {
+             "type": "Terminate",
+             "inputs": {
+              "runStatus": "Cancelled"
+             }
+            }
+           },
+           "else": {
+            "actions": {
+             "Fail_Get_item_pressed": {
+              "type": "Terminate",
+              "inputs": {
+               "runStatus": "Failed",
+               "runError": {
+                "code": "GetItemFailed",
+                "message": "@{string(outputs('Get_item_pressed')?['statusCode'])}"
+               }
+              }
+             }
+            }
+           }
+          },
+          "Condition_pressed_fresh": {
+           "type": "If",
+           "runAfter": {
+            "Get_item_pressed": [
              "Succeeded"
             ]
            },
@@ -918,196 +1197,304 @@
             "and": [
              {
               "equals": [
-               "@outputs('Choice')",
-               "plus30"
+               "@body('Get_item_pressed')?['TaskStatus']?['Value']",
+               "planned"
+              ]
+             },
+             {
+              "or": [
+               {
+                "not": {
+                 "equals": [
+                  "@outputs('Choice')",
+                  "plus30"
+                 ]
+                }
+               },
+               {
+                "and": [
+                 {
+                  "equals": [
+                   "@ticks(body('Get_item_pressed')?['TaskStart'])",
+                   "@ticks(body('Get_item_end')?['TaskStart'])"
+                  ]
+                 },
+                 {
+                  "equals": [
+                   "@ticks(body('Get_item_pressed')?['TaskEnd'])",
+                   "@ticks(body('Get_item_end')?['TaskEnd'])"
+                  ]
+                 }
+                ]
+               }
               ]
              }
             ]
            },
            "actions": {
-            "Get_chain": {
+            "New_end": {
+             "type": "Compose",
+             "runAfter": {},
+             "inputs": "@if(greater(ticks(utcNow()), ticks(addMinutes(body('Get_item_pressed')?['TaskEnd'], 5))), addMinutes(formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:00Z'), 30), addMinutes(body('Get_item_pressed')?['TaskEnd'], 30))"
+            },
+            "Update_item_after_stop": {
              "type": "OpenApiConnection",
              "inputs": {
               "parameters": {
                "dataset": "https://datenshi.sharepoint.com/sites/Development",
                "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
-               "$filter": "ID ne @{triggerOutputs()?['body/ID']} and TaskStart ge '@{body('Get_item_end')?['TaskEnd']}' and TaskStart lt '@{addDays(convertToUtc(concat(convertFromUtc(body('Get_item_end')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time'), 1)}'",
-               "$orderby": "TaskStart asc",
-               "$top": 100
+               "id": "@triggerOutputs()?['body/ID']",
+               "item/Title": "@body('Get_item_pressed')?['Title']",
+               "item/TaskEnd": "@if(equals(outputs('Choice'), 'plus30'), outputs('New_end'), body('Get_item_pressed')?['TaskEnd'])",
+               "item/TaskActualEnd": "@if(equals(outputs('Choice'), 'done'), utcNow(), body('Get_item_pressed')?['TaskActualEnd'])",
+               "item/TaskStatus/Value": "@if(equals(outputs('Choice'), 'done'), 'done', if(equals(outputs('Choice'), 'skip'), 'skipped', 'planned'))"
               },
               "host": {
                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
                "connectionName": "shared_sharepointonline",
-               "operationId": "GetItems"
+               "operationId": "PatchItem"
               },
               "authentication": "@parameters('$authentication')"
+             },
+             "runAfter": {
+              "New_end": [
+               "Succeeded"
+              ]
              }
             },
-            "Delta_sec": {
-             "type": "Compose",
+            "If_plus30": {
+             "type": "If",
              "runAfter": {
-              "Get_chain": [
+              "Update_item_after_stop": [
                "Succeeded"
               ]
              },
-             "inputs": "@div(sub(ticks(outputs('New_end')), ticks(body('Get_item_end')?['TaskEnd'])), 10000000)"
-            },
-            "Set_frontier_start": {
-             "type": "SetVariable",
-             "runAfter": {
-              "Delta_sec": [
-               "Succeeded"
+             "expression": {
+              "and": [
+               {
+                "equals": [
+                 "@outputs('Choice')",
+                 "plus30"
+                ]
+               }
               ]
-             },
-             "inputs": {
-              "name": "Frontier",
-              "value": "@outputs('New_end')"
-             }
-            },
-            "Apply_to_each_chain": {
-             "type": "Foreach",
-             "runAfter": {
-              "Set_frontier_start": [
-               "Succeeded"
-              ]
-             },
-             "foreach": "@body('Get_chain')?['value']",
-             "runtimeConfiguration": {
-              "concurrency": {
-               "repetitions": 1
-              }
              },
              "actions": {
-              "If_in_chain": {
-               "type": "If",
-               "expression": {
-                "and": [
-                 {
-                  "equals": [
-                   "@items('Apply_to_each_chain')?['TaskStatus']?['Value']",
-                   "planned"
-                  ]
-                 },
-                 {
-                  "equals": [
-                   "@empty(items('Apply_to_each_chain')?['TaskActualStart'])",
-                   true
-                  ]
-                 },
-                 {
-                  "less": [
-                   "@ticks(items('Apply_to_each_chain')?['TaskStart'])",
-                   "@ticks(variables('Frontier'))"
-                  ]
-                 }
+              "Get_chain": {
+               "type": "OpenApiConnection",
+               "inputs": {
+                "parameters": {
+                 "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                 "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                 "$filter": "ID ne @{triggerOutputs()?['body/ID']} and TaskStart ge '@{body('Get_item_pressed')?['TaskEnd']}' and TaskStart lt '@{addDays(convertToUtc(concat(convertFromUtc(body('Get_item_pressed')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time'), 1)}'",
+                 "$orderby": "TaskStart asc",
+                 "$top": 100
+                },
+                "host": {
+                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                 "connectionName": "shared_sharepointonline",
+                 "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+               }
+              },
+              "Delta_sec": {
+               "type": "Compose",
+               "runAfter": {
+                "Get_chain": [
+                 "Succeeded"
                 ]
                },
-               "actions": {
-                "Move_chain_item": {
-                 "type": "OpenApiConnection",
-                 "inputs": {
-                  "parameters": {
-                   "dataset": "https://datenshi.sharepoint.com/sites/Development",
-                   "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
-                   "id": "@items('Apply_to_each_chain')?['ID']",
-                   "item/Title": "@items('Apply_to_each_chain')?['Title']",
-                   "item/TaskStart": "@addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))",
-                   "item/TaskEnd": "@addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec'))",
-                   "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), outputs('Delta_sec'))"
-                  },
-                  "host": {
-                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
-                   "connectionName": "shared_sharepointonline",
-                   "operationId": "PatchItem"
-                  },
-                  "authentication": "@parameters('$authentication')"
-                 }
-                },
-                "Next_frontier": {
-                 "type": "Compose",
-                 "runAfter": {
-                  "Move_chain_item": [
-                   "Succeeded"
-                  ]
-                 },
-                 "inputs": "@if(greater(ticks(body('Move_chain_item')?['TaskEnd']), ticks(variables('Frontier'))), body('Move_chain_item')?['TaskEnd'], variables('Frontier'))"
-                },
-                "Set_frontier": {
-                 "type": "SetVariable",
-                 "runAfter": {
-                  "Next_frontier": [
-                   "Succeeded"
-                  ]
-                 },
-                 "inputs": {
-                  "name": "Frontier",
-                  "value": "@outputs('Next_frontier')"
-                 }
-                },
-                "Append_moved": {
-                 "type": "AppendToArrayVariable",
-                 "runAfter": {
-                  "Set_frontier": [
-                   "Succeeded"
-                  ]
-                 },
-                 "inputs": {
-                  "name": "Moved",
-                  "value": "@items('Apply_to_each_chain')?['Title']"
-                 }
+               "inputs": "@div(sub(ticks(outputs('New_end')), ticks(body('Get_item_pressed')?['TaskEnd'])), 10000000)"
+              },
+              "Set_frontier_start": {
+               "type": "SetVariable",
+               "runAfter": {
+                "Delta_sec": [
+                 "Succeeded"
+                ]
+               },
+               "inputs": {
+                "name": "Frontier",
+                "value": "@outputs('New_end')"
+               }
+              },
+              "Apply_to_each_chain": {
+               "type": "Foreach",
+               "runAfter": {
+                "Set_frontier_start": [
+                 "Succeeded"
+                ]
+               },
+               "foreach": "@body('Get_chain')?['value']",
+               "runtimeConfiguration": {
+                "concurrency": {
+                 "repetitions": 1
                 }
                },
-               "else": {
-                "actions": {}
+               "actions": {
+                "If_in_chain": {
+                 "type": "If",
+                 "expression": {
+                  "and": [
+                   {
+                    "equals": [
+                     "@items('Apply_to_each_chain')?['TaskStatus']?['Value']",
+                     "planned"
+                    ]
+                   },
+                   {
+                    "equals": [
+                     "@empty(items('Apply_to_each_chain')?['TaskActualStart'])",
+                     true
+                    ]
+                   },
+                   {
+                    "less": [
+                     "@ticks(items('Apply_to_each_chain')?['TaskStart'])",
+                     "@ticks(variables('Frontier'))"
+                    ]
+                   }
+                  ]
+                 },
+                 "actions": {
+                  "Move_chain_item": {
+                   "type": "OpenApiConnection",
+                   "inputs": {
+                    "parameters": {
+                     "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                     "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                     "id": "@items('Apply_to_each_chain')?['ID']",
+                     "item/Title": "@items('Apply_to_each_chain')?['Title']",
+                     "item/TaskStart": "@addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))",
+                     "item/TaskEnd": "@addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec'))",
+                     "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), outputs('Delta_sec'))"
+                    },
+                    "host": {
+                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                     "connectionName": "shared_sharepointonline",
+                     "operationId": "PatchItem"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                   }
+                  },
+                  "Next_frontier": {
+                   "type": "Compose",
+                   "runAfter": {
+                    "Move_chain_item": [
+                     "Succeeded"
+                    ]
+                   },
+                   "inputs": "@if(greater(ticks(body('Move_chain_item')?['TaskEnd']), ticks(variables('Frontier'))), body('Move_chain_item')?['TaskEnd'], variables('Frontier'))"
+                  },
+                  "Set_frontier": {
+                   "type": "SetVariable",
+                   "runAfter": {
+                    "Next_frontier": [
+                     "Succeeded"
+                    ]
+                   },
+                   "inputs": {
+                    "name": "Frontier",
+                    "value": "@outputs('Next_frontier')"
+                   }
+                  },
+                  "Append_moved": {
+                   "type": "AppendToArrayVariable",
+                   "runAfter": {
+                    "Set_frontier": [
+                     "Succeeded"
+                    ]
+                   },
+                   "inputs": {
+                    "name": "Moved",
+                    "value": "@items('Apply_to_each_chain')?['Title']"
+                   }
+                  }
+                 },
+                 "else": {
+                  "actions": {}
+                 }
+                }
+               }
+              },
+              "Moved_note": {
+               "type": "Compose",
+               "runAfter": {
+                "Apply_to_each_chain": [
+                 "Succeeded"
+                ]
+               },
+               "inputs": "@concat(body('Get_item_pressed')?['Title'], ': ends at ', convertFromUtc(outputs('New_end'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('Moved')), 'Nothing else moves.', concat('Moved ', join(variables('Moved'), ', '), ' by ', string(div(add(outputs('Delta_sec'), 30), 60)), ' min.')))"
+              },
+              "Post_moved": {
+               "type": "OpenApiConnection",
+               "runAfter": {
+                "Moved_note": [
+                 "Succeeded"
+                ]
+               },
+               "inputs": {
+                "parameters": {
+                 "poster": "Flow bot",
+                 "location": "Chat with Flow bot",
+                 "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com;",
+                 "body/messageBody": "<p>@{outputs('Moved_note')}</p>"
+                },
+                "host": {
+                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                 "connectionName": "shared_teams",
+                 "operationId": "PostMessageToConversation"
+                },
+                "authentication": "@parameters('$authentication')"
                }
               }
+             },
+             "else": {
+              "actions": {}
              }
             },
-            "Moved_note": {
+            "Stop_finished": {
+             "runAfter": {
+              "If_plus30": [
+               "Succeeded",
+               "Skipped"
+              ]
+             },
              "type": "Compose",
-             "runAfter": {
-              "Apply_to_each_chain": [
-               "Succeeded"
-              ]
-             },
-             "inputs": "@concat(body('Get_item_end')?['Title'], ': ends at ', convertFromUtc(outputs('New_end'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('Moved')), 'Nothing else moves.', concat('Moved ', join(variables('Moved'), ', '), ' by ', string(div(add(outputs('Delta_sec'), 30), 60)), ' min.')))"
-            },
-            "Post_moved": {
-             "type": "OpenApiConnection",
-             "runAfter": {
-              "Moved_note": [
-               "Succeeded"
-              ]
-             },
-             "inputs": {
-              "parameters": {
-               "poster": "Flow bot",
-               "location": "Chat with Flow bot",
-               "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com;",
-               "body/messageBody": "<p>@{outputs('Moved_note')}</p>"
-              },
-              "host": {
-               "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
-               "connectionName": "shared_teams",
-               "operationId": "PostMessageToConversation"
-              },
-              "authentication": "@parameters('$authentication')"
-             }
+             "inputs": "done"
             }
            },
            "else": {
-            "actions": {}
+            "actions": {
+             "Stale_stop_note": {
+              "type": "Compose",
+              "inputs": "@if(equals(body('Get_item_pressed')?['TaskStatus']?['Value'], 'planned'), concat(body('Get_item_pressed')?['Title'], ' changed since this card (now ', convertFromUtc(body('Get_item_pressed')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(body('Get_item_pressed')?['TaskEnd'], 'India Standard Time', 'HH:mm'), '). Nothing moved; use its newer card.'), concat(body('Get_item_pressed')?['Title'], ' is already ', coalesce(body('Get_item_pressed')?['TaskStatus']?['Value'], 'changed'), '. Nothing changed.'))"
+             },
+             "Post_stale_stop": {
+              "type": "OpenApiConnection",
+              "inputs": {
+               "parameters": {
+                "poster": "Flow bot",
+                "location": "Chat with Flow bot",
+                "body/recipient": "ShubhamDubey@Datenshi.onmicrosoft.com;",
+                "body/messageBody": "<p>@{outputs('Stale_stop_note')}</p>"
+               },
+               "host": {
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                "connectionName": "shared_teams",
+                "operationId": "PostMessageToConversation"
+               },
+               "authentication": "@parameters('$authentication')"
+              },
+              "runAfter": {
+               "Stale_stop_note": [
+                "Succeeded"
+               ]
+              }
+             }
+            }
            }
-          },
-          "Stop_finished": {
-           "runAfter": {
-            "If_plus30": [
-             "Succeeded",
-             "Skipped"
-            ]
-           },
-           "type": "Compose",
-           "inputs": "done"
           }
          },
          "else": {
@@ -1119,6 +1506,40 @@
         "actions": {}
        }
       }
+     }
+    },
+    "Init_later_frontier": {
+     "type": "InitializeVariable",
+     "runAfter": {
+      "Init_moved": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "variables": [
+       {
+        "name": "LaterFrontier",
+        "type": "string",
+        "value": ""
+       }
+      ]
+     }
+    },
+    "Init_later_moved": {
+     "type": "InitializeVariable",
+     "runAfter": {
+      "Init_later_frontier": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "variables": [
+       {
+        "name": "LaterMoved",
+        "type": "array",
+        "value": []
+       }
+      ]
      }
     }
    },
