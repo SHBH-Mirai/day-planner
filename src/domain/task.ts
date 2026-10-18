@@ -8,7 +8,7 @@ export interface Task {
   start: string
   /** Moves when the task is extended. */
   end: string
-  /** End as planned. +15 never moves it; it only follows when an edit moves start or end (a re-plan). */
+  /** End as planned. +30 never moves it; it only follows when an edit moves start or end (a re-plan). */
   originalEnd: string
   actualStart?: string
   actualEnd?: string

@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
-import { describePush, pushTask } from '../domain/push'
+import { describePush, pushChain, pushTask } from '../domain/push'
 import type { Task } from '../domain/task'
-import { formatLocalTime, tasksForDay } from '../domain/time'
+import { formatLocalTime, minutesBetween, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
 import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
 import { startScheduler } from '../scheduler/startScheduler'
@@ -23,8 +23,11 @@ import { UndoBar } from './neu/UndoBar'
 import { dayTotals } from './neu/totals'
 import { SetupView } from './SetupView'
 import { SummaryView } from './SummaryView'
+import { TaskTable } from './TaskTable'
 import { TaskForm } from './TaskForm'
 import { useTasks } from './useTasks'
+import { readDayView, saveDayView, type DayView } from './dayView'
+import { ViewSwitch } from './ViewSwitch'
 
 interface Props {
   repo: TaskRepository
@@ -79,6 +82,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   const [addFailed, setAddFailed] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
+  const [dayView, setDayView] = useState<DayView>(readDayView)
   // The + form's default length comes from Setup; 30 until the saved value arrives.
   const [defaultLengthMin, setDefaultLengthMin] = useState(30)
   useEffect(() => {
@@ -140,6 +144,50 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
       restore: () => before.forEach((t) => void list.save(t)),
     })
     return { newEnd: updated.end, moved }
+  }
+
+  // One set of task actions for the list and the table, so both behave the same.
+  function markDone(task: Task) {
+    const list = shown
+    void list.save({ ...task, status: 'done', actualEnd: stamp() })
+    setUndo({ taskIds: [task.id], message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+  }
+
+  function markSkipped(task: Task) {
+    const list = shown
+    void list.save({ ...task, status: 'skipped' })
+    setUndo({ taskIds: [task.id], message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
+  }
+
+  /** Back to planned: an unticked Done (its actual end goes) or an Unskip. */
+  function reopen(task: Task) {
+    dropUndoFor(task.id)
+    void shown.save({ ...task, status: 'planned', actualEnd: undefined })
+  }
+
+  function rename(task: Task, title: string) {
+    void shown.save({ ...task, title })
+  }
+
+  /** A new start or length is a re-plan (originalEnd follows); a later end pushes the chain like +30. */
+  function replan(task: Task, start: string, end: string) {
+    const list = shown
+    const updated = { ...task, start, end, originalEnd: end }
+    const moved = pushChain(task, updated, list.tasks)
+    void list.save(updated)
+    for (const t of moved) void list.save(t)
+    if (!moved.length) return dropUndoFor(task.id)
+    const before = [task, ...list.tasks.filter((t) => moved.some((m) => m.id === t.id))]
+    setUndo({
+      taskIds: before.map((t) => t.id),
+      message: describePush(task.title, end, moved, minutesBetween(task.end, end)),
+      restore: () => before.forEach((t) => void list.save(t)),
+    })
+  }
+
+  function remove(task: Task) {
+    dropUndoFor(task.id)
+    void shown.remove(task.id)
   }
   const clearNudgesFor = (id: string) => setNudges((prev) => prev.filter((n) => n.task.id !== id))
   // A nudge only stays while its task is still planned: Done, Skip or Delete anywhere clears it.
@@ -336,6 +384,16 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         />
       </Sheet>
 
+      {!showSummary && !setupOpen && (
+        <ViewSwitch
+          value={dayView}
+          onChange={(view) => {
+            setDayView(view)
+            saveDayView(view)
+          }}
+        />
+      )}
+
       {setupOpen && settingsRepo && routineRepo ? (
         <SetupView
           settingsRepo={settingsRepo}
@@ -348,6 +406,26 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         />
       ) : showSummary ? (
         <SummaryView tasks={shown.tasks} />
+      ) : dayView === 'table' ? (
+        <m.div
+          key={viewTomorrow ? 'tomorrow-table' : 'today-table'}
+          initial={slide ? { opacity: 0, x: viewTomorrow ? 32 : -32 } : false}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+          <TaskTable
+            tasks={shown.tasks}
+            isNow={isNow}
+            onDone={markDone}
+            onUndone={reopen}
+            onSkip={markSkipped}
+            onUnskip={reopen}
+            onRename={rename}
+            onReplan={replan}
+            onPush={(task) => void push(shown, task)}
+            onRemove={remove}
+          />
+        </m.div>
       ) : (
         <m.ol
           className="timeline"
@@ -363,22 +441,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
                 task={task}
                 isNow={isNow(task)}
                 onStarted={() => void shown.save({ ...task, actualStart: stamp() })}
-                onDone={() => {
-                  void shown.save({ ...task, status: 'done', actualEnd: stamp() })
-                  const list = shown
-                  setUndo({ taskIds: [task.id], message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
-                }}
+                onDone={() => markDone(task)}
                 onPush={() => void push(shown, task)}
-                onSkip={() => {
-                  void shown.save({ ...task, status: 'skipped' })
-                  const list = shown
-                  setUndo({ taskIds: [task.id], message: `Skipped: ${task.title}`, restore: () => void list.save(task) })
-                }}
+                onSkip={() => markSkipped(task)}
                 onEdit={() => setEditing(task)}
-                onDelete={() => {
-                  dropUndoFor(task.id)
-                  void shown.remove(task.id)
-                }}
+                onDelete={() => remove(task)}
               />
             ))}
           </AnimatePresence>
