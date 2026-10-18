@@ -33,6 +33,13 @@ export function formatLocalTime(iso: string): string {
   return timeFormat.format(new Date(iso))
 }
 
+/** The same local day as `iso`, at local time `hhmm` ("HH:mm"), as a UTC ISO string. */
+export function withLocalTime(iso: string, hhmm: string): string {
+  const day = new Date(iso)
+  const [h, m] = hhmm.split(':').map(Number)
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m).toISOString()
+}
+
 export function minutesBetween(fromIso: string, toIso: string): number {
   return Math.round((Date.parse(toIso) - Date.parse(fromIso)) / MINUTE_MS)
 }

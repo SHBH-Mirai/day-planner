@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { dayBounds, formatLocalTime, minutesBetween, tasksForDay } from './time'
+import { dayBounds, formatLocalTime, minutesBetween, tasksForDay, withLocalTime } from './time'
 import { ist, makeTask } from '../test-utils/makeTask'
 
 describe('dayBounds', () => {
@@ -42,5 +42,11 @@ describe('formatLocalTime', () => {
 describe('minutesBetween', () => {
   test('counts whole minutes', () => {
     expect(minutesBetween('2026-10-17T03:30:00Z', '2026-10-17T04:15:00Z')).toBe(45)
+  })
+})
+
+describe('withLocalTime', () => {
+  test('keeps the local day and sets the time', () => {
+    expect(withLocalTime(ist('2026-10-17', '09:00'), '10:15')).toBe(ist('2026-10-17', '10:15'))
   })
 })

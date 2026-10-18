@@ -281,3 +281,27 @@ input, select {
 
 .header-actions { display: flex; align-items: center; gap: 14px; }
 .gear { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; line-height: 1; }
+
+/* Task table: the whole day in one card (List | Table switch). */
+.task-table { padding: 4px 14px; border-radius: 18px; }
+.task-table ol { list-style: none; margin: 0; padding: 0; }
+.table-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 104px 72px auto; gap: 8px; align-items: center; padding: 10px 0; }
+.table-row + .table-row { border-top: var(--neu-border); }
+.table-row input { padding: 6px 8px; border-radius: 10px; min-width: 0; }
+.table-row input[type='checkbox'] { width: 20px; height: 20px; padding: 0; accent-color: var(--neu-accent-text); box-shadow: none; }
+.table-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.table-title input { width: 100%; font-weight: 600; box-shadow: none; background: transparent; border-color: transparent; }
+.table-title input:focus { box-shadow: var(--neu-press); }
+.table-meta { font-size: 12px; color: var(--neu-muted); padding-left: 8px; }
+.table-row[data-category='office'] .table-meta { color: var(--cat-office); }
+.table-row[data-category='freelance'] .table-meta { color: var(--cat-freelance); }
+.table-row[data-category='youtube'] .table-meta { color: var(--cat-youtube); }
+.table-actions { display: flex; gap: 4px; }
+.table-actions button { padding: 6px 10px; font-size: 13px; }
+.table-row[data-status='done'], .table-row[data-status='skipped'] { opacity: 0.6; }
+.table-row[data-status='done'] .table-title input, .table-row[data-status='skipped'] .table-title input { text-decoration: line-through; }
+.table-row.now .table-title input { color: var(--neu-accent-text); }
+@media (max-width: 559px) {
+  .table-row { grid-template-columns: 22px minmax(0, 1fr) 96px 64px; }
+  .table-actions { grid-column: 2 / -1; justify-content: flex-end; }
+}
