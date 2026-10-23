@@ -99,8 +99,8 @@ describe('routine mapping: descriptions', () => {
 describe('routine mapping: category values', () => {
   const item = (Category: unknown) => ({ id: '8', fields: { Title: 'Gym', Category, StartTime: '07:15', DurationMin: 45, Days: ['Mon'], Active: true } })
 
-  test('the old third key reads as projects, and a new key reads as itself', () => {
-    expect(fromRoutineItem(item('freelance')).category).toBe('projects')
+  test('a new key reads as itself, and an unknown one as office', () => {
+    expect(fromRoutineItem(item('nope')).category).toBe('office')
     expect(fromRoutineItem(item('learning')).category).toBe('learning')
   })
 })

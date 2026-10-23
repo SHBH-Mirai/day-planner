@@ -29,14 +29,10 @@ export function emptyPerCategory(): Record<Category, number> {
   return Object.fromEntries(CATEGORIES.map((c) => [c, 0])) as Record<Category, number>
 }
 
-/**
- * A stored category value as a Category: unknown values read as office.
- * The old third key reads as projects until SharePoint has no rows left with it (rollout step 5).
- */
+/** A stored category value as a Category: anything unknown (a hand edit in SharePoint) reads as office. */
 export function readCategory(raw: unknown): Category {
   if (typeof raw !== 'string') return 'office'
-  if ((CATEGORIES as readonly string[]).includes(raw)) return raw as Category
-  return raw === 'freelance' ? 'projects' : 'office'
+  return (CATEGORIES as readonly string[]).includes(raw) ? (raw as Category) : 'office'
 }
 
 export const MAX_DESCRIPTION = 500

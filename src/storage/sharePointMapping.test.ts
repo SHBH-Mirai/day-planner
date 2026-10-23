@@ -91,8 +91,4 @@ describe('SharePoint mapping: category values', () => {
   test('an unknown category reads as office', () => {
     expect(fromItem(withCategory('nope')).category).toBe('office')
   })
-
-  test('the old third key reads as projects', () => {
-    expect(fromItem(withCategory('freelance')).category).toBe('projects')
-  })
 })

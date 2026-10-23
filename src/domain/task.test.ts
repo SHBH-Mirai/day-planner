@@ -19,10 +19,6 @@ describe('categories', () => {
     expect(readCategory('youtube')).toBe('youtube')
   })
 
-  test('readCategory reads the old third key as projects during the switch', () => {
-    expect(readCategory('freelance')).toBe('projects')
-  })
-
   test('readCategory reads anything else as office', () => {
     expect(readCategory('nope')).toBe('office')
     expect(readCategory(undefined)).toBe('office')
