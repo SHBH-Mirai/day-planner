@@ -228,7 +228,7 @@ input, select, textarea {
 }
 
 .day-switch { margin: 18px 0 14px; padding: 6px; border-radius: 16px; }
-.day-switch > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.day-switch > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .day-switch button { position: relative; isolation: isolate; box-shadow: none; background: transparent; border-radius: 12px; font-weight: 600; color: var(--neu-muted); }
 .day-pill { position: absolute; inset: 0; z-index: -1; border-radius: 12px; background: var(--neu-bg); box-shadow: var(--neu-raise-sm); border: var(--neu-border); }
 .day-switch button[aria-pressed='true'] { color: var(--neu-accent-text); }

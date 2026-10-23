@@ -23,6 +23,7 @@ import { UndoBar } from './neu/UndoBar'
 import { dayTotals } from './neu/totals'
 import { SetupView } from './SetupView'
 import { SummaryView } from './SummaryView'
+import { WeekView } from './WeekView'
 import { TaskTable } from './TaskTable'
 import { TaskForm } from './TaskForm'
 import { useTasks } from './useTasks'
@@ -81,6 +82,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   // A new task that failed to save waits in the Retry queue; a second Add would save it twice.
   const [addFailed, setAddFailed] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [showWeek, setShowWeek] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [dayView, setDayView] = useState<DayView>(readDayView)
   // The + form's default length comes from Setup; 30 until the saved value arrives.
@@ -208,6 +210,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   function switchDay(toTomorrow: boolean) {
     setViewTomorrow(toTomorrow)
     setShowSummary(false)
+    setShowWeek(false)
     setUndo(null)
     setSlide(true)
     setEditing(null)
@@ -288,23 +291,39 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
       {!setupOpen && (
       <NeuSurface variant="inset" className="day-switch">
         <div role="group" aria-label="View">
-          <NeuButton pressed={!viewTomorrow && !showSummary} onClick={() => switchDay(false)}>
-            {!viewTomorrow && !showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+          <NeuButton pressed={!viewTomorrow && !showSummary && !showWeek} onClick={() => switchDay(false)}>
+            {!viewTomorrow && !showSummary && !showWeek && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Today
           </NeuButton>
-          <NeuButton pressed={viewTomorrow && !showSummary} onClick={() => switchDay(true)}>
-            {(viewTomorrow && !showSummary) && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+          <NeuButton pressed={viewTomorrow && !showSummary && !showWeek} onClick={() => switchDay(true)}>
+            {(viewTomorrow && !showSummary && !showWeek) && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Tomorrow
           </NeuButton>
-          <NeuButton pressed={showSummary} onClick={() => setShowSummary(true)}>
+          <NeuButton
+            pressed={showSummary}
+            onClick={() => {
+              setShowSummary(true)
+              setShowWeek(false)
+            }}
+          >
             {showSummary && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
             Summary
+          </NeuButton>
+          <NeuButton
+            pressed={showWeek}
+            onClick={() => {
+              setShowWeek(true)
+              setShowSummary(false)
+            }}
+          >
+            {showWeek && <m.span layoutId="day-pill" className="day-pill" aria-hidden="true" />}
+            Week
           </NeuButton>
         </div>
       </NeuSurface>
       )}
 
-      {!viewTomorrow && !showSummary && !setupOpen && (
+      {!viewTomorrow && !showSummary && !showWeek && !setupOpen && (
         <NeuSurface variant="inset" className="focus-strip">
           <span>Focus today</span>
           <strong>
@@ -389,7 +408,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         />
       </Sheet>
 
-      {!showSummary && !setupOpen && (
+      {!showSummary && !showWeek && !setupOpen && (
         <ViewSwitch
           value={dayView}
           onChange={(view) => {
@@ -411,6 +430,8 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
         />
       ) : showSummary ? (
         <SummaryView tasks={shown.tasks} />
+      ) : showWeek ? (
+        <WeekView repo={repo} today={day} />
       ) : dayView === 'table' ? (
         <m.div
           key={viewTomorrow ? 'tomorrow-table' : 'today-table'}
