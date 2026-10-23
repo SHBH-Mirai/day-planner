@@ -133,3 +133,18 @@ describe('TaskRow', () => {
     expect(row).toHaveTextContent('Now')
   })
 })
+
+describe('TaskRow description', () => {
+  it('shows the description only once the row is unfolded', async () => {
+    const { row, toggle } = setup(task({ description: 'Scene\nRecord' }))
+    expect(row.querySelector('.task-row-description')).toBeNull()
+    await userEvent.click(toggle())
+    expect(row.querySelector('.task-row-description')?.textContent).toBe('Scene\nRecord')
+  })
+
+  it('adds nothing when there is no description', async () => {
+    const { row, toggle } = setup()
+    await userEvent.click(toggle())
+    expect(row.querySelector('.task-row-description')).toBeNull()
+  })
+})

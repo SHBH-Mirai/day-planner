@@ -1,4 +1,4 @@
-import type { Category, Task, TaskDraft } from './task'
+import { DESCRIPTION_TOO_LONG, descriptionTooLong, type Category, type Task, type TaskDraft } from './task'
 
 export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'
 /** In SharePoint's order, Monday first; values match the Templates list's Days choices. */
@@ -14,6 +14,8 @@ export interface Routine {
   durationMin: number
   days: Weekday[]
   active: boolean
+  /** Copied into each day's task. */
+  description?: string
 }
 
 export type RoutineDraft = Omit<Routine, 'id'>
@@ -27,6 +29,7 @@ export function validateRoutine(r: RoutineDraft): string[] {
   if (!HH_MM.test(r.startTime)) errors.push('Use a time like 07:15')
   if (!(r.durationMin >= 5 && r.durationMin <= 720)) errors.push('Length must be 5 to 720 minutes')
   if (r.days.length === 0) errors.push('Pick at least one day')
+  if (descriptionTooLong(r.description)) errors.push(DESCRIPTION_TOO_LONG)
   return errors
 }
 
@@ -35,7 +38,9 @@ export function routineToDraft(r: Routine, day: Date): TaskDraft {
   const [h, m] = r.startTime.split(':').map(Number)
   const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m)
   const end = new Date(start.getTime() + r.durationMin * 60_000)
-  return { title: r.title, start: start.toISOString(), end: end.toISOString(), category: r.category }
+  const draft: TaskDraft = { title: r.title, start: start.toISOString(), end: end.toISOString(), category: r.category }
+  if (r.description) draft.description = r.description
+  return draft
 }
 
 /** Already on that day? Same rule as the Morning flow: a task with the same title and start. */

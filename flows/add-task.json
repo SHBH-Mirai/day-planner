@@ -208,6 +208,23 @@
       ]
      }
     },
+    "Init_description": {
+     "runAfter": {
+      "Init_category": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "description",
+        "type": "string",
+        "value": ""
+       }
+      ]
+     }
+    },
     "Init_note": {
      "type": "InitializeVariable",
      "inputs": {
@@ -220,7 +237,7 @@
       ]
      },
      "runAfter": {
-      "Init_category": [
+      "Init_description": [
        "Succeeded"
       ]
      }
@@ -316,6 +333,14 @@
           "id": "title",
           "label": "Title",
           "value": "@variables('title')"
+         },
+         {
+          "type": "Input.Text",
+          "id": "description",
+          "label": "Description (optional)",
+          "isMultiline": true,
+          "maxLength": 500,
+          "value": "@variables('description')"
          },
          {
           "type": "Input.Date",
@@ -506,9 +531,21 @@
           ]
          }
         },
-        "Check": {
+        "Keep_description": {
          "runAfter": {
           "Keep_category": [
+           "Succeeded"
+          ]
+         },
+         "type": "SetVariable",
+         "inputs": {
+          "name": "description",
+          "value": "@trim(coalesce(body('Post_form')?['data']?['description'], ''))"
+         }
+        },
+        "Check": {
+         "runAfter": {
+          "Keep_description": [
            "Succeeded"
           ]
          },
@@ -584,7 +621,8 @@
              "item/TaskEnd": "@convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')",
              "item/TaskOriginalEnd": "@convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')",
              "item/TaskCategory/Value": "@variables('category')",
-             "item/TaskStatus/Value": "planned"
+             "item/TaskStatus/Value": "planned",
+             "item/TaskDescription": "@variables('description')"
             },
             "host": {
              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -657,6 +695,18 @@
             "Next_start": [
              "Succeeded"
             ]
+           }
+          },
+          "Next_description": {
+           "runAfter": {
+            "Next_end": [
+             "Succeeded"
+            ]
+           },
+           "type": "SetVariable",
+           "inputs": {
+            "name": "description",
+            "value": ""
            }
           }
          },

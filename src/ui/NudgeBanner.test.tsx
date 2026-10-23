@@ -88,3 +88,26 @@ describe('NudgeBanner inside Teams', () => {
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })
+
+describe('NudgeBanner description', () => {
+  test('a nudge shows the task description', () => {
+    const described = { ...task, description: 'Open the proposal doc first' }
+    setup([{ key: `${task.id}-start`, kind: 'start', task: described, missed: false }])
+    expect(document.querySelector('.nudge-description')).toHaveTextContent('Open the proposal doc first')
+  })
+
+  test('adds nothing when there is no description', () => {
+    setup([nudge('start')])
+    expect(document.querySelector('.nudge-description')).toBeNull()
+  })
+})
+
+describe('NudgeBanner description placement', () => {
+  test('"missed at" stays next to the nudge text, before the description', () => {
+    const described = { ...task, description: 'Open the proposal doc first' }
+    setup([{ key: `${task.id}-start`, kind: 'start', task: described, missed: true }])
+    const missed = screen.getByText(/missed at/)
+    const desc = document.querySelector('.nudge-description')!
+    expect(missed.compareDocumentPosition(desc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})

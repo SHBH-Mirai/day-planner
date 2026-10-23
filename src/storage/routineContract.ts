@@ -47,6 +47,16 @@ export function runRoutineContract(name: string, makeRepo: () => RoutineReposito
       expect(await repo.list()).toEqual([r])
     })
 
+    test('create and update keep the description; clearing removes it', async () => {
+      const repo = makeRepo()
+      const created = await repo.create(draft('Short pipeline', '20:30', { description: 'Scene, record, dub' }))
+      expect((await repo.list())[0].description).toBe('Scene, record, dub')
+      await repo.update({ ...created, description: 'New' })
+      expect((await repo.list())[0].description).toBe('New')
+      await repo.update({ ...created, description: undefined })
+      expect((await repo.list())[0].description).toBeUndefined()
+    })
+
     test('remove deletes it, and removing a missing one is notFound', async () => {
       const repo = makeRepo()
       const r = await repo.create(draft('Gym'))

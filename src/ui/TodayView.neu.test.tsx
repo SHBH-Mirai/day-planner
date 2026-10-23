@@ -86,6 +86,19 @@ describe('TodayView, neumorphic layout', () => {
     expect(screen.queryByRole('status', { name: 'Undo' })).not.toBeInTheDocument()
   })
 
+  test('Undo after Done keeps the description', async () => {
+    const repo = new InMemoryTaskRepository()
+    await repo.create({ title: 'Standup', start: ist(D, '09:00'), end: ist(D, '09:15'), category: 'office', description: 'Agenda in the doc' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Done' }))
+    const bar = await screen.findByRole('status', { name: 'Undo' })
+    await userEvent.click(within(bar).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const [t] = await repo.listForDay(DAY)
+      expect(t).toMatchObject({ status: 'planned', description: 'Agenda in the doc' })
+    })
+  })
+
   test('Skip offers Undo too', async () => {
     const repo = await seeded(['Gym', '18:00', '19:00'])
     render(<TodayView repo={repo} day={DAY} now={() => NOW} />)

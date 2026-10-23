@@ -154,3 +154,15 @@ describe('TaskTable', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 })
+
+describe('TaskTable description', () => {
+  test('shows the description as one line under the title', () => {
+    setup([{ ...s, description: 'Cut\ncaptions' }])
+    expect(screen.getByRole('article', { name: 'Standup' }).querySelector('.table-description')).toHaveTextContent('Cut captions')
+  })
+
+  test('adds nothing when there is no description', () => {
+    setup([s])
+    expect(screen.getByRole('article', { name: 'Standup' }).querySelector('.table-description')).toBeNull()
+  })
+})

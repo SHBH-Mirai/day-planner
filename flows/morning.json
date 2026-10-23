@@ -205,7 +205,8 @@
            "item/TaskEnd": "@addMinutes(outputs('Template_start'), int(items('Each_template')?['DurationMin']))",
            "item/TaskOriginalEnd": "@addMinutes(outputs('Template_start'), int(items('Each_template')?['DurationMin']))",
            "item/TaskCategory/Value": "@coalesce(items('Each_template')?['Category']?['Value'], 'office')",
-           "item/TaskStatus/Value": "planned"
+           "item/TaskStatus/Value": "planned",
+           "item/TaskDescription": "@coalesce(items('Each_template')?['Description'], '')"
           },
           "host": {
            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",

@@ -4,12 +4,15 @@ import { CATEGORIES, type Category } from '../domain/task'
 /** A Templates list item as Graph returns it with $expand=fields. */
 export interface RoutineItem {
   id: string
-  fields: { Title?: unknown; Category?: unknown; StartTime?: unknown; DurationMin?: unknown; Days?: unknown; Active?: unknown }
+  fields: { Title?: unknown; Category?: unknown; StartTime?: unknown; DurationMin?: unknown; Days?: unknown; Active?: unknown; Description?: unknown }
 }
 
-/** Routine → Templates columns. Days is a multi-choice column, so Graph needs its collection type. */
-export function toRoutineFields(r: RoutineDraft) {
-  return {
+/**
+ * Routine → Templates columns. Days is a multi-choice column, so Graph needs its collection type.
+ * A new routine sends a description only when it has one; an update always sends it (null clears it).
+ */
+export function toRoutineFields(r: RoutineDraft, mode: 'create' | 'update' = 'create') {
+  const fields: Record<string, unknown> = {
     Title: r.title,
     Category: r.category,
     StartTime: r.startTime,
@@ -18,6 +21,8 @@ export function toRoutineFields(r: RoutineDraft) {
     Days: r.days,
     Active: r.active,
   }
+  if (mode === 'update' || r.description) fields.Description = r.description ?? null
+  return fields
 }
 
 /** Templates item → Routine, tolerating gaps left by hand edits in SharePoint. */
@@ -33,5 +38,6 @@ export function fromRoutineItem(item: RoutineItem): Routine {
     days: WEEKDAYS.filter((d: Weekday) => days.includes(d)),
     // Empty Active is off: the Morning flow's `Active eq 1` filter skips it too.
     active: f.Active === true,
+    ...(typeof f.Description === 'string' && f.Description.trim() ? { description: f.Description } : {}),
   }
 }

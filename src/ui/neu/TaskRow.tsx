@@ -119,6 +119,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
             >
+              {task.description && <p className="task-row-description">{task.description}</p>}
               {planned && !task.actualStart && <button onClick={thenFocus(onStarted)}>Started</button>}
               {planned && <button onClick={thenFocus(onPush)}>+30 min</button>}
               {planned && <button onClick={thenFocus(onSkip)}>Skip</button>}

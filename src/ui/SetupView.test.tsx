@@ -131,6 +131,16 @@ describe('SetupView, routines', () => {
     await waitFor(async () => expect((await routineRepo.list())[0].durationMin).toBe(60))
   })
 
+  test('clearing a routine description in the sheet clears the saved one', async () => {
+    const { row, routineRepo, saved } = await setupRoutines()
+    await routineRepo.update({ ...saved, description: 'Old notes' })
+    await userEvent.click(within(row).getByRole('button', { name: 'Edit' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit routine' })
+    await userEvent.clear(within(sheet).getByLabelText('Description (optional)'))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save routine' }))
+    await waitFor(async () => expect((await routineRepo.list())[0].description).toBeUndefined())
+  })
+
   test('the Active switch pauses a routine', async () => {
     const { row, routineRepo } = await setupRoutines()
     await userEvent.click(within(row).getByRole('switch', { name: 'Active: Gym' }))

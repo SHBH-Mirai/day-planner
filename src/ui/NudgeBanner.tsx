@@ -73,6 +73,7 @@ export function NudgeBanner({
           >
             <strong>{nudgeText(n)}</strong>
             {n.missed && <span className="muted"> missed at {formatLocalTime(due)}</span>}
+            {n.task.description && <p className="nudge-description">{n.task.description}</p>}
             <div className="nudge-actions">
               {extended[n.key] ? (
                 <span>{extended[n.key]}</span>

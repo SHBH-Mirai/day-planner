@@ -119,6 +119,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
         <span className="table-meta">
           {CATEGORY_LABEL[task.category]} · ends {formatLocalTime(task.end)}
         </span>
+        {task.description && <span className="table-description">{task.description}</span>}
       </div>
       <input
         type="time"

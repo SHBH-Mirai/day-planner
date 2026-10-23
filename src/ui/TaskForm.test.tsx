@@ -88,3 +88,71 @@ describe('TaskForm default length', () => {
     expect(screen.getByLabelText('End')).toHaveValue('2026-10-17T09:15')
   })
 })
+
+describe('TaskForm description', () => {
+  const desc = () => screen.getByLabelText('Description (optional)')
+
+  test('shows the saved description when editing', () => {
+    render(<TaskForm day={DAY} others={[]} initial={makeTask({ description: 'Old steps' })} onSubmit={vi.fn(async () => true)} />)
+    expect(desc()).toHaveValue('Old steps')
+  })
+
+  test('submits the description trimmed', async () => {
+    const onSubmit = vi.fn(async () => true)
+    render(<TaskForm day={DAY} others={[]} onSubmit={onSubmit} />)
+    fill('Edit video', '2026-10-17T09:00', '2026-10-17T10:00')
+    fireEvent.change(desc(), { target: { value: '  Cut, captions  ' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ description: 'Cut, captions' }))
+  })
+
+  test('over 500 characters shows the error and does not submit', async () => {
+    const onSubmit = vi.fn(async () => true)
+    render(<TaskForm day={DAY} others={[]} onSubmit={onSubmit} />)
+    fill('Edit video', '2026-10-17T09:00', '2026-10-17T10:00')
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(501) } })
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Keep the description under 500 characters')
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  test('a counter shows from 400 characters', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(399) } })
+    expect(screen.queryByText('399/500')).not.toBeInTheDocument()
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(400) } })
+    expect(screen.getByText('400/500')).toBeInTheDocument()
+  })
+
+  test('clearing it submits description: undefined, with the key present', async () => {
+    const onSubmit = vi.fn(async (_draft: object) => true)
+    render(<TaskForm day={DAY} others={[]} initial={makeTask({ description: 'Old steps' })} onSubmit={onSubmit} />)
+    await userEvent.clear(desc())
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const draft = onSubmit.mock.calls[0][0]
+    expect('description' in draft).toBe(true)
+    expect((draft as { description?: string }).description).toBeUndefined()
+  })
+})
+
+describe('TaskForm description layout', () => {
+  const desc = () => screen.getByLabelText('Description (optional)')
+  const counter = () => document.getElementById(desc().getAttribute('aria-describedby') ?? '')
+
+  test('the description comes after Category, so it never pushes the times down', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    expect(screen.getByLabelText('Category').compareDocumentPosition(desc()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test('the counter is linked to the box, reserved while short, and flagged when over', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    expect(counter()).not.toBeNull()
+    expect(counter()).toHaveTextContent('')
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(450) } })
+    expect(counter()).toHaveTextContent('450/500')
+    expect(counter()).not.toHaveClass('form-count-over')
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(501) } })
+    expect(counter()).toHaveTextContent('501/500')
+    expect(counter()).toHaveClass('form-count-over')
+  })
+})

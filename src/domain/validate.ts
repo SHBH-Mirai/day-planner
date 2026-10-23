@@ -1,4 +1,4 @@
-import type { Task, TaskDraft } from './task'
+import { DESCRIPTION_TOO_LONG, descriptionTooLong, type Task, type TaskDraft } from './task'
 import { formatLocalTime, minutesBetween } from './time'
 
 const MIN_BREAK_MIN = 10
@@ -16,6 +16,7 @@ export function validateTask(draft: TaskDraft, others: Task[], editingId?: strin
 
   if (!draft.title.trim()) errors.push('Title is required')
   if (Date.parse(draft.end) <= Date.parse(draft.start)) errors.push('End must be after start')
+  if (descriptionTooLong(draft.description)) errors.push(DESCRIPTION_TOO_LONG)
 
   for (const other of others) {
     if (other.id === editingId || other.status === 'skipped') continue

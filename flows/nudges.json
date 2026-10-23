@@ -318,6 +318,14 @@
              },
              {
               "type": "TextBlock",
+              "text": "@{coalesce(body('Get_item_start')?['TaskDescription'], '')}",
+              "wrap": true,
+              "maxLines": 4,
+              "spacing": "Small",
+              "isVisible": "@not(empty(body('Get_item_start')?['TaskDescription']))"
+             },
+             {
+              "type": "TextBlock",
               "text": "@{concat(convertFromUtc(body('Get_item_start')?['TaskStart'], 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(body('Get_item_start')?['TaskEnd'], 'India Standard Time', 'HH:mm'), ' · ', string(div(add(sub(ticks(body('Get_item_start')?['TaskEnd']), ticks(body('Get_item_start')?['TaskStart'])), 300000000), 600000000)), ' min')}",
               "wrap": true,
               "isSubtle": true,
@@ -1010,6 +1018,14 @@
               "size": "Large",
               "weight": "Bolder",
               "spacing": "Medium"
+             },
+             {
+              "type": "TextBlock",
+              "text": "@{coalesce(body('Get_item_end')?['TaskDescription'], '')}",
+              "wrap": true,
+              "maxLines": 4,
+              "spacing": "Small",
+              "isVisible": "@not(empty(body('Get_item_end')?['TaskDescription']))"
              },
              {
               "type": "ColumnSet",
