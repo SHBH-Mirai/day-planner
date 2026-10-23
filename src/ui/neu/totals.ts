@@ -1,5 +1,5 @@
 import { plannedMinutes, spentMinutes } from '../../domain/summary'
-import type { Category, Task } from '../../domain/task'
+import { emptyPerCategory, type Category, type Task } from '../../domain/task'
 
 export interface DayTotals {
   /** Planned minutes of every task that isn't skipped. */
@@ -17,7 +17,7 @@ export interface DayTotals {
  * A task ticked done without Started has no real start, so its planned length is the honest guess.
  */
 export function dayTotals(tasks: Task[]): DayTotals {
-  const totals: DayTotals = { planned: 0, done: 0, doneCount: 0, skippedCount: 0, perCategory: { office: 0, freelance: 0, youtube: 0 } }
+  const totals: DayTotals = { planned: 0, done: 0, doneCount: 0, skippedCount: 0, perCategory: emptyPerCategory() }
 
   for (const t of tasks) {
     if (t.status === 'skipped') {

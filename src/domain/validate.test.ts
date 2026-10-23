@@ -8,7 +8,7 @@ const draft = (from: string, to: string, title = 'Write proposal'): TaskDraft =>
   title,
   start: ist(D, from),
   end: ist(D, to),
-  category: 'freelance',
+  category: 'projects',
 })
 
 describe('validateTask errors', () => {

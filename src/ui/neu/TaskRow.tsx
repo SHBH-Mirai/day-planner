@@ -2,7 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react'
 import { AnimatePresence, m, type PanInfo } from 'motion/react'
 import type { Task } from '../../domain/task'
 import { formatLocalTime } from '../../domain/time'
-import { CATEGORY_LABEL } from '../labels'
+import { CATEGORY_ICON, CATEGORY_LABEL } from '../labels'
 import { ConfirmButton } from './ConfirmButton'
 import { formatMinutes } from './format'
 import { swipeAction, swipeTarget } from './swipe'
@@ -19,7 +19,6 @@ interface Props {
   onDelete: () => void
 }
 
-const CATEGORY_ICON = { office: '💼', freelance: '✍️', youtube: '🎬' } as const
 
 function minutes(task: Task): string {
   return formatMinutes(Math.round((Date.parse(task.end) - Date.parse(task.start)) / 60_000))

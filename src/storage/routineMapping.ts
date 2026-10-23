@@ -1,5 +1,5 @@
 import { WEEKDAYS, type Routine, type RoutineDraft, type Weekday } from '../domain/routine'
-import { CATEGORIES, type Category } from '../domain/task'
+import { readCategory } from '../domain/task'
 
 /** A Templates list item as Graph returns it with $expand=fields. */
 export interface RoutineItem {
@@ -32,7 +32,7 @@ export function fromRoutineItem(item: RoutineItem): Routine {
   return {
     id: item.id,
     title: typeof f.Title === 'string' ? f.Title : '',
-    category: CATEGORIES.includes(f.Category as Category) ? (f.Category as Category) : 'office',
+    category: readCategory(f.Category),
     startTime: typeof f.StartTime === 'string' ? f.StartTime : '',
     durationMin: typeof f.DurationMin === 'number' ? f.DurationMin : 0,
     days: WEEKDAYS.filter((d: Weekday) => days.includes(d)),

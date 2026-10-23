@@ -7,8 +7,8 @@ const D = '2026-10-17'
 describe('summarize', () => {
   const done = makeTask({
     id: 'a',
-    title: 'Client work',
-    category: 'freelance',
+    title: 'Portfolio site',
+    category: 'projects',
     start: ist(D, '09:00'),
     end: ist(D, '10:15'),
     originalEnd: ist(D, '10:00'),
@@ -27,7 +27,7 @@ describe('summarize', () => {
     const noStart = { ...done, actualStart: undefined, actualEnd: ist(D, '15:51') }
     const summary = summarize([noStart])
     expect(summary.perTask[0].actualMin).toBe(60)
-    expect(summary.perCategory.freelance).toBe(60)
+    expect(summary.perCategory.projects).toBe(60)
   })
 
   test('a task ticked done before its planned start without Started never goes negative', () => {
@@ -50,10 +50,10 @@ describe('summarize', () => {
   })
 
   test('per category: done counts actual, planned counts planned, skipped counts 0', () => {
-    expect(summarize([done, planned, skipped]).perCategory).toEqual({ freelance: 75, office: 60, youtube: 0 })
+    expect(summarize([done, planned, skipped]).perCategory).toEqual({ office: 60, projects: 75, youtube: 0, recording: 0, editing: 0, learning: 0, health: 0, personal: 0, breaks: 0 })
   })
 
   test('no tasks gives zero for every category', () => {
-    expect(summarize([])).toEqual({ perTask: [], perCategory: { office: 0, freelance: 0, youtube: 0 } })
+    expect(summarize([])).toEqual({ perTask: [], perCategory: { office: 0, projects: 0, youtube: 0, recording: 0, editing: 0, learning: 0, health: 0, personal: 0, breaks: 0 } })
   })
 })

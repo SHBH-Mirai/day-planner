@@ -42,14 +42,14 @@ describe('dayTotals', () => {
   })
 
   it('leaves skipped tasks out and counts planned ones by category at their planned length', () => {
-    const skipped = makeTask({ category: 'freelance', status: 'skipped', start: ist(D, '11:00'), end: ist(D, '12:00') })
+    const skipped = makeTask({ category: 'projects', status: 'skipped', start: ist(D, '11:00'), end: ist(D, '12:00') })
     const planned = makeTask({ category: 'youtube', start: ist(D, '20:00'), end: ist(D, '21:30') })
     expect(dayTotals([skipped, planned])).toMatchObject({
       planned: 90,
       done: 0,
       doneCount: 0,
       skippedCount: 1,
-      perCategory: { office: 0, freelance: 0, youtube: 90 },
+      perCategory: { office: 0, projects: 0, youtube: 90, recording: 0, editing: 0, learning: 0, health: 0, personal: 0, breaks: 0 },
     })
   })
 })
