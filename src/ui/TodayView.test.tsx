@@ -230,3 +230,34 @@ describe('TodayView', () => {
     expect(await screen.findByRole('button', { name: 'Sign in again' })).toBeInTheDocument()
   })
 })
+
+describe('TodayView Week segment', () => {
+  test('Week shows the weekly review, hides the day strip, and Today brings the list back', async () => {
+    const repo = await seeded(['Standup', '09:00', '09:15'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await findCard('Standup')
+    await userEvent.click(screen.getByRole('button', { name: 'Week' }))
+    expect(await screen.findByRole('heading', { name: 'This week' })).toBeInTheDocument()
+    expect(screen.queryByText('Focus today')).not.toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Standup' })).not.toBeInTheDocument()
+    const view = screen.getByRole('group', { name: 'View' })
+    expect(within(view).getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'true')
+    for (const other of ['Today', 'Tomorrow', 'Summary']) {
+      expect(within(view).getByRole('button', { name: other })).toHaveAttribute('aria-pressed', 'false')
+    }
+    await userEvent.click(within(view).getByRole('button', { name: 'Today' }))
+    expect(await findCard('Standup')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'This week' })).not.toBeInTheDocument()
+  })
+
+  test('Summary and Week switch to each other', async () => {
+    render(<TodayView repo={await seeded(['Standup', '09:00', '09:15'])} day={DAY} now={() => NOW} />)
+    await findCard('Standup')
+    await userEvent.click(screen.getByRole('button', { name: 'Week' }))
+    await screen.findByRole('heading', { name: 'This week' })
+    await userEvent.click(screen.getByRole('button', { name: 'Summary' }))
+    expect(screen.queryByRole('heading', { name: 'This week' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})

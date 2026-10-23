@@ -4,9 +4,14 @@ const MINUTE_MS = 60_000
 
 /** Local midnight of `day` to the next local midnight, as UTC ISO strings. */
 export function dayBounds(day: Date): { fromUtc: string; toUtc: string } {
-  const from = new Date(day.getFullYear(), day.getMonth(), day.getDate())
-  const to = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
-  return { fromUtc: from.toISOString(), toUtc: to.toISOString() }
+  return rangeBounds(day, 1)
+}
+
+/** Local midnight of `from` to local midnight `days` days later, as UTC ISO strings (calendar days, so DST-safe). */
+export function rangeBounds(from: Date, days: number): { fromUtc: string; toUtc: string } {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate())
+  const end = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days)
+  return { fromUtc: start.toISOString(), toUtc: end.toISOString() }
 }
 
 /** Tasks that start on `day` (local time), sorted by start. */

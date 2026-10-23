@@ -4,6 +4,8 @@ import type { Task, TaskDraft } from '../domain/task'
 export interface TaskRepository {
   /** Tasks starting on `day` (local time), sorted by start. */
   listForDay(day: Date): Promise<Task[]>
+  /** Tasks starting from local midnight of `from` for `days` days, sorted by start. */
+  listRange(from: Date, days: number): Promise<Task[]>
   /** New task with status 'planned' and originalEnd = end. */
   create(draft: TaskDraft): Promise<Task>
   update(task: Task): Promise<Task>

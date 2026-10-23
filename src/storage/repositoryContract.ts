@@ -47,6 +47,17 @@ export function runRepositoryContract(name: string, makeRepo: () => TaskReposito
       expect((await repo.listForDay(DAY))[0].description).toBeUndefined()
     })
 
+    test('listRange returns the days asked for, in start order, and nothing outside them', async () => {
+      const repo = makeRepo()
+      const late17 = await repo.create(draft('Late 17', '21:00', '22:00'))
+      const early18 = await repo.create(draft('Early 18', '06:00', '07:00', '2026-10-18'))
+      const early17 = await repo.create(draft('Early 17', '00:00', '01:00'))
+      await repo.create(draft('Midnight 19', '00:00', '00:30', '2026-10-19'))
+      await repo.create(draft('Before 17', '23:30', '23:59', '2026-10-16'))
+      expect((await repo.listRange(DAY, 2)).map((t) => t.id)).toEqual([early17.id, late17.id, early18.id])
+      expect(await repo.listRange(DAY, 1)).toEqual(await repo.listForDay(DAY))
+    })
+
     test('remove deletes', async () => {
       const repo = makeRepo()
       const created = await repo.create(draft('Gone'))
