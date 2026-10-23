@@ -33,6 +33,11 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 - **Templates and settings** are edited in the SharePoint lists `Templates` and
   `Settings` (Microsoft Lists on web or phone). `Settings` turns start or end
   nudges off and sets the default task length.
+- **Descriptions:** a task or routine can carry an optional plain-text description (up to 500 characters).
+  The Starting-now and Time's-up cards show it under the title, the Morning flow copies a routine's
+  description into the day's task, and the Add task form (so Quick add too) has a Description box.
+  In the web app it shows in the unfolded row, as one line in Table view, in the nudge banner and in the
+  pop-up. Columns: `TaskDescription` (DayPlannerTasks) and `Description` (Templates).
 - **Definitions** live in `flows/*.json` (the flows' Dataverse `clientdata`).
 - **Phone:** the canvas app *Day Planner* (same solution) is one **+ Add task** button that runs Quick add.
   Pin it from Power Apps mobile (Android: ⋯ → Pin to Home; iPhone: Shortcut → Add to Siri → Shortcuts app → Add to Home Screen).
