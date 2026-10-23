@@ -321,7 +321,6 @@
               "text": "@{coalesce(body('Get_item_start')?['TaskDescription'], '')}",
               "wrap": true,
               "maxLines": 4,
-              "isSubtle": true,
               "spacing": "Small",
               "isVisible": "@not(empty(body('Get_item_start')?['TaskDescription']))"
              },
@@ -1025,7 +1024,6 @@
               "text": "@{coalesce(body('Get_item_end')?['TaskDescription'], '')}",
               "wrap": true,
               "maxLines": 4,
-              "isSubtle": true,
               "spacing": "Small",
               "isVisible": "@not(empty(body('Get_item_end')?['TaskDescription']))"
              },
