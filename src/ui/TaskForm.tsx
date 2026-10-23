@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { CATEGORIES, type Category, type Task, type TaskDraft } from '../domain/task'
+import { CATEGORIES, normaliseDescription, type Category, type Task, type TaskDraft } from '../domain/task'
 import { validateTask } from '../domain/validate'
 import { fromInputValue, toInputValue } from './datetimeInput'
 import { CATEGORY_LABEL } from './labels'
+import { DescriptionField } from './DescriptionField'
 
 interface Props {
   day: Date
@@ -36,10 +37,12 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
   const setEnd = (value: string) => setTyped({ start, end: value })
   const [title, setTitle] = useState(initial?.title ?? '')
   const [category, setCategory] = useState<Category>(initial?.category ?? 'office')
+  const [description, setDescription] = useState(initial?.description ?? '')
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
-  const draft: TaskDraft = { title, start: fromInputValue(start), end: fromInputValue(end), category }
+  // `description` is always present, even when empty, so an edit that clears it overwrites the old one.
+  const draft: TaskDraft = { title, start: fromInputValue(start), end: fromInputValue(end), category, description: normaliseDescription(description) }
   const { warnings } = validateTask(draft, others, initial?.id)
 
   async function handleSubmit(e: FormEvent) {
@@ -59,6 +62,7 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
         Title
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Write proposal" />
       </label>
+      <DescriptionField value={description} onChange={setDescription} />
       <label>
         Start
         <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />

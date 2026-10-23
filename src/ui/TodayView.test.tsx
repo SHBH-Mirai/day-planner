@@ -97,6 +97,17 @@ describe('TodayView', () => {
     expect(await findCard('Team sync')).toBeInTheDocument()
   })
 
+  test('clearing the description in the edit sheet clears the saved one', async () => {
+    const repo = new InMemoryTaskRepository()
+    await repo.create({ title: 'Standup', start: ist(D, '09:00'), end: ist(D, '09:15'), category: 'office', description: 'Old notes' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('Standup')
+    await userEvent.click(within(await findCard('Standup')).getByRole('button', { name: 'Edit' }))
+    await userEvent.clear(screen.getByLabelText('Description (optional)'))
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(async () => expect((await repo.listForDay(DAY))[0].description).toBeUndefined())
+  })
+
   test('an edit that keeps the times keeps originalEnd (an extend stays an overrun)', async () => {
     const repo = await seeded(['Standup', '09:00', '09:15'])
     const [standup] = await repo.listForDay(DAY)
