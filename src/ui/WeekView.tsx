@@ -1,6 +1,6 @@
 import { useId } from 'react'
-import { STREAK_LOOKBACK_DAYS, streaks, weekReview } from '../domain/progress'
-import { CATEGORIES } from '../domain/task'
+import { progressRange, STREAK_LOOKBACK_DAYS, streaks, weekReview } from '../domain/progress'
+import { CATEGORIES, type Task } from '../domain/task'
 import type { TaskRepository } from '../storage/TaskRepository'
 import { CATEGORY_ICON, CATEGORY_LABEL } from './labels'
 import { formatMinutes } from './neu/format'
@@ -10,88 +10,105 @@ import { useTaskRange } from './useTaskRange'
 const shortDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 const shortDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short' })
 const longDay = new Intl.DateTimeFormat('en-GB', { weekday: 'long' })
+/** Bars never scale to less than 2h, so one short day doesn't look like a full one. */
+const MIN_SCALE_MIN = 120
 
-/** "+1h vs last week", "−20m vs last week" or "Same as last week". */
+/** "+1h vs same time last week", "−20m vs …", "Same as this time last week"; nothing in a first week. */
 function versusLastWeek(doneMin: number, lastWeekDoneMin: number): string {
+  if (lastWeekDoneMin === 0) return ''
   const diff = doneMin - lastWeekDoneMin
-  if (diff === 0) return 'Same as last week'
-  return `${diff > 0 ? '+' : '−'}${formatMinutes(Math.abs(diff))} vs last week`
+  if (diff === 0) return 'Same as this time last week'
+  return `${diff > 0 ? '+' : '−'}${formatMinutes(Math.abs(diff))} vs same time last week`
+}
+
+interface Props {
+  repo: TaskRepository
+  now: Date
+  /** Days the screen already holds (Today, Tomorrow): their tasks replace the loaded ones, so edits show at once. */
+  live?: { day: Date; tasks: Task[] }[]
 }
 
 /** This week at a glance (Monday to Sunday) and the streaks that keep it going. */
-export function WeekView({ repo, today }: { repo: TaskRepository; today: Date }) {
+export function WeekView({ repo, now, live = [] }: Props) {
   const legendId = useId()
-  const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (STREAK_LOOKBACK_DAYS - 1))
-  const { tasks, failed, retry } = useTaskRange(repo, from, STREAK_LOOKBACK_DAYS)
+  const range = progressRange(now)
+  const { tasks: loaded, failed, retry } = useTaskRange(repo, range.from, range.days)
 
   if (failed) {
     return (
       <section className="week" aria-label="Week">
         <div className="banner banner-warning" role="alert">
-          Couldn't load your week.{' '}
-          <button onClick={() => void retry()}>Retry</button>
+          Couldn't load your week. <button onClick={retry}>Retry</button>
         </div>
       </section>
     )
   }
-  if (!tasks) {
+  if (!loaded) {
     return (
       <section className="week" aria-label="Week">
-        <p className="muted">Loading your week…</p>
+        <p className="muted" role="status">
+          Loading your week…
+        </p>
       </section>
     )
   }
 
-  const review = weekReview(tasks, today)
-  const streak = streaks(tasks, today)
-  const sunday = review.days[6].day
-  const best = Math.max(1, ...review.days.map((d) => d.doneMin))
-  const withTime = CATEGORIES.filter((c) => review.perCategoryDone[c] > 0)
-  const count = (days: number) => `${days}${days >= STREAK_LOOKBACK_DAYS ? '+' : ''}`
+  const liveDays = live.filter((l) => l.tasks.length > 0)
+  const liveKeys = new Set(liveDays.map((l) => l.day.toDateString()))
+  const tasks = [...loaded.filter((t) => !liveKeys.has(new Date(t.start).toDateString())), ...liveDays.flatMap((l) => l.tasks)]
+
+  const review = weekReview(tasks, now)
+  const streak = streaks(tasks, now)
+  const scale = Math.max(MIN_SCALE_MIN, ...review.days.map((d) => Math.max(d.doneMin, d.future ? d.plannedMin : 0)))
+  const withTime = CATEGORIES.filter((c) => review.perCategoryDone[c] > 0).sort((a, b) => review.perCategoryDone[b] - review.perCategoryDone[a])
+  const versus = versusLastWeek(review.doneMin, review.lastWeekDoneMin)
+  const todayKey = now.toDateString()
+  const pct = (min: number) => `${Math.round((min / scale) * 100)}%`
 
   return (
     <section className="week" aria-label="Week">
       <h2>This week</h2>
       <p className="muted week-range">
-        {shortDate.format(review.start)} – {shortDate.format(sunday)}
+        {shortDate.format(review.start)} – {shortDate.format(review.days[6].day)}
       </p>
 
-      <div className="summary-stats" role="group" aria-label="Week totals">
-        <NeuSurface className="stat">
+      <div className="summary-stats week-stats" role="group" aria-label="Week totals">
+        <NeuSurface className="stat stat-headline">
           <span>Focus</span>
           <strong>{formatMinutes(review.doneMin)}</strong>
-          <small>{versusLastWeek(review.doneMin, review.lastWeekDoneMin)}</small>
-        </NeuSurface>
-        <NeuSurface className="stat">
-          <span>Done</span>
-          <strong>{review.doneCount}</strong>
-        </NeuSurface>
-        <NeuSurface className="stat">
-          <span>Skipped</span>
-          <strong>{review.skippedCount}</strong>
+          <small>
+            {review.doneCount} done · {review.skippedCount} skipped
+          </small>
+          {versus && <small>{versus}</small>}
         </NeuSurface>
       </div>
 
       <NeuSurface variant="inset" className="week-days-wrap">
         <ol className="week-days" aria-label="Focus by day">
-          {review.days.map((d) => (
-            <li
-              key={d.day.toDateString()}
-              aria-label={`${longDay.format(d.day)}: ${formatMinutes(d.doneMin)} done of ${formatMinutes(d.plannedMin)} planned`}
-              data-today={d.day.toDateString() === today.toDateString() ? 'true' : undefined}
-              data-future={d.future ? 'true' : undefined}
-            >
-              <span className="week-bar-track" aria-hidden="true">
-                <span className="week-bar" style={{ height: `${Math.round((d.doneMin / best) * 100)}%` }} />
-              </span>
-              <span className="week-day-min" aria-hidden="true">
-                {d.doneMin > 0 ? formatMinutes(d.doneMin) : '–'}
-              </span>
-              <span className="week-day-label" aria-hidden="true">
-                {shortDay.format(d.day)}
-              </span>
-            </li>
-          ))}
+          {review.days.map((d) => {
+            const isToday = d.day.toDateString() === todayKey
+            const name = `${longDay.format(d.day)}${isToday ? ', today' : ''}`
+            return (
+              <li
+                key={d.day.toDateString()}
+                aria-current={isToday ? 'date' : undefined}
+                data-today={isToday ? 'true' : undefined}
+                data-future={d.future ? 'true' : undefined}
+                data-empty={!d.future && d.doneMin === 0 ? 'true' : undefined}
+              >
+                <span className="visually-hidden">{`${name}: ${formatMinutes(d.doneMin)} done of ${formatMinutes(d.plannedMin)} planned`}</span>
+                <span className="week-bar-track" aria-hidden="true">
+                  <span className="week-bar" style={{ height: pct(d.future ? d.plannedMin : d.doneMin) }} />
+                </span>
+                <span className="week-day-min" aria-hidden="true">
+                  {!d.future && d.doneMin > 0 ? formatMinutes(d.doneMin) : ''}
+                </span>
+                <span className="week-day-label" aria-hidden="true">
+                  {shortDay.format(d.day)}
+                </span>
+              </li>
+            )
+          })}
         </ol>
       </NeuSurface>
 
@@ -120,14 +137,21 @@ export function WeekView({ repo, today }: { repo: TaskRepository; today: Date })
       )}
 
       <NeuSurface className="streaks">
-        <p className="streak-main">
-          {streak.days > 0 ? `🔥 ${count(streak.days)}-day streak` : 'No streak yet. Tick a task done today to start one.'}
-        </p>
+        {streak.days > 0 ? (
+          <p className="streak-main">
+            <span aria-hidden="true">🔥 </span>
+            <span>{streak.capped ? `${streak.days}+ days in a row` : `${streak.days}-day streak`}</span>
+          </p>
+        ) : (
+          <p className="streak-empty">A new streak starts with your next finished task.</p>
+        )}
+        {streak.days > 0 && !streak.todayDone && <p className="streak-hint">Finish one today to keep it going.</p>}
         {streak.byCategory.length > 0 && (
           <ul className="streak-chips" aria-label="Category streaks">
             {streak.byCategory.map(({ category, days }) => (
               <li key={category} data-category={category}>
-                {`${CATEGORY_ICON[category]} ${CATEGORY_LABEL[category]} · ${count(days)} days`}
+                <span aria-hidden="true">{CATEGORY_ICON[category]} </span>
+                {`${CATEGORY_LABEL[category]} · ${days}${days >= STREAK_LOOKBACK_DAYS ? '+' : ''} days`}
               </li>
             ))}
           </ul>

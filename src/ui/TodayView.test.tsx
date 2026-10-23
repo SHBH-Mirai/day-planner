@@ -258,5 +258,6 @@ describe('TodayView Week segment', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Summary' }))
     expect(screen.queryByRole('heading', { name: 'This week' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

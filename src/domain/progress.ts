@@ -29,7 +29,7 @@ export interface WeekReview {
   skippedCount: number
   /** Done minutes only, so it shows where time actually went. */
   perCategoryDone: Record<Category, number>
-  /** Done minutes last week, Monday up to the same weekday as today. */
+  /** Done minutes last week, from Monday up to the same weekday and time of day as now. */
   lastWeekDoneMin: number
 }
 
@@ -38,6 +38,8 @@ export interface Streaks {
   days: number
   /** The run reaches back as far as the Week view reads. */
   capped: boolean
+  /** Today already has a task done (so the run is safe for today). */
+  todayDone: boolean
   /** The same per category, 2 days and up, longest first. Breaks & meals don't count. */
   byCategory: { category: Category; days: number }[]
 }
@@ -49,6 +51,19 @@ const midnight = (day: Date) => addDays(day, 0)
 export function weekStart(day: Date): Date {
   const mondayIndex = (day.getDay() + 6) % 7
   return addDays(day, -mondayIndex)
+}
+
+/** Calendar days from `from` to `to` (both local midnights). */
+const daysBetween = (from: Date, to: Date) =>
+  Math.round((Date.UTC(to.getFullYear(), to.getMonth(), to.getDate()) - Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())) / 86_400_000)
+
+/**
+ * What the Week view loads: back far enough for a full streak that ends yesterday
+ * (today may have nothing done yet), and forward to Sunday night for the week's planned time.
+ */
+export function progressRange(now: Date): { from: Date; days: number } {
+  const from = addDays(now, -STREAK_LOOKBACK_DAYS)
+  return { from, days: daysBetween(from, addDays(weekStart(now), 7)) }
 }
 
 function dayProgress(tasks: Task[], day: Date, today: Date): DayProgress {
@@ -67,17 +82,22 @@ function dayProgress(tasks: Task[], day: Date, today: Date): DayProgress {
   return p
 }
 
-/** This week, Monday to Sunday, plus last week's done time up to the same weekday. */
-export function weekReview(tasks: Task[], today: Date): WeekReview {
-  const start = weekStart(today)
-  const days = Array.from({ length: 7 }, (_, i) => dayProgress(tasks, addDays(start, i), today))
+/** This week, Monday to Sunday, plus last week's done time up to the same weekday and time of day. */
+export function weekReview(tasks: Task[], now: Date): WeekReview {
+  const start = weekStart(now)
+  const days = Array.from({ length: 7 }, (_, i) => dayProgress(tasks, addDays(start, i), now))
   const perCategoryDone = emptyPerCategory()
   for (const d of days) {
     for (const t of tasksForDay(tasks, d.day)) if (t.status === 'done') perCategoryDone[t.category] += spentMinutes(t)
   }
-  const todayIndex = (today.getDay() + 6) % 7
+  // Same clock time a week ago, so a Thursday morning isn't measured against all of last Thursday.
+  const from = addDays(start, -7).getTime()
+  const until = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, now.getHours(), now.getMinutes(), now.getSeconds()).getTime()
   let lastWeekDoneMin = 0
-  for (let i = 0; i <= todayIndex; i++) lastWeekDoneMin += dayProgress(tasks, addDays(start, i - 7), today).doneMin
+  for (const t of tasks) {
+    const at = Date.parse(t.start)
+    if (t.status === 'done' && at >= from && at < until) lastWeekDoneMin += spentMinutes(t)
+  }
   const sum = (key: 'doneMin' | 'plannedMin' | 'doneCount' | 'skippedCount') => days.reduce((n, d) => n + d[key], 0)
   return {
     start,
@@ -113,9 +133,10 @@ export function streaks(tasks: Task[], today: Date, lookbackDays = STREAK_LOOKBA
     byCat.get(t.category)!.add(key)
   }
   const days = run(any, today, lookbackDays)
+  const todayDone = any.has(today.toDateString())
   const byCategory = CATEGORIES.filter((c) => c !== 'breaks')
     .map((category) => ({ category, days: run(byCat.get(category) ?? new Set(), today, lookbackDays) }))
     .filter((s) => s.days >= 2)
     .sort((a, b) => b.days - a.days)
-  return { days, capped: days >= lookbackDays, byCategory }
+  return { days, capped: days >= lookbackDays, todayDone, byCategory }
 }

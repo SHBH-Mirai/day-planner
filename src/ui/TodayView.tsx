@@ -431,7 +431,14 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
       ) : showSummary ? (
         <SummaryView tasks={shown.tasks} />
       ) : showWeek ? (
-        <WeekView repo={repo} today={day} />
+        <WeekView
+          repo={repo}
+          now={now()}
+          live={[
+            { day, tasks: today.tasks },
+            { day: tomorrow, tasks: next.tasks },
+          ]}
+        />
       ) : dayView === 'table' ? (
         <m.div
           key={viewTomorrow ? 'tomorrow-table' : 'today-table'}

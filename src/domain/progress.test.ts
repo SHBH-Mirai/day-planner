@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STREAK_LOOKBACK_DAYS, streaks, weekReview, weekStart } from './progress'
+import { progressRange, STREAK_LOOKBACK_DAYS, streaks, weekReview, weekStart } from './progress'
 import type { Category, Status, Task } from './task'
 import { ist, makeTask } from '../test-utils/makeTask'
 
@@ -68,14 +68,19 @@ describe('weekReview', () => {
     expect(review.perCategoryDone.learning).toBe(0)
   })
 
-  test('last week is compared up to the same weekday', () => {
+  test('last week is compared up to the same weekday and time', () => {
     expect(review.lastWeekDoneMin).toBe(75)
+  })
+
+  test("last week's same day only counts what started before this time of day", () => {
+    const later = task('2026-10-15', '15:00', '16:00', 'done', 'office')
+    expect(weekReview([...tasks, later], THU).lastWeekDoneMin).toBe(75)
   })
 })
 
 describe('streaks', () => {
   test('no done tasks: no streak', () => {
-    expect(streaks([], THU)).toEqual({ days: 0, capped: false, byCategory: [] })
+    expect(streaks([], THU)).toEqual({ days: 0, capped: false, todayDone: false, byCategory: [] })
   })
 
   test('today with nothing done yet does not break the run', () => {
@@ -83,7 +88,12 @@ describe('streaks', () => {
   })
 
   test('a task done today extends the run', () => {
-    expect(streaks([done('2026-10-20'), done('2026-10-21'), done('2026-10-22')], THU).days).toBe(3)
+    expect(streaks([done('2026-10-20'), done('2026-10-21'), done('2026-10-22')], THU)).toMatchObject({ days: 3, todayDone: true })
+  })
+
+  test('a 28-day run ending yesterday is capped while today has nothing done yet', () => {
+    const run = Array.from({ length: STREAK_LOOKBACK_DAYS }, (_, n) => done(daysBefore(THU, n + 1)))
+    expect(streaks(run, THU)).toMatchObject({ days: 28, capped: true, todayDone: false })
   })
 
   test('a day with nothing done stops it', () => {
@@ -121,5 +131,20 @@ describe('streaks', () => {
       { category: 'office', days: 2 },
       { category: 'learning', days: 2 },
     ])
+  })
+})
+
+describe('progressRange', () => {
+  test('reaches back far enough for a full streak ending yesterday, and forward to Sunday', () => {
+    const { from, days } = progressRange(THU)
+    expect(from.toDateString()).toBe(new Date(2026, 8, 24).toDateString())
+    expect(days).toBe(32)
+  })
+
+  test('on a Sunday it ends that night', () => {
+    const sun = new Date('2026-10-25T08:00:00+05:30')
+    const { from, days } = progressRange(sun)
+    expect(from.toDateString()).toBe(new Date(2026, 8, 27).toDateString())
+    expect(days).toBe(29)
   })
 })
