@@ -17,6 +17,6 @@ describe('category labels and icons', () => {
   })
 
   test('icons match the spec', () => {
-    expect(CATEGORIES.map((c) => CATEGORY_ICON[c])).toEqual(['💼', '✍️', '🎬', '🎙️', '✂️', '📚', '💪', '🏠', '🍽️'])
+    expect(CATEGORIES.map((c) => CATEGORY_ICON[c])).toEqual(['💼', '🛠️', '🎬', '🎙️', '✂️', '📚', '💪', '🏠', '☕'])
   })
 })

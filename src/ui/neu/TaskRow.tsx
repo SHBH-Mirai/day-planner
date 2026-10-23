@@ -19,7 +19,6 @@ interface Props {
   onDelete: () => void
 }
 
-
 function minutes(task: Task): string {
   return formatMinutes(Math.round((Date.parse(task.end) - Date.parse(task.start)) / 60_000))
 }

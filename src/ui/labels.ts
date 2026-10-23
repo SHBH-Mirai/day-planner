@@ -14,12 +14,12 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 
 export const CATEGORY_ICON: Record<Category, string> = {
   office: '💼',
-  projects: '✍️',
+  projects: '🛠️',
   youtube: '🎬',
   recording: '🎙️',
   editing: '✂️',
   learning: '📚',
   health: '💪',
   personal: '🏠',
-  breaks: '🍽️',
+  breaks: '☕',
 }

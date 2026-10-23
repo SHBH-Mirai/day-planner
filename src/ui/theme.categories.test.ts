@@ -53,6 +53,17 @@ describe('category colours', () => {
     }
   })
 
+  test('the contrast theme gives every category but Office its own fill, shared by the bar and the legend', () => {
+    expect(css).toMatch(/\.category-segment \{[^}]*background: var\(--cat-fill, var\(--cat\)\)/)
+    expect(css).toMatch(/\.category-legend span::before \{[^}]*background: var\(--cat-fill, var\(--cat\)\)/)
+    const fills = CATEGORIES.filter((c) => c !== 'office').map((c) => {
+      const m = new RegExp(`\\[data-theme='contrast'\\] \\[data-category='${c}'\\] \\{ --cat-fill: ([^;]+);`).exec(css)
+      expect(m, c).not.toBeNull()
+      return m![1]
+    })
+    expect(new Set(fills).size).toBe(fills.length)
+  })
+
   test('the old third key has no styles left', () => {
     expect(css).not.toMatch(/free[l]ance/)
   })

@@ -95,3 +95,12 @@ describe('SummaryView new categories', () => {
     expect(bar).toHaveAccessibleDescription(/Recording 30m.*Breaks & meals 1h/)
   })
 })
+
+describe('SummaryView legend icons', () => {
+  test('each legend entry starts with its category icon, a cue besides colour', () => {
+    const rec = makeTask({ category: 'recording', start: ist(D, '11:00'), end: ist(D, '11:30') })
+    render(<SummaryView tasks={[rec]} />)
+    const legend = document.querySelector('.category-legend')!
+    expect(legend).toHaveTextContent('🎙️ Recording 30m')
+  })
+})
