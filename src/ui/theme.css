@@ -279,6 +279,8 @@ input, select, textarea {
 .category-segment { background: var(--cat-fill, var(--cat)); forced-color-adjust: none; }
 .category-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 0; font-size: 13px; color: var(--neu-muted); }
 .category-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--cat-fill, var(--cat)); forced-color-adjust: none; }
+/* The icon inside a legend entry is a span too; only the entry gets a swatch. */
+.category-legend span span::before { content: none; }
 .summary-tables { padding: 6px 12px; }
 .summary table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; }
 .summary th, .summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, var(--neu-dark) 60%, transparent); }

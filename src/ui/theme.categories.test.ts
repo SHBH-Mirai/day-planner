@@ -64,6 +64,10 @@ describe('category colours', () => {
     expect(new Set(fills).size).toBe(fills.length)
   })
 
+  test('a legend entry draws one swatch, not a second one for the icon inside it', () => {
+    expect(css).toContain('.category-legend span span::before { content: none; }')
+  })
+
   test('the old third key has no styles left', () => {
     expect(css).not.toMatch(/free[l]ance/)
   })
