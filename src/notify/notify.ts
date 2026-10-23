@@ -9,6 +9,11 @@ export function nudgeText(n: Nudge): string {
     : `⏹ STOP: ${n.task.title}. Done?`
 }
 
+/** The first line of a description, for the pop-up body. */
+export function firstLine(text: string | undefined): string | undefined {
+  return text?.split('\n')[0].trim() || undefined
+}
+
 export function notificationPermission(): PermissionState {
   return typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
 }
@@ -22,6 +27,7 @@ export async function requestNotificationPermission(): Promise<PermissionState> 
 /** Pops an OS notification. Returns false when it didn't (no permission, no API, or missed). */
 export function showOsNotification(n: Nudge): boolean {
   if (n.missed || typeof Notification === 'undefined' || Notification.permission !== 'granted') return false
-  new Notification(nudgeText(n), { tag: n.key })
+  const body = firstLine(n.task.description)
+  new Notification(nudgeText(n), body ? { tag: n.key, body } : { tag: n.key })
   return true
 }

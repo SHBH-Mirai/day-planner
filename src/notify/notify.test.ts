@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { nudgeText, showOsNotification } from './notify'
+import { firstLine, nudgeText, showOsNotification } from './notify'
 import type { Nudge } from '../scheduler/dueNudges'
 import { ist, makeTask } from '../test-utils/makeTask'
 
@@ -45,5 +45,24 @@ describe('showOsNotification', () => {
   test('browsers without the Notification API are handled', () => {
     vi.stubGlobal('Notification', undefined)
     expect(showOsNotification(nudge('start'))).toBe(false)
+  })
+})
+
+describe('pop-up body', () => {
+  test('firstLine takes the first line, or nothing', () => {
+    expect(firstLine('Open the doc\nThen write')).toBe('Open the doc')
+    expect(firstLine(undefined)).toBeUndefined()
+  })
+
+  test('the pop-up body is the first line of the description', () => {
+    const ctor = mockNotification('granted')
+    showOsNotification({ key: 'k-start', kind: 'start', task: { ...task, description: 'Open the doc\nThen write' }, missed: false })
+    expect(ctor).toHaveBeenCalledWith(nudgeText(nudge('start')), { tag: 'k-start', body: 'Open the doc' })
+  })
+
+  test('no description, no body', () => {
+    const ctor = mockNotification('granted')
+    showOsNotification(nudge('start'))
+    expect(ctor.mock.calls[0][1]).not.toHaveProperty('body')
   })
 })

@@ -88,3 +88,16 @@ describe('NudgeBanner inside Teams', () => {
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })
+
+describe('NudgeBanner description', () => {
+  test('a nudge shows the task description', () => {
+    const described = { ...task, description: 'Open the proposal doc first' }
+    setup([{ key: `${task.id}-start`, kind: 'start', task: described, missed: false }])
+    expect(document.querySelector('.nudge-description')).toHaveTextContent('Open the proposal doc first')
+  })
+
+  test('adds nothing when there is no description', () => {
+    setup([nudge('start')])
+    expect(document.querySelector('.nudge-description')).toBeNull()
+  })
+})

@@ -72,6 +72,7 @@ export function NudgeBanner({
             transition={{ type: 'spring', stiffness: 420, damping: 28 }}
           >
             <strong>{nudgeText(n)}</strong>
+            {n.task.description && <p className="nudge-description">{n.task.description}</p>}
             {n.missed && <span className="muted"> missed at {formatLocalTime(due)}</span>}
             <div className="nudge-actions">
               {extended[n.key] ? (

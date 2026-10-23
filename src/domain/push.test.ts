@@ -128,3 +128,14 @@ describe('describePush', () => {
     expect(describePush('Standup', ist(D, '09:45'), [], 30)).toBe('Standup: ends at 09:45. Nothing else moves.')
   })
 })
+
+describe('pushes keep descriptions', () => {
+  test('the pushed task and every moved task keep their description', () => {
+    const a = at('A', '09:00', '09:30', { description: 'a steps' }),
+      b = at('B', '09:30', '10:00', { description: 'b steps' })
+    const { updated, moved } = pushTask(a, [a, b], new Date(ist(D, '09:29')))
+    expect(updated.description).toBe('a steps')
+    expect(moved.map((t) => t.description)).toEqual(['b steps'])
+    expect(pushChain(a, { ...a, end: ist(D, '10:00') }, [a, b]).map((t) => t.description)).toEqual(['b steps'])
+  })
+})
