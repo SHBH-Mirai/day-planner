@@ -108,3 +108,18 @@ describe('descriptions', () => {
     expect(MAX_DESCRIPTION).toBe(500)
   })
 })
+
+describe('Breaks & meals count as a break', () => {
+  const block = (from: string, to: string, category: 'office' | 'breaks' | 'personal') =>
+    makeTask({ start: ist(D, from), end: ist(D, to), category })
+
+  test('a lunch block between two long stretches raises no warning', () => {
+    expect(findNoBreakRuns([block('09:00', '11:00', 'office'), block('11:00', '11:30', 'breaks'), block('11:30', '13:30', 'office')])).toEqual([])
+  })
+
+  test('the same block as Personal still counts as busy', () => {
+    expect(findNoBreakRuns([block('09:00', '11:00', 'office'), block('11:00', '11:30', 'personal'), block('11:30', '13:30', 'office')])).toEqual([
+      { fromUtc: ist(D, '09:00'), toUtc: ist(D, '13:30') },
+    ])
+  })
+})
