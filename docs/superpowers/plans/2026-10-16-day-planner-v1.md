@@ -16,7 +16,7 @@
 - Dev server `http://localhost:5173/`, Vite `server.strictPort: true`.
 - Production base path `/day-planner/` (GitHub Pages project site).
 - All stored times: ISO 8601 UTC strings ending in `Z`. Local time only in the UI.
-- `Category` = `"office" | "freelance" | "youtube"`; `Status` = `"planned" | "done" | "skipped"`.
+- `Category` = `"office" | "projects" | "youtube"`; `Status` = `"planned" | "done" | "skipped"`.
 - Nudge copy, exact: start `▶ START: <title> until <HH:MM>`, end `⏹ STOP: <title>. Done?` (local 24h `HH:MM`).
 - Scheduler tick: 15 000 ms. "Missed" threshold: more than 10 minutes late.
 - No-break warning: 3 hours or more of tasks where every gap is under 10 minutes. Skipped tasks are ignored.
@@ -180,7 +180,7 @@
   - a 3h no-break run shows a warning marker
   - the "Summary" button opens `SummaryView`: one row per task showing planned and actual minutes (`—` when actual is `null`), plus a minutes total per category
 - [ ] **Step 2:** Run `npx vitest run src/ui`. Expected: FAIL.
-- [ ] **Step 3:** Implement. Category colours as CSS variables in `theme.css` (`--cat-office`, `--cat-freelance`, `--cat-youtube`). No dark-mode toggle.
+- [ ] **Step 3:** Implement. Category colours as CSS variables in `theme.css` (`--cat-office`, `--cat-projects`, `--cat-youtube`). No dark-mode toggle.
 - [ ] **Step 4:** Run. Expected: PASS. Then `npm run dev` with `VITE_STORAGE=memory`: add 3 tasks by hand and check that the timeline looks right.
 - [ ] **Step 5:** Commit: `feat(ui): today view with add, edit, delete, done, skip`.
 

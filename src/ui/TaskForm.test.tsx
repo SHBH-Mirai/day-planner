@@ -156,3 +156,11 @@ describe('TaskForm description layout', () => {
     expect(counter()).toHaveClass('form-count-over')
   })
 })
+
+describe('TaskForm categories', () => {
+  test('the picker offers the nine categories in order', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    const options = Array.from((screen.getByLabelText('Category') as HTMLSelectElement).options).map((o) => o.text)
+    expect(options).toEqual(['Office', 'Projects', 'Content', 'Recording', 'Editing', 'Learning', 'Health', 'Personal', 'Breaks & meals'])
+  })
+})

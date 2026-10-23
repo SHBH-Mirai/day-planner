@@ -9,7 +9,7 @@ describe('SharePoint mapping', () => {
     const task = makeTask({
       id: '7',
       title: 'Client call',
-      category: 'freelance',
+      category: 'projects',
       status: 'done',
       start: ist(D, '09:00'),
       end: ist(D, '10:15'),
@@ -79,5 +79,16 @@ describe('SharePoint mapping: descriptions', () => {
     expect(fromItem(item(null))).not.toHaveProperty('description')
     expect(fromItem(item(''))).not.toHaveProperty('description')
     expect(fromItem(item(undefined))).not.toHaveProperty('description')
+  })
+})
+
+describe('SharePoint mapping: category values', () => {
+  const withCategory = (TaskCategory: unknown) => ({
+    id: '5',
+    fields: { ...toFields(makeTask({ id: '5' })), TaskCategory } as Parameters<typeof fromItem>[0]['fields'],
+  })
+
+  test('an unknown category reads as office', () => {
+    expect(fromItem(withCategory('nope')).category).toBe('office')
   })
 })

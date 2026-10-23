@@ -17,10 +17,10 @@ runRoutineContract('SharePointRoutineRepository', () => sharePoint().repo)
 describe('routine mapping', () => {
   test('writes the Templates columns, with Days as a multi-choice collection', () => {
     expect(
-      toRoutineFields({ title: 'Gym', category: 'freelance', startTime: '07:15', durationMin: 45, days: ['Mon', 'Fri'], active: false }),
+      toRoutineFields({ title: 'Gym', category: 'projects', startTime: '07:15', durationMin: 45, days: ['Mon', 'Fri'], active: false }),
     ).toEqual({
       Title: 'Gym',
-      Category: 'freelance',
+      Category: 'projects',
       StartTime: '07:15',
       DurationMin: 45,
       'Days@odata.type': 'Collection(Edm.String)',
@@ -93,5 +93,14 @@ describe('routine mapping: descriptions', () => {
 
   test('null, empty, missing or not text reads as no description', () => {
     for (const v of [null, '', undefined, 42]) expect(fromRoutineItem(item(v))).not.toHaveProperty('description')
+  })
+})
+
+describe('routine mapping: category values', () => {
+  const item = (Category: unknown) => ({ id: '8', fields: { Title: 'Gym', Category, StartTime: '07:15', DurationMin: 45, Days: ['Mon'], Active: true } })
+
+  test('a new key reads as itself, and an unknown one as office', () => {
+    expect(fromRoutineItem(item('nope')).category).toBe('office')
+    expect(fromRoutineItem(item('learning')).category).toBe('learning')
   })
 })

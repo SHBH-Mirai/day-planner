@@ -5,7 +5,7 @@ Date: 2026-10-16 · Owner: Shubh · Status: draft, awaiting review
 ## 1. Purpose
 
 A personal web app to plan one day across three areas of life (office job,
-freelance, YouTube) and to be nudged at each task's start and end. Built for
+projects, YouTube) and to be nudged at each task's start and end. Built for
 one user with ADHD. It is also a learning project for TypeScript, React, Git
 and (later) SQL.
 
@@ -64,7 +64,7 @@ import, AI planning, settings screen, multi-day views, sharing with others.
 ## 5. Data model
 
 ```ts
-type Category = "office" | "freelance" | "youtube";
+type Category = "office" | "projects" | "youtube";
 type Status = "planned" | "done" | "skipped";
 
 interface Task {
@@ -98,7 +98,7 @@ interface Task {
 | OriginalEnd | Date and time | |
 | ActualStart | Date and time | optional |
 | ActualEnd | Date and time | optional |
-| Category | Choice: office, freelance, youtube | |
+| Category | Choice: office, projects, youtube | |
 | Status | Choice: planned, done, skipped | default planned |
 
 ## 6. Architecture

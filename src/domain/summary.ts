@@ -1,4 +1,4 @@
-import type { Category, Status, Task } from './task'
+import { emptyPerCategory, type Category, type Status, type Task } from './task'
 import { minutesBetween } from './time'
 
 export interface TaskSummary {
@@ -29,7 +29,7 @@ export function spentMinutes(t: Task): number {
 }
 
 export function summarize(tasks: Task[]): DaySummary {
-  const perCategory: Record<Category, number> = { office: 0, freelance: 0, youtube: 0 }
+  const perCategory = emptyPerCategory()
 
   const perTask = tasks.map((t): TaskSummary => {
     const plannedMin = plannedMinutes(t)

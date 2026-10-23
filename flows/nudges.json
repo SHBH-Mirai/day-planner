@@ -61,6 +61,66 @@
     }
    },
    "actions": {
+    "Category_map": {
+     "runAfter": {},
+     "type": "Compose",
+     "inputs": {
+      "office": {
+       "icon": "💼",
+       "label": "Office",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "projects": {
+       "icon": "🛠️",
+       "label": "Projects",
+       "color": "Good",
+       "style": "good"
+      },
+      "youtube": {
+       "icon": "🎬",
+       "label": "Content",
+       "color": "Warning",
+       "style": "attention"
+      },
+      "recording": {
+       "icon": "🎙️",
+       "label": "Recording",
+       "color": "Warning",
+       "style": "warning"
+      },
+      "editing": {
+       "icon": "✂️",
+       "label": "Editing",
+       "color": "Attention",
+       "style": "attention"
+      },
+      "learning": {
+       "icon": "📚",
+       "label": "Learning",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "health": {
+       "icon": "💪",
+       "label": "Health",
+       "color": "Good",
+       "style": "good"
+      },
+      "personal": {
+       "icon": "🏠",
+       "label": "Personal",
+       "color": "Default",
+       "style": "emphasis"
+      },
+      "breaks": {
+       "icon": "☕",
+       "label": "Breaks & meals",
+       "color": "Default",
+       "style": "warning"
+      }
+     }
+    },
     "Init_frontier": {
      "type": "InitializeVariable",
      "inputs": {
@@ -70,6 +130,11 @@
         "type": "string",
         "value": ""
        }
+      ]
+     },
+     "runAfter": {
+      "Category_map": [
+       "Succeeded"
       ]
      }
     },
@@ -296,11 +361,11 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{concat(if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼')), ' ', if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 1))))}",
+                    "text": "@{concat(coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",
-                    "color": "@{if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                    "color": "@{coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['color'], 'Accent')}"
                    }
                   ]
                  }
@@ -999,11 +1064,11 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{concat(if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼')), ' ', if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 1))))}",
+                    "text": "@{concat(coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",
-                    "color": "@{if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+                    "color": "@{coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['color'], 'Accent')}"
                    }
                   ]
                  }

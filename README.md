@@ -1,6 +1,6 @@
 # Day Planner
 
-A personal web app to plan one day across office work, freelance and YouTube,
+A personal web app to plan one day across office work, projects and content (YouTube + Reels),
 with a nudge at each task's start and end.
 
 ## Run it
@@ -42,8 +42,9 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
 - **Phone:** the canvas app *Day Planner* (same solution) is one **+ Add task** button that runs Quick add.
   Pin it from Power Apps mobile (Android: ⋯ → Pin to Home; iPhone: Shortcut → Add to Siri → Shortcuts app → Add to Home Screen).
   The Power Automate mobile app and its widget were retired on 31 Aug 2026.
-- **Categories:** cards show Office, Freelance and **Content** (YouTube + Reels). Content is stored as `youtube`,
-  so SharePoint, `DailySummaries.YoutubeMin` and this web app (which still says YouTube) are unchanged.
+- **Categories:** Office, Projects, **Content** (YouTube + Reels), Recording, Editing, Learning, Health, Personal and
+  Breaks & meals (which count as a break in the "3h without a break" warning). Content is stored as `youtube`,
+  so SharePoint and `DailySummaries.YoutubeMin` keep that name. `DailySummaries` has one `*Min` column per category.
 - **This web app** stays as the fallback; edit or delete tasks here or in the list.
 
 ## Known limits

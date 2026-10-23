@@ -56,10 +56,74 @@
      "type": "Compose",
      "inputs": "@convertFromUtc(utcNow(), 'India Standard Time', 'yyyy-MM-dd')"
     },
+    "Category_map": {
+     "runAfter": {
+      "Today": [
+       "Succeeded"
+      ]
+     },
+     "type": "Compose",
+     "inputs": {
+      "office": {
+       "icon": "💼",
+       "label": "Office",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "projects": {
+       "icon": "🛠️",
+       "label": "Projects",
+       "color": "Good",
+       "style": "good"
+      },
+      "youtube": {
+       "icon": "🎬",
+       "label": "Content",
+       "color": "Warning",
+       "style": "attention"
+      },
+      "recording": {
+       "icon": "🎙️",
+       "label": "Recording",
+       "color": "Warning",
+       "style": "warning"
+      },
+      "editing": {
+       "icon": "✂️",
+       "label": "Editing",
+       "color": "Attention",
+       "style": "attention"
+      },
+      "learning": {
+       "icon": "📚",
+       "label": "Learning",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "health": {
+       "icon": "💪",
+       "label": "Health",
+       "color": "Good",
+       "style": "good"
+      },
+      "personal": {
+       "icon": "🏠",
+       "label": "Personal",
+       "color": "Default",
+       "style": "emphasis"
+      },
+      "breaks": {
+       "icon": "☕",
+       "label": "Breaks & meals",
+       "color": "Default",
+       "style": "warning"
+      }
+     }
+    },
     "Weekday": {
      "type": "Compose",
      "runAfter": {
-      "Today": [
+      "Category_map": [
        "Succeeded"
       ]
      },
@@ -316,7 +380,7 @@
            "items": [
             {
              "type": "TextBlock",
-             "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼'))}",
+             "text": "@{coalesce(outputs('Category_map')?[coalesce(item()?['TaskCategory']?['Value'], 'office')]?['icon'], '💼')}",
              "wrap": true
             }
            ]

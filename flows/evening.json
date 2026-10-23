@@ -56,10 +56,74 @@
      "type": "Compose",
      "inputs": "@convertFromUtc(utcNow(), 'India Standard Time', 'yyyy-MM-dd')"
     },
+    "Category_map": {
+     "runAfter": {
+      "Today": [
+       "Succeeded"
+      ]
+     },
+     "type": "Compose",
+     "inputs": {
+      "office": {
+       "icon": "💼",
+       "label": "Office",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "projects": {
+       "icon": "🛠️",
+       "label": "Projects",
+       "color": "Good",
+       "style": "good"
+      },
+      "youtube": {
+       "icon": "🎬",
+       "label": "Content",
+       "color": "Warning",
+       "style": "attention"
+      },
+      "recording": {
+       "icon": "🎙️",
+       "label": "Recording",
+       "color": "Warning",
+       "style": "warning"
+      },
+      "editing": {
+       "icon": "✂️",
+       "label": "Editing",
+       "color": "Attention",
+       "style": "attention"
+      },
+      "learning": {
+       "icon": "📚",
+       "label": "Learning",
+       "color": "Accent",
+       "style": "accent"
+      },
+      "health": {
+       "icon": "💪",
+       "label": "Health",
+       "color": "Good",
+       "style": "good"
+      },
+      "personal": {
+       "icon": "🏠",
+       "label": "Personal",
+       "color": "Default",
+       "style": "emphasis"
+      },
+      "breaks": {
+       "icon": "☕",
+       "label": "Breaks & meals",
+       "color": "Default",
+       "style": "warning"
+      }
+     }
+    },
     "Day_start": {
      "type": "Compose",
      "runAfter": {
-      "Today": [
+      "Category_map": [
        "Succeeded"
       ]
      },
@@ -116,12 +180,12 @@
       ]
      }
     },
-    "Init_freelance": {
+    "Init_projects": {
      "type": "InitializeVariable",
      "inputs": {
       "variables": [
        {
-        "name": "freelance",
+        "name": "projects",
         "type": "integer",
         "value": 0
        }
@@ -145,7 +209,109 @@
       ]
      },
      "runAfter": {
-      "Init_freelance": [
+      "Init_projects": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_recording": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "recording",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_youtube": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_editing": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "editing",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_recording": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_learning": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "learning",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_editing": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_health": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "health",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_learning": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_personal": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "personal",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_health": [
+       "Succeeded"
+      ]
+     }
+    },
+    "Init_breaks": {
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "breaks",
+        "type": "integer",
+        "value": 0
+       }
+      ]
+     },
+     "runAfter": {
+      "Init_personal": [
        "Succeeded"
       ]
      }
@@ -162,7 +328,7 @@
       ]
      },
      "runAfter": {
-      "Init_youtube": [
+      "Init_breaks": [
        "Succeeded"
       ]
      }
@@ -283,10 +449,10 @@
        },
        "inputs": {
         "name": "office",
-        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'office'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+        "value": "@if(or(equals(coalesce(items('Each_task')?['TaskCategory']?['Value'], 'office'), 'office'), empty(outputs('Category_map')?[coalesce(items('Each_task')?['TaskCategory']?['Value'], 'office')])), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
        }
       },
-      "Add_freelance": {
+      "Add_projects": {
        "type": "IncrementVariable",
        "runAfter": {
         "Add_office": [
@@ -294,14 +460,14 @@
         ]
        },
        "inputs": {
-        "name": "freelance",
-        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'freelance'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+        "name": "projects",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'projects'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
        }
       },
       "Add_youtube": {
        "type": "IncrementVariable",
        "runAfter": {
-        "Add_freelance": [
+        "Add_projects": [
          "Succeeded"
         ]
        },
@@ -310,10 +476,82 @@
         "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'youtube'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
        }
       },
-      "Add_done": {
+      "Add_recording": {
        "type": "IncrementVariable",
        "runAfter": {
         "Add_youtube": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "recording",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'recording'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_editing": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_recording": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "editing",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'editing'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_learning": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_editing": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "learning",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'learning'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_health": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_learning": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "health",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'health'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_personal": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_health": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "personal",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'personal'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_breaks": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_personal": [
+         "Succeeded"
+        ]
+       },
+       "inputs": {
+        "name": "breaks",
+        "value": "@if(equals(items('Each_task')?['TaskCategory']?['Value'], 'breaks'), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'done'), if(not(empty(items('Each_task')?['TaskActualEnd'])), outputs('Actual_min'), outputs('Planned_min')), if(equals(items('Each_task')?['TaskStatus']?['Value'], 'planned'), outputs('Planned_min'), 0)), 0)"
+       }
+      },
+      "Add_done": {
+       "type": "IncrementVariable",
+       "runAfter": {
+        "Add_breaks": [
          "Succeeded"
         ]
        },
@@ -386,11 +624,17 @@
          "item/Day": "@{concat(outputs('Today'), 'T00:00:00Z')}",
          "item/PlannedMin": "@variables('planned')",
          "item/ActualMin": "@variables('actual')",
-         "item/OfficeMin": "@variables('office')",
-         "item/FreelanceMin": "@variables('freelance')",
-         "item/YoutubeMin": "@variables('youtube')",
          "item/Done": "@variables('done')",
-         "item/Skipped": "@variables('skipped')"
+         "item/Skipped": "@variables('skipped')",
+         "item/OfficeMin": "@variables('office')",
+         "item/ProjectsMin": "@variables('projects')",
+         "item/YoutubeMin": "@variables('youtube')",
+         "item/RecordingMin": "@variables('recording')",
+         "item/EditingMin": "@variables('editing')",
+         "item/LearningMin": "@variables('learning')",
+         "item/HealthMin": "@variables('health')",
+         "item/PersonalMin": "@variables('personal')",
+         "item/BreaksMin": "@variables('breaks')"
         },
         "host": {
          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -413,11 +657,17 @@
           "item/Day": "@{concat(outputs('Today'), 'T00:00:00Z')}",
           "item/PlannedMin": "@variables('planned')",
           "item/ActualMin": "@variables('actual')",
-          "item/OfficeMin": "@variables('office')",
-          "item/FreelanceMin": "@variables('freelance')",
-          "item/YoutubeMin": "@variables('youtube')",
           "item/Done": "@variables('done')",
-          "item/Skipped": "@variables('skipped')"
+          "item/Skipped": "@variables('skipped')",
+          "item/OfficeMin": "@variables('office')",
+          "item/ProjectsMin": "@variables('projects')",
+          "item/YoutubeMin": "@variables('youtube')",
+          "item/RecordingMin": "@variables('recording')",
+          "item/EditingMin": "@variables('editing')",
+          "item/LearningMin": "@variables('learning')",
+          "item/HealthMin": "@variables('health')",
+          "item/PersonalMin": "@variables('personal')",
+          "item/BreaksMin": "@variables('breaks')"
          },
          "host": {
           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -470,10 +720,10 @@
          "items": [
           {
            "type": "TextBlock",
-           "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Content', concat(toUpper(substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 0, 1)), substring(coalesce(item()?['TaskCategory']?['Value'], 'office'), 1)))}",
+           "text": "@{coalesce(outputs('Category_map')?[coalesce(item()?['TaskCategory']?['Value'], 'office')]?['label'], 'Office')}",
            "wrap": true,
            "weight": "Bolder",
-           "color": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), 'Good', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), 'Attention', 'Accent'))}"
+           "color": "@{coalesce(outputs('Category_map')?[coalesce(item()?['TaskCategory']?['Value'], 'office')]?['color'], 'Accent')}"
           }
          ]
         }
@@ -538,7 +788,7 @@
            "items": [
             {
              "type": "TextBlock",
-             "text": "@{if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'freelance'), '✍️', if(equals(coalesce(item()?['TaskCategory']?['Value'], 'office'), 'youtube'), '🎬', '💼'))}",
+             "text": "@{coalesce(outputs('Category_map')?[coalesce(item()?['TaskCategory']?['Value'], 'office')]?['icon'], '💼')}",
              "wrap": true
             }
            ]
@@ -575,10 +825,105 @@
       }
      }
     },
+    "Category_minutes": {
+     "runAfter": {
+      "Tomorrow_rows": [
+       "Succeeded"
+      ]
+     },
+     "type": "Compose",
+     "inputs": [
+      {
+       "key": "office",
+       "min": "@variables('office')"
+      },
+      {
+       "key": "projects",
+       "min": "@variables('projects')"
+      },
+      {
+       "key": "youtube",
+       "min": "@variables('youtube')"
+      },
+      {
+       "key": "recording",
+       "min": "@variables('recording')"
+      },
+      {
+       "key": "editing",
+       "min": "@variables('editing')"
+      },
+      {
+       "key": "learning",
+       "min": "@variables('learning')"
+      },
+      {
+       "key": "health",
+       "min": "@variables('health')"
+      },
+      {
+       "key": "personal",
+       "min": "@variables('personal')"
+      },
+      {
+       "key": "breaks",
+       "min": "@variables('breaks')"
+      }
+     ]
+    },
+    "Category_with_time": {
+     "runAfter": {
+      "Category_minutes": [
+       "Succeeded"
+      ]
+     },
+     "type": "Query",
+     "inputs": {
+      "from": "@outputs('Category_minutes')",
+      "where": "@greater(item()?['min'], 0)"
+     }
+    },
+    "Bar_columns": {
+     "runAfter": {
+      "Category_with_time": [
+       "Succeeded"
+      ]
+     },
+     "type": "Select",
+     "inputs": {
+      "from": "@body('Category_with_time')",
+      "select": {
+       "type": "Column",
+       "width": "@max(item()?['min'], 1)",
+       "style": "@outputs('Category_map')?[item()?['key']]?['style']",
+       "spacing": "Small",
+       "minHeight": "8px",
+       "items": [
+        {
+         "type": "TextBlock",
+         "text": " ",
+         "size": "Small"
+        }
+       ]
+      }
+     }
+    },
+    "Minutes_text": {
+     "runAfter": {
+      "Bar_columns": [
+       "Succeeded"
+      ]
+     },
+     "type": "Select",
+     "inputs": {
+      "from": "@body('Category_with_time')",
+      "select": "@{concat(outputs('Category_map')?[item()?['key']]?['icon'], ' ', outputs('Category_map')?[item()?['key']]?['label'], ' ', if(less(item()?['min'], 60), concat(string(item()?['min']), 'm'), concat(string(div(item()?['min'], 60)), 'h ', string(mod(item()?['min'], 60)), 'm')))}"
+     }
+    },
     "Card": {
      "type": "Compose",
      "runAfter": {
-      "Tomorrow_rows": [
+      "Minutes_text": [
        "Succeeded"
       ]
      },
@@ -636,59 +981,17 @@
        {
         "type": "ColumnSet",
         "spacing": "Small",
-        "columns": [
-         {
-          "type": "Column",
-          "width": "@max(variables('office'), 1)",
-          "isVisible": "@greater(variables('office'), 0)",
-          "style": "accent",
-          "minHeight": "8px",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": " ",
-            "size": "Small"
-           }
-          ]
-         },
-         {
-          "type": "Column",
-          "width": "@max(variables('freelance'), 1)",
-          "isVisible": "@greater(variables('freelance'), 0)",
-          "style": "good",
-          "minHeight": "8px",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": " ",
-            "size": "Small"
-           }
-          ]
-         },
-         {
-          "type": "Column",
-          "width": "@max(variables('youtube'), 1)",
-          "isVisible": "@greater(variables('youtube'), 0)",
-          "style": "attention",
-          "minHeight": "8px",
-          "items": [
-           {
-            "type": "TextBlock",
-            "text": " ",
-            "size": "Small"
-           }
-          ]
-         }
-        ],
-        "isVisible": "@greater(add(add(variables('office'), variables('freelance')), variables('youtube')), 0)"
+        "columns": "@body('Bar_columns')",
+        "isVisible": "@greater(length(body('Category_with_time')), 0)"
        },
        {
         "type": "TextBlock",
-        "text": "@{concat('💼 Office ', if(less(variables('office'), 60), concat(string(variables('office')), 'm'), concat(string(div(variables('office'), 60)), 'h ', string(mod(variables('office'), 60)), 'm')), '   ✍️ Freelance ', if(less(variables('freelance'), 60), concat(string(variables('freelance')), 'm'), concat(string(div(variables('freelance'), 60)), 'h ', string(mod(variables('freelance'), 60)), 'm')), '   🎬 Content ', if(less(variables('youtube'), 60), concat(string(variables('youtube')), 'm'), concat(string(div(variables('youtube'), 60)), 'h ', string(mod(variables('youtube'), 60)), 'm')))}",
+        "text": "@{join(body('Minutes_text'), '   ')}",
         "wrap": true,
         "isSubtle": true,
         "size": "Small",
-        "spacing": "Small"
+        "spacing": "Small",
+        "isVisible": "@greater(length(body('Category_with_time')), 0)"
        },
        {
         "type": "TextBlock",

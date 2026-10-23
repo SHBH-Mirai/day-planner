@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { CATEGORIES, type Task } from '../domain/task'
 import { summarize } from '../domain/summary'
-import { CATEGORY_LABEL } from './labels'
+import { CATEGORY_ICON, CATEGORY_LABEL } from './labels'
 import { formatMinutes } from './neu/format'
 import { NeuSurface } from './neu/NeuSurface'
 import { dayTotals } from './neu/totals'
@@ -49,6 +49,7 @@ export function SummaryView({ tasks }: { tasks: Task[] }) {
           <p className="category-legend" id={legendId}>
             {withTime.map((c) => (
               <span key={c} data-category={c}>
+                <span aria-hidden="true">{CATEGORY_ICON[c]} </span>
                 {CATEGORY_LABEL[c]} {formatMinutes(totals.perCategory[c])}
               </span>
             ))}

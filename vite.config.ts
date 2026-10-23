@@ -10,5 +10,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
     globalSetup: './vitest.globalSetup.ts',
+    // Vitest blanks CSS imports by default; the category colour test reads theme.css?raw.
+    css: { include: [/theme\.css/] },
   },
 })

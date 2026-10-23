@@ -65,7 +65,7 @@ Every swipe action is also a button in the expanded bar, so mouse and keyboard c
   - the no-break warning as an amber pill
   - `Fab`
 - **Tomorrow:** a segmented Today ⇄ Tomorrow switch (the pressed-in pill slides); the same timeline, without the ring.
-- **Add / edit:** `TaskForm` inside a `Sheet`. Category is three chips (Office · Freelance · Content).
+- **Add / edit:** `TaskForm` inside a `Sheet`. Category is three chips (Office · Projects · Content).
   Validation is unchanged: end after start; overlap and no-break warnings.
 - **Summary:** the third tab. Big planned vs actual numbers, a stacked category bar, done/skipped counts.
 - **Nudge banner** (browser only): drops in from the top with a spring.

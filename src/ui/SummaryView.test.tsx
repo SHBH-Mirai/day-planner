@@ -8,8 +8,8 @@ const D = '2026-10-17'
 describe('SummaryView', () => {
   test('one row per task with planned and actual minutes, — when not done', () => {
     const done = makeTask({
-      title: 'Client work',
-      category: 'freelance',
+      title: 'Portfolio site',
+      category: 'projects',
       status: 'done',
       start: ist(D, '09:00'),
       end: ist(D, '10:00'),
@@ -19,7 +19,7 @@ describe('SummaryView', () => {
     const planned = makeTask({ title: 'Report', start: ist(D, '11:00'), end: ist(D, '11:30') })
     render(<SummaryView tasks={[done, planned]} />)
     const table = screen.getByRole('table', { name: 'Tasks' })
-    const doneRow = within(table).getByRole('row', { name: /Client work/ })
+    const doneRow = within(table).getByRole('row', { name: /Portfolio site/ })
     // Ticked done without Started, so Actual shows its planned hour (one rule with the totals).
     expect(within(doneRow).getAllByRole('cell').map((c) => c.textContent)).toEqual(['60', '60'])
     expect(within(within(table).getByRole('row', { name: /Report/ })).getByText('—')).toBeInTheDocument()
@@ -27,7 +27,7 @@ describe('SummaryView', () => {
 
   test('big numbers: planned and actual time, done and skipped counts', () => {
     const done = makeTask({
-      title: 'Client work',
+      title: 'Portfolio site',
       status: 'done',
       start: ist(D, '09:00'),
       end: ist(D, '10:00'),
@@ -58,7 +58,7 @@ describe('SummaryView', () => {
     const bar = screen.getByRole('img', { name: 'Time by category' })
     expect(within(bar).getByLabelText('Office 60 min')).toBeInTheDocument()
     expect(within(bar).getByLabelText('Content 90 min')).toBeInTheDocument()
-    expect(within(bar).queryByLabelText(/Freelance/)).not.toBeInTheDocument()
+    expect(within(bar).queryByLabelText(/Projects/)).not.toBeInTheDocument()
   })
 
   test('the category table agrees with the bar for a task ticked done late without Started', () => {
@@ -81,5 +81,26 @@ describe('SummaryView', () => {
     render(<SummaryView tasks={[t]} />)
     const table = screen.getByRole('table', { name: 'By category' })
     expect(within(within(table).getByRole('row', { name: /Content/ })).getByText('90')).toBeInTheDocument()
+  })
+})
+
+describe('SummaryView new categories', () => {
+  test('Recording and Breaks & meals show in the bar and the legend', () => {
+    const rec = makeTask({ category: 'recording', start: ist(D, '11:00'), end: ist(D, '11:30') })
+    const lunch = makeTask({ category: 'breaks', start: ist(D, '13:00'), end: ist(D, '14:00') })
+    render(<SummaryView tasks={[rec, lunch]} />)
+    const bar = screen.getByRole('img', { name: 'Time by category' })
+    expect(within(bar).getByLabelText('Recording 30 min')).toBeInTheDocument()
+    expect(within(bar).getByLabelText('Breaks & meals 60 min')).toBeInTheDocument()
+    expect(bar).toHaveAccessibleDescription(/Recording 30m.*Breaks & meals 1h/)
+  })
+})
+
+describe('SummaryView legend icons', () => {
+  test('each legend entry starts with its category icon, a cue besides colour', () => {
+    const rec = makeTask({ category: 'recording', start: ist(D, '11:00'), end: ist(D, '11:30') })
+    render(<SummaryView tasks={[rec]} />)
+    const legend = document.querySelector('.category-legend')!
+    expect(legend).toHaveTextContent('🎙️ Recording 30m')
   })
 })

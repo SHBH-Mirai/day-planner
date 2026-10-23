@@ -1,4 +1,4 @@
-import type { Category, Status, Task, TaskDraft } from '../domain/task'
+import { readCategory, type Category, type Status, type Task, type TaskDraft } from '../domain/task'
 
 /** Column internal names in the DayPlannerTasks list (docs/setup-microsoft.md). */
 export interface TaskFields {
@@ -55,7 +55,7 @@ export function fromItem(item: GraphListItem): Task {
     start: normalise(f.TaskStart),
     end: normalise(f.TaskEnd),
     originalEnd: normalise(f.TaskOriginalEnd),
-    category: f.TaskCategory,
+    category: readCategory(f.TaskCategory),
     status: f.TaskStatus,
   }
   const actualStart = optional(f.TaskActualStart)

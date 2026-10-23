@@ -29,10 +29,10 @@ export function validateTask(draft: TaskDraft, others: Task[], editingId?: strin
   return { errors, warnings }
 }
 
-/** Stretches of 3h+ where every gap between tasks is under 10 minutes. Skipped tasks are ignored. */
+/** Stretches of 3h+ where every gap between tasks is under 10 minutes. Skipped tasks and Breaks & meals count as free time. */
 export function findNoBreakRuns(tasks: Task[]): { fromUtc: string; toUtc: string }[] {
   const active = tasks
-    .filter((t) => t.status !== 'skipped')
+    .filter((t) => t.status !== 'skipped' && t.category !== 'breaks')
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
 
   const runs: { fromUtc: string; toUtc: string }[] = []

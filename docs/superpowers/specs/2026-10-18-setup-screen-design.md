@@ -26,7 +26,7 @@ Manage the planner's settings and routines inside the app, instead of editing Sh
 - CODE (flows/morning.json):
   - Morning runs at 06:00 IST. It keeps templates whose `Days` contains today's `ddd` value (`Mon`…`Sun`) and whose `Active` is 1, then creates tasks.
   - It skips a template when a task with the same Title and start already exists.
-  - `Category` is a choice with the values `office`, `freelance` and `youtube`.
+  - `Category` is a choice with the values `office`, `projects` and `youtube`.
 - CODE (deploy.yml): the app receives its SharePoint IDs from GitHub repo variables (`VITE_SP_SITE_ID`, `VITE_SP_LIST_ID`) and from `.env.local` locally.
 - GUESS, to check in the first plan task (DOCS): the shapes Graph reads and writes for these SharePoint column types:
   - **multi-choice** (`Days`): read as a string array; a write needs `"Days@odata.type": "Collection(Edm.String)"`;

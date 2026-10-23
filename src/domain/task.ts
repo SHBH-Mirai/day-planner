@@ -1,4 +1,4 @@
-export type Category = 'office' | 'freelance' | 'youtube'
+export type Category = 'office' | 'projects' | 'youtube' | 'recording' | 'editing' | 'learning' | 'health' | 'personal' | 'breaks'
 export type Status = 'planned' | 'done' | 'skipped'
 
 /** One planned block of time. All times are ISO 8601 UTC strings. */
@@ -21,7 +21,19 @@ export interface Task {
 /** What the form collects before the task exists. */
 export type TaskDraft = Pick<Task, 'title' | 'start' | 'end' | 'category'> & { description?: string }
 
-export const CATEGORIES: readonly Category[] = ['office', 'freelance', 'youtube']
+/** Every category, in the order pickers, summaries and legends show them. `youtube` is stored for Content. */
+export const CATEGORIES: readonly Category[] = ['office', 'projects', 'youtube', 'recording', 'editing', 'learning', 'health', 'personal', 'breaks']
+
+/** Minutes per category, all at 0. */
+export function emptyPerCategory(): Record<Category, number> {
+  return Object.fromEntries(CATEGORIES.map((c) => [c, 0])) as Record<Category, number>
+}
+
+/** A stored category value as a Category: anything unknown (a hand edit in SharePoint) reads as office. */
+export function readCategory(raw: unknown): Category {
+  if (typeof raw !== 'string') return 'office'
+  return (CATEGORIES as readonly string[]).includes(raw) ? (raw as Category) : 'office'
+}
 
 export const MAX_DESCRIPTION = 500
 export const DESCRIPTION_TOO_LONG = `Keep the description under ${MAX_DESCRIPTION} characters`
