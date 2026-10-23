@@ -30,7 +30,7 @@ export class SharePointRoutineRepository implements RoutineRepository {
 
   async update(routine: Routine): Promise<Routine> {
     const { id, ...draft } = routine
-    await this.graph.request(`${this.graph.items}/${id}/fields`, { method: 'PATCH', body: JSON.stringify(toRoutineFields(draft)) })
+    await this.graph.request(`${this.graph.items}/${id}/fields`, { method: 'PATCH', body: JSON.stringify(toRoutineFields(draft, 'update')) })
     return routine
   }
 

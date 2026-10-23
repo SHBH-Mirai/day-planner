@@ -37,6 +37,16 @@ export function runRepositoryContract(name: string, makeRepo: () => TaskReposito
       expect(await repo.listForDay(DAY)).toEqual([{ ...created, title: 'New', status: 'done' }])
     })
 
+    test('create and update keep the description; clearing removes it', async () => {
+      const repo = makeRepo()
+      const created = await repo.create({ ...draft('Edit video'), description: 'Steps ✂️' })
+      expect((await repo.listForDay(DAY))[0].description).toBe('Steps ✂️')
+      await repo.update({ ...created, description: 'New' })
+      expect((await repo.listForDay(DAY))[0].description).toBe('New')
+      await repo.update({ ...created, description: undefined })
+      expect((await repo.listForDay(DAY))[0].description).toBeUndefined()
+    })
+
     test('remove deletes', async () => {
       const repo = makeRepo()
       const created = await repo.create(draft('Gone'))

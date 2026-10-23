@@ -50,3 +50,34 @@ describe('SharePoint mapping', () => {
     expect(task.actualEnd).toBeUndefined()
   })
 })
+
+describe('SharePoint mapping: descriptions', () => {
+  const draft = { title: 'New', start: ist(D, '09:00'), end: ist(D, '10:00'), category: 'office' as const }
+  const item = (TaskDescription: unknown) => ({
+    id: '9',
+    fields: { ...toFields(makeTask({ id: '9' })), TaskDescription } as Parameters<typeof fromItem>[0]['fields'],
+  })
+
+  test('a task sends its description, line breaks kept', () => {
+    expect(toFields(makeTask({ description: 'a\nb' })).TaskDescription).toBe('a\nb')
+  })
+
+  test('a task without one sends null, so an update clears the column', () => {
+    expect(toFields(makeTask()).TaskDescription).toBeNull()
+  })
+
+  test('a new draft sends a description only when it has one', () => {
+    expect(toFields({ ...draft, description: 'Steps ✂️' }).TaskDescription).toBe('Steps ✂️')
+    expect(toFields(draft)).not.toHaveProperty('TaskDescription')
+  })
+
+  test('reads the description back', () => {
+    expect(fromItem(item('a\nb')).description).toBe('a\nb')
+  })
+
+  test('null, empty or missing reads as no description', () => {
+    expect(fromItem(item(null))).not.toHaveProperty('description')
+    expect(fromItem(item(''))).not.toHaveProperty('description')
+    expect(fromItem(item(undefined))).not.toHaveProperty('description')
+  })
+})

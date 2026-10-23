@@ -72,3 +72,26 @@ describe('SharePointRoutineRepository setActive', () => {
     expect((await repo.list())[0]).toMatchObject({ active: false, days: ['Mon'], startTime: '07:15' })
   })
 })
+
+describe('routine mapping: descriptions', () => {
+  const draft = { title: 'Gym', category: 'office' as const, startTime: '07:15', durationMin: 45, days: ['Mon' as const], active: true }
+  const item = (Description: unknown) => ({ id: '7', fields: { Title: 'Gym', Category: 'office', StartTime: '07:15', DurationMin: 45, Days: ['Mon'], Active: true, Description } })
+
+  test('a new routine sends its description only when it has one', () => {
+    expect(toRoutineFields({ ...draft, description: 'Scene, record' }).Description).toBe('Scene, record')
+    expect(toRoutineFields(draft)).not.toHaveProperty('Description')
+  })
+
+  test('an update always sends it, null when there is none, so clearing works', () => {
+    expect(toRoutineFields(draft, 'update').Description).toBeNull()
+    expect(toRoutineFields({ ...draft, description: 'x' }, 'update').Description).toBe('x')
+  })
+
+  test('reads the description back, line breaks kept', () => {
+    expect(fromRoutineItem(item('a\nb')).description).toBe('a\nb')
+  })
+
+  test('null, empty, missing or not text reads as no description', () => {
+    for (const v of [null, '', undefined, 42]) expect(fromRoutineItem(item(v))).not.toHaveProperty('description')
+  })
+})
