@@ -28,6 +28,10 @@ When you're done you'll have four values for `.env.local`:
    | `TaskActualEnd` | Date and time | Include time: **Yes** |
    | `TaskCategory` | Choice | `office`, `freelance`, `youtube` |
    | `TaskStatus` | Choice | `planned`, `done`, `skipped`; default `planned` |
+   | `TaskDescription` | Multiple lines of text | **Plain text** (not rich text). Optional; the app saves at most 500 characters |
+
+   The routines list (`Templates`) gets the same kind of column, named `Description`,
+   which the Morning flow copies into each day's task.
 
 4. **Index `TaskStart`:** List settings → **Indexed columns** → Create a new
    index → `TaskStart`. The app filters by start time, and Graph filters
