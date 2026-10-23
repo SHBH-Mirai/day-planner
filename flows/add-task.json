@@ -391,12 +391,36 @@
             "value": "office"
            },
            {
-            "title": "Freelance",
-            "value": "freelance"
+            "title": "Projects",
+            "value": "projects"
            },
            {
             "title": "Content",
             "value": "youtube"
+           },
+           {
+            "title": "Recording",
+            "value": "recording"
+           },
+           {
+            "title": "Editing",
+            "value": "editing"
+           },
+           {
+            "title": "Learning",
+            "value": "learning"
+           },
+           {
+            "title": "Health",
+            "value": "health"
+           },
+           {
+            "title": "Personal",
+            "value": "personal"
+           },
+           {
+            "title": "Breaks & meals",
+            "value": "breaks"
            }
           ]
          }
