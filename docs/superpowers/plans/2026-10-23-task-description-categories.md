@@ -17,7 +17,7 @@
 - Copy, exact: label `Description (optional)`; error `Keep the description under 500 characters`; counter `N/500`, shown from 400 characters.
 - Category keys, in order: `office`, `projects`, `youtube`, `recording`, `editing`, `learning`, `health`, `personal`, `breaks`. Labels: Office, Projects, Content, Recording, Editing, Learning, Health, Personal, Breaks & meals. Icons: 💼 ✍️ 🎬 🎙️ ✂️ 📚 💪 🏠 🍽️. Teams card colours: Accent, Good, Attention, Attention, Attention, Accent, Good, Default, Default.
 - Motion components are `m.*`, never `motion.*`. No `window.alert`, `window.confirm` or `window.prompt` (blocked in Teams desktop).
-- Public repo: after Phase 2, `git grep -i -E 'free[l]ance|cli[e]nt work'` matches only the temporary read rule and its test (until rollout step 5). No "vibe coding" wording anywhere.
+- Public repo: after Phase 2, `git grep -i -E 'free[l]ance|cli[e]nt work'` matches only the temporary read rule and its test (until rollout step 5). README, commit and PR text follow the owner's public wording rules.
 - Existing tests: Phase 1 changes none. Phase 2 changes only the lines in the spec's "Existing tests that change" table. Anything else stops and goes to Shubh.
 - Never push, merge or open a PR without Shubh's word. Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - Live work: Shubh's usual Chrome profile (named in his private notes). Only TEST-named tasks and routines. Recycling TEST rows needs Shubh's OK (asked once per phase). Deleting a column needs his "I confirm".
