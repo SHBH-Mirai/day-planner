@@ -72,7 +72,7 @@
        "style": "accent"
       },
       "projects": {
-       "icon": "✍️",
+       "icon": "🛠️",
        "label": "Projects",
        "color": "Good",
        "style": "good"
@@ -80,13 +80,13 @@
       "youtube": {
        "icon": "🎬",
        "label": "Content",
-       "color": "Attention",
+       "color": "Warning",
        "style": "attention"
       },
       "recording": {
        "icon": "🎙️",
        "label": "Recording",
-       "color": "Attention",
+       "color": "Warning",
        "style": "warning"
       },
       "editing": {
@@ -114,7 +114,7 @@
        "style": "emphasis"
       },
       "breaks": {
-       "icon": "🍽️",
+       "icon": "☕",
        "label": "Breaks & meals",
        "color": "Default",
        "style": "warning"
