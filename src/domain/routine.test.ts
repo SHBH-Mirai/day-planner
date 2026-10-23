@@ -66,3 +66,27 @@ describe('isOnDay', () => {
     expect(isOnDay(routine, DAY, [makeTask({ title: 'Run', start: ist(D, '07:15'), end: ist(D, '08:00') })])).toBe(false)
   })
 })
+
+describe('routine descriptions', () => {
+  const TOO_LONG = 'Keep the description under 500 characters'
+
+  it('blocks a description over 500 characters', () => {
+    expect(validateRoutine(draft({ description: 'x'.repeat(501) }))).toContain(TOO_LONG)
+  })
+
+  it('allows exactly 500 characters', () => {
+    expect(validateRoutine(draft({ description: 'x'.repeat(500) }))).toEqual([])
+  })
+
+  it('treats whitespace-only as no description', () => {
+    expect(validateRoutine(draft({ description: ' '.repeat(600) }))).toEqual([])
+  })
+
+  it('copies the description into the day\'s task', () => {
+    expect(routineToDraft({ id: 'r1', ...draft({ description: 'Scene, record, dub' }) }, DAY).description).toBe('Scene, record, dub')
+  })
+
+  it('leaves it out when the routine has none', () => {
+    expect(routineToDraft({ id: 'r1', ...draft() }, DAY).description).toBeUndefined()
+  })
+})

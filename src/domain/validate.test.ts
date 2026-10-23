@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { findNoBreakRuns, validateTask } from './validate'
-import type { TaskDraft } from './task'
+import { MAX_DESCRIPTION, normaliseDescription, type TaskDraft } from './task'
 import { ist, makeTask } from '../test-utils/makeTask'
 
 const D = '2026-10-17'
@@ -79,5 +79,32 @@ describe('findNoBreakRuns', () => {
   test('unsorted input still finds the run', () => {
     const tasks = [t('11:05', '12:00'), t('09:00', '10:00'), t('10:05', '11:00')]
     expect(findNoBreakRuns(tasks)).toHaveLength(1)
+  })
+})
+
+describe('descriptions', () => {
+  const TOO_LONG = 'Keep the description under 500 characters'
+
+  test('normaliseDescription trims, and blank means none', () => {
+    expect(normaliseDescription('  a  ')).toBe('a')
+    expect(normaliseDescription('   ')).toBeUndefined()
+    expect(normaliseDescription(undefined)).toBeUndefined()
+    expect(normaliseDescription('a\nb')).toBe('a\nb')
+  })
+
+  test('a description over 500 characters is blocked', () => {
+    expect(validateTask({ ...draft('09:00', '10:00'), description: 'x'.repeat(501) }, []).errors).toContain(TOO_LONG)
+  })
+
+  test('exactly 500 characters is fine', () => {
+    expect(validateTask({ ...draft('09:00', '10:00'), description: 'x'.repeat(500) }, []).errors).not.toContain(TOO_LONG)
+  })
+
+  test('whitespace-only counts as no description, however long', () => {
+    expect(validateTask({ ...draft('09:00', '10:00'), description: ' '.repeat(600) }, []).errors).not.toContain(TOO_LONG)
+  })
+
+  test('the limit is exported as 500', () => {
+    expect(MAX_DESCRIPTION).toBe(500)
   })
 })

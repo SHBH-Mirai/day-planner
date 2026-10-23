@@ -14,9 +14,25 @@ export interface Task {
   actualEnd?: string
   category: Category
   status: Status
+  /** Plain text shown wherever a nudge shows. Absent when there is none. */
+  description?: string
 }
 
 /** What the form collects before the task exists. */
-export type TaskDraft = Pick<Task, 'title' | 'start' | 'end' | 'category'>
+export type TaskDraft = Pick<Task, 'title' | 'start' | 'end' | 'category'> & { description?: string }
 
 export const CATEGORIES: readonly Category[] = ['office', 'freelance', 'youtube']
+
+export const MAX_DESCRIPTION = 500
+export const DESCRIPTION_TOO_LONG = `Keep the description under ${MAX_DESCRIPTION} characters`
+
+/** Trimmed description, or undefined when it's blank. */
+export function normaliseDescription(text: string | undefined): string | undefined {
+  const trimmed = text?.trim()
+  return trimmed ? trimmed : undefined
+}
+
+/** True when the description is over the limit once trimmed. */
+export function descriptionTooLong(text: string | undefined): boolean {
+  return (normaliseDescription(text)?.length ?? 0) > MAX_DESCRIPTION
+}
