@@ -139,7 +139,7 @@ describe('TaskRow description', () => {
     const { row, toggle } = setup(task({ description: 'Scene\nRecord' }))
     expect(row.querySelector('.task-row-description')).toBeNull()
     await userEvent.click(toggle())
-    expect(row.querySelector('.task-row-description')).toHaveTextContent('Scene Record')
+    expect(row.querySelector('.task-row-description')?.textContent).toBe('Scene\nRecord')
   })
 
   it('adds nothing when there is no description', async () => {

@@ -40,3 +40,10 @@ describe('RoutineForm description', () => {
     expect((draft as { description?: string }).description).toBeUndefined()
   })
 })
+
+describe('RoutineForm description layout', () => {
+  test('the description comes after Category', () => {
+    render(<RoutineForm initial={gym} onSubmit={vi.fn(async () => true)} onCancel={vi.fn()} />)
+    expect(screen.getByLabelText('Category').compareDocumentPosition(desc()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})

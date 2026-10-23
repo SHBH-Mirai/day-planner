@@ -62,7 +62,6 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
         Title
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Write proposal" />
       </label>
-      <DescriptionField value={description} onChange={setDescription} />
       <label>
         Start
         <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
@@ -81,6 +80,7 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
           ))}
         </select>
       </label>
+      <DescriptionField value={description} onChange={setDescription} />
 
       {errors.length > 0 && (
         <ul className="form-errors" role="alert">

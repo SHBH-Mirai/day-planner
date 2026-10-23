@@ -51,7 +51,6 @@ export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
         Title
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Gym" />
       </label>
-      <DescriptionField value={description} onChange={setDescription} />
       <label>
         Start time
         <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
@@ -77,6 +76,7 @@ export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
           </button>
         ))}
       </div>
+      <DescriptionField value={description} onChange={setDescription} />
 
       {errors.length > 0 && (
         <ul className="form-errors" role="alert">

@@ -134,3 +134,25 @@ describe('TaskForm description', () => {
     expect((draft as { description?: string }).description).toBeUndefined()
   })
 })
+
+describe('TaskForm description layout', () => {
+  const desc = () => screen.getByLabelText('Description (optional)')
+  const counter = () => document.getElementById(desc().getAttribute('aria-describedby') ?? '')
+
+  test('the description comes after Category, so it never pushes the times down', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    expect(screen.getByLabelText('Category').compareDocumentPosition(desc()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test('the counter is linked to the box, reserved while short, and flagged when over', () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    expect(counter()).not.toBeNull()
+    expect(counter()).toHaveTextContent('')
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(450) } })
+    expect(counter()).toHaveTextContent('450/500')
+    expect(counter()).not.toHaveClass('form-count-over')
+    fireEvent.change(desc(), { target: { value: 'x'.repeat(501) } })
+    expect(counter()).toHaveTextContent('501/500')
+    expect(counter()).toHaveClass('form-count-over')
+  })
+})
