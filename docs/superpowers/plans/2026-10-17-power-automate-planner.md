@@ -6,13 +6,13 @@
 
 **Architecture:** Cloud flows in the datenshi default environment post Adaptive Cards as the Flow bot in Shubh's 1:1 chat. They read and write the four SharePoint lists on `/sites/Development`. Add task is a child flow inside a solution, called by Morning and Evening.
 
-**Tech Stack:** Power Automate cloud flows (SharePoint, Microsoft Teams, Schedule connectors), Adaptive Cards 1.4, built in Chrome (Freelance profile).
+**Tech Stack:** Power Automate cloud flows (SharePoint, Microsoft Teams, Schedule connectors), Adaptive Cards 1.4, built in Chrome.
 
 **Spec:** `docs/superpowers/specs/2026-10-17-power-automate-planner-design.md`
 
 ## Global Constraints
 - No Azure, no hosted code, no payment. Standard connectors only.
-- The builder is Claude, in Shubh's Chrome (Freelance profile, deviceId c36bb7bb-d752-4292-87d6-723a03243113). Shubh approves each sign-in or connection consent and each flow switched on or off. Nothing is deleted without "I confirm".
+- The builder is Claude, in Shubh's Chrome (his usual profile). Shubh approves each sign-in or connection consent and each flow switched on or off. Nothing is deleted without "I confirm".
 - Time zone: `India Standard Time` in every Recurrence and every `convertFromUtc`/`convertTimeZone`. SharePoint stores UTC.
 - IST day bounds:
   - from: `convertToUtc(formatDateTime(convertFromUtc(utcNow(),'India Standard Time'),'yyyy-MM-dd'),'India Standard Time')`
@@ -71,7 +71,7 @@
   - Trigger: Manually trigger a flow, inputs `date` and `start`.
   - Read DefaultLengthMin from Settings (default 30).
   - Do until `saved = 10 or stop = true`, with the loop limit at 20:
-    - Post the form and wait (`PT2H`): Title (required), Date (default `date`), Start (default `start`), End (default start + DefaultLengthMin), Category (office/freelance/youtube, default office). Buttons: `Save`, `Cancel`.
+    - Post the form and wait (`PT2H`): Title (required), Date (default `date`), Start (default `start`), End (default start + DefaultLengthMin), Category (office/projects/youtube, default office). Buttons: `Save`, `Cancel`.
     - Cancel or timeout sets stop = true.
     - Convert the IST date and time to UTC with `convertToUtc('{date}T{time}:00','India Standard Time')`.
     - If the title is empty or end ≤ start, re-post with the error line. Otherwise Get items for that IST day (planned only), Filter array for overlaps (`start < other.end and other.start < end`), and Create item (status planned, `TaskOriginalEnd = TaskEnd`).

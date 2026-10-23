@@ -32,8 +32,8 @@ Shubh chose not to sign up.
 |---|---|---|
 | `DayPlannerTasks` | tasks (unchanged) | Title, TaskStart, TaskEnd, TaskOriginalEnd, TaskActualStart, TaskActualEnd, TaskCategory, TaskStatus |
 | `Settings` | one row, edited by hand in Lists | StartNudges, EndNudges (yes/no), DefaultLengthMin (number). The other columns are unused. |
-| `Templates` | recurring tasks, edited by hand in Lists | Title, Category (office/freelance/youtube), StartTime (`HH:mm` IST), DurationMin, Days (multi-choice Mon–Sun), Active |
-| `DailySummaries` | history, written by Evening | Title (`yyyy-MM-dd`, the key), Day, PlannedMin, ActualMin, OfficeMin, FreelanceMin, YoutubeMin, Done, Skipped |
+| `Templates` | recurring tasks, edited by hand in Lists | Title, Category (office/projects/youtube), StartTime (`HH:mm` IST), DurationMin, Days (multi-choice Mon–Sun), Active |
+| `DailySummaries` | history, written by Evening | Title (`yyyy-MM-dd`, the key), Day, PlannedMin, ActualMin, OfficeMin, ProjectsMin, YoutubeMin, Done, Skipped |
 
 All times in SharePoint are UTC. Card text shows India Standard Time as `HH:mm`.
 

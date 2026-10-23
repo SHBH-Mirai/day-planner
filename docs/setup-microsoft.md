@@ -26,7 +26,7 @@ When you're done you'll have four values for `.env.local`:
    | `TaskOriginalEnd` | Date and time | Include time: **Yes** |
    | `TaskActualStart` | Date and time | Include time: **Yes** |
    | `TaskActualEnd` | Date and time | Include time: **Yes** |
-   | `TaskCategory` | Choice | `office`, `freelance`, `youtube` |
+   | `TaskCategory` | Choice | `office`, `projects`, `youtube`, `recording`, `editing`, `learning`, `health`, `personal`, `breaks` |
    | `TaskStatus` | Choice | `planned`, `done`, `skipped`; default `planned` |
    | `TaskDescription` | Multiple lines of text | **Plain text** (not rich text). Optional; the app saves at most 500 characters |
 

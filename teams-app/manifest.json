@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
   "manifestVersion": "1.22",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "id": "e8942eb8-faf0-49b4-9095-bb6c0a7e3e6a",
   "developer": {
     "name": "Shubh",
@@ -12,7 +12,7 @@
   "name": { "short": "Day Planner", "full": "Day Planner" },
   "description": {
     "short": "Plan your day and get start/end nudges.",
-    "full": "Plan today and tomorrow across office, freelance and YouTube work. Tasks are saved in your SharePoint list, and Teams cards nudge you at each task's start and end."
+    "full": "Plan today and tomorrow across office, project and content work. Tasks are saved in your SharePoint list, and Teams cards nudge you at each task's start and end."
   },
   "icons": { "color": "color.png", "outline": "outline.png" },
   "accentColor": "#2F6FDB",

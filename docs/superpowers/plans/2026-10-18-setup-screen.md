@@ -21,7 +21,7 @@
   - Templates: `Title`, `Category`, `StartTime`, `DurationMin`, `Days`, `Active`.
 - Allowed values:
   - Weekdays: `Mon` `Tue` `Wed` `Thu` `Fri` `Sat` `Sun`.
-  - Categories: `office`, `freelance`, `youtube` (shown as Office / Freelance / Content).
+  - Categories: `office`, `projects`, `youtube` (shown as Office / Projects / Content).
 - Settings defaults: `{ startNudges: true, endNudges: true, defaultLengthMin: 30 }`. Lengths offered: 15, 30, 45, 60, 90.
 - Routine validation: title required; `HH:mm` 00:00–23:59; length 5–720; at least 1 day.
 - UI rules:
