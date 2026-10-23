@@ -1,5 +1,5 @@
 import type { Task, TaskDraft } from '../domain/task'
-import { tasksForDay } from '../domain/time'
+import { rangeBounds, tasksForDay } from '../domain/time'
 import { RepositoryError, type TaskRepository } from './TaskRepository'
 
 /** Keeps tasks in memory. Used by tests and by `VITE_STORAGE=memory`. */
@@ -8,6 +8,15 @@ export class InMemoryTaskRepository implements TaskRepository {
 
   async listForDay(day: Date): Promise<Task[]> {
     return tasksForDay([...this.tasks.values()], day).map((t) => ({ ...t }))
+  }
+
+  async listRange(from: Date, days: number): Promise<Task[]> {
+    const { fromUtc, toUtc } = rangeBounds(from, days)
+    const [lo, hi] = [Date.parse(fromUtc), Date.parse(toUtc)]
+    return [...this.tasks.values()]
+      .filter((t) => Date.parse(t.start) >= lo && Date.parse(t.start) < hi)
+      .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+      .map((t) => ({ ...t }))
   }
 
   async create(draft: TaskDraft): Promise<Task> {

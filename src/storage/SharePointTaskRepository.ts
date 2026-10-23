@@ -1,5 +1,5 @@
 import type { Task, TaskDraft } from '../domain/task'
-import { dayBounds } from '../domain/time'
+import { rangeBounds } from '../domain/time'
 import { fromItem, toFields, type GraphListItem } from './sharePointMapping'
 import { graphList, type GraphList, type GraphListOptions } from './graphRequest'
 import type { TaskRepository } from './TaskRepository'
@@ -22,8 +22,12 @@ export class SharePointTaskRepository implements TaskRepository {
     return this.list.request(url, init)
   }
 
-  async listForDay(day: Date): Promise<Task[]> {
-    const { fromUtc, toUtc } = dayBounds(day)
+  listForDay(day: Date): Promise<Task[]> {
+    return this.listRange(day, 1)
+  }
+
+  async listRange(from: Date, days: number): Promise<Task[]> {
+    const { fromUtc, toUtc } = rangeBounds(from, days)
     const filter = encodeURIComponent(`fields/TaskStart ge '${fromUtc}' and fields/TaskStart lt '${toUtc}'`)
     let url: string | undefined = `${this.base}?$expand=fields&$filter=${filter}`
     const tasks: Task[] = []
