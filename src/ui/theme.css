@@ -15,8 +15,14 @@
   --neu-warning-bg: #f6e7c4;
   --neu-danger-bg: #f5d9d6;
   --cat-office: #2f63c9;
-  --cat-freelance: #0e6e50;
+  --cat-projects: #0e6e50;
   --cat-youtube: #a8401a;
+  --cat-recording: #8a5300;
+  --cat-editing: #a8306a;
+  --cat-learning: #6a45b5;
+  --cat-health: #00707a;
+  --cat-personal: #59647a;
+  --cat-breaks: #6e5c14;
   --neu-raise: 6px 6px 12px var(--neu-dark), -6px -6px 12px var(--neu-light);
   --neu-raise-sm: 3px 3px 6px var(--neu-dark), -3px -3px 6px var(--neu-light);
   --neu-press: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
@@ -39,8 +45,14 @@
   --neu-warning-bg: #3d3524;
   --neu-danger-bg: #43292a;
   --cat-office: #7aa3f2;
-  --cat-freelance: #4cc59c;
+  --cat-projects: #4cc59c;
   --cat-youtube: #f0875c;
+  --cat-recording: #f0b44c;
+  --cat-editing: #f07aa8;
+  --cat-learning: #b39cf0;
+  --cat-health: #4fd1d9;
+  --cat-personal: #b6bfcc;
+  --cat-breaks: #d9c27a;
   color-scheme: dark;
 }
 
@@ -59,8 +71,14 @@
   --neu-warning-bg: #000000;
   --neu-danger-bg: #000000;
   --cat-office: #ffffff;
-  --cat-freelance: #ffffff;
+  --cat-projects: #ffffff;
   --cat-youtube: #ffffff;
+  --cat-recording: #ffffff;
+  --cat-editing: #ffffff;
+  --cat-learning: #ffffff;
+  --cat-health: #ffffff;
+  --cat-personal: #ffffff;
+  --cat-breaks: #ffffff;
   --neu-raise: none;
   --neu-raise-sm: none;
   --neu-press: none;
@@ -153,8 +171,14 @@ input, select, textarea {
 
 .task-row { position: relative; padding: 12px 14px; touch-action: pan-y pinch-zoom !important; }
 .task-row[data-category='office'] { --cat: var(--cat-office); }
-.task-row[data-category='freelance'] { --cat: var(--cat-freelance); }
+.task-row[data-category='projects'] { --cat: var(--cat-projects); }
 .task-row[data-category='youtube'] { --cat: var(--cat-youtube); }
+.task-row[data-category='recording'] { --cat: var(--cat-recording); }
+.task-row[data-category='editing'] { --cat: var(--cat-editing); }
+.task-row[data-category='learning'] { --cat: var(--cat-learning); }
+.task-row[data-category='health'] { --cat: var(--cat-health); }
+.task-row[data-category='personal'] { --cat: var(--cat-personal); }
+.task-row[data-category='breaks'] { --cat: var(--cat-breaks); }
 .task-row[data-status='done'], .task-row[data-status='skipped'] { box-shadow: var(--neu-press); opacity: 0.6; }
 .task-row[data-status='skipped'] .task-row-title { text-decoration: line-through; }
 .task-row-main { display: flex; align-items: center; gap: 12px; }
@@ -223,8 +247,14 @@ input, select, textarea {
 .category-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 3px; }
 .category-segment { display: block; min-width: 6px; }
 .category-segment[data-category='office'], .category-legend [data-category='office'] { --cat: var(--cat-office); }
-.category-segment[data-category='freelance'], .category-legend [data-category='freelance'] { --cat: var(--cat-freelance); }
+.category-segment[data-category='projects'], .category-legend [data-category='projects'] { --cat: var(--cat-projects); }
 .category-segment[data-category='youtube'], .category-legend [data-category='youtube'] { --cat: var(--cat-youtube); }
+.category-segment[data-category='recording'], .category-legend [data-category='recording'] { --cat: var(--cat-recording); }
+.category-segment[data-category='editing'], .category-legend [data-category='editing'] { --cat: var(--cat-editing); }
+.category-segment[data-category='learning'], .category-legend [data-category='learning'] { --cat: var(--cat-learning); }
+.category-segment[data-category='health'], .category-legend [data-category='health'] { --cat: var(--cat-health); }
+.category-segment[data-category='personal'], .category-legend [data-category='personal'] { --cat: var(--cat-personal); }
+.category-segment[data-category='breaks'], .category-legend [data-category='breaks'] { --cat: var(--cat-breaks); }
 .category-segment { background: var(--cat); }
 .category-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 0; font-size: 13px; color: var(--neu-muted); }
 .category-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--cat); }
@@ -247,8 +277,14 @@ input, select, textarea {
 /* High contrast: no doubled borders inside rows and tabs; categories told apart by pattern, not colour. */
 [data-theme='contrast'] .task-row-toggle, [data-theme='contrast'] .day-switch button { border: none; }
 [data-theme='contrast'] .ring-track { stroke: #ffffff; opacity: 0.35; }
-[data-theme='contrast'] .category-segment[data-category='freelance'] { background: repeating-linear-gradient(45deg, #ffffff 0 4px, #000000 4px 7px); }
+/* Office and Personal stay solid; the legend names every category, so the bar never relies on pattern alone. */
+[data-theme='contrast'] .category-segment[data-category='projects'] { background: repeating-linear-gradient(45deg, #ffffff 0 4px, #000000 4px 7px); }
 [data-theme='contrast'] .category-segment[data-category='youtube'] { background: repeating-linear-gradient(90deg, #ffffff 0 2px, #000000 2px 5px); }
+[data-theme='contrast'] .category-segment[data-category='recording'] { background: repeating-linear-gradient(135deg, #ffffff 0 4px, #000000 4px 7px); }
+[data-theme='contrast'] .category-segment[data-category='editing'] { background: repeating-linear-gradient(0deg, #ffffff 0 2px, #000000 2px 5px); }
+[data-theme='contrast'] .category-segment[data-category='learning'] { background: radial-gradient(#000000 1px, #ffffff 1.5px) 0 0 / 5px 5px; }
+[data-theme='contrast'] .category-segment[data-category='health'] { background: repeating-linear-gradient(45deg, #ffffff 0 8px, #000000 8px 10px); }
+[data-theme='contrast'] .category-segment[data-category='breaks'] { background: repeating-linear-gradient(90deg, #ffffff 0 6px, #000000 6px 8px); }
 
 /* Setup */
 .setup-header { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 16px; }
@@ -259,7 +295,7 @@ input, select, textarea {
 .setup-lengths { flex-wrap: wrap; }
 .setup-lengths [role='group'] { display: flex; flex-wrap: wrap; gap: 8px; }
 .setup-lengths button[aria-pressed='true'] { color: var(--neu-accent-text); font-weight: 600; }
-.setup-saved { margin: 0 0 6px; font-size: 13px; color: var(--cat-freelance); }
+.setup-saved { margin: 0 0 6px; font-size: 13px; color: var(--cat-projects); }
 .switch {
   position: relative; width: 52px; height: 30px; padding: 0; flex: none;
   border-radius: 999px; box-shadow: var(--neu-press);
@@ -301,8 +337,14 @@ input, select, textarea {
 .table-title input:focus { box-shadow: var(--neu-press); }
 .table-meta { font-size: 12px; color: var(--neu-muted); padding-left: 8px; }
 .table-row[data-category='office'] .table-meta { color: var(--cat-office); }
-.table-row[data-category='freelance'] .table-meta { color: var(--cat-freelance); }
+.table-row[data-category='projects'] .table-meta { color: var(--cat-projects); }
 .table-row[data-category='youtube'] .table-meta { color: var(--cat-youtube); }
+.table-row[data-category='recording'] .table-meta { color: var(--cat-recording); }
+.table-row[data-category='editing'] .table-meta { color: var(--cat-editing); }
+.table-row[data-category='learning'] .table-meta { color: var(--cat-learning); }
+.table-row[data-category='health'] .table-meta { color: var(--cat-health); }
+.table-row[data-category='personal'] .table-meta { color: var(--cat-personal); }
+.table-row[data-category='breaks'] .table-meta { color: var(--cat-breaks); }
 .table-actions { display: flex; gap: 4px; }
 .table-actions button { padding: 6px 10px; font-size: 13px; }
 .table-row[data-status='done'], .table-row[data-status='skipped'] { opacity: 0.6; }

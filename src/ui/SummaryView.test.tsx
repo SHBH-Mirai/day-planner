@@ -83,3 +83,15 @@ describe('SummaryView', () => {
     expect(within(within(table).getByRole('row', { name: /Content/ })).getByText('90')).toBeInTheDocument()
   })
 })
+
+describe('SummaryView new categories', () => {
+  test('Recording and Breaks & meals show in the bar and the legend', () => {
+    const rec = makeTask({ category: 'recording', start: ist(D, '11:00'), end: ist(D, '11:30') })
+    const lunch = makeTask({ category: 'breaks', start: ist(D, '13:00'), end: ist(D, '14:00') })
+    render(<SummaryView tasks={[rec, lunch]} />)
+    const bar = screen.getByRole('img', { name: 'Time by category' })
+    expect(within(bar).getByLabelText('Recording 30 min')).toBeInTheDocument()
+    expect(within(bar).getByLabelText('Breaks & meals 60 min')).toBeInTheDocument()
+    expect(bar).toHaveAccessibleDescription(/Recording 30m.*Breaks & meals 1h/)
+  })
+})

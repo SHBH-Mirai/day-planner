@@ -47,3 +47,11 @@ describe('RoutineForm description layout', () => {
     expect(screen.getByLabelText('Category').compareDocumentPosition(desc()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })
+
+describe('RoutineForm categories', () => {
+  test('the picker offers the nine categories in order', () => {
+    render(<RoutineForm initial={gym} onSubmit={vi.fn(async () => true)} onCancel={vi.fn()} />)
+    const options = Array.from((screen.getByLabelText('Category') as HTMLSelectElement).options).map((o) => o.text)
+    expect(options).toEqual(['Office', 'Projects', 'Content', 'Recording', 'Editing', 'Learning', 'Health', 'Personal', 'Breaks & meals'])
+  })
+})
