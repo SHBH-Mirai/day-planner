@@ -58,6 +58,14 @@ export function runRepositoryContract(name: string, makeRepo: () => TaskReposito
       expect(await repo.listRange(DAY, 1)).toEqual(await repo.listForDay(DAY))
     })
 
+    test('fixed time is saved, and turning it off saves that too', async () => {
+      const repo = makeRepo()
+      const created = await repo.create({ ...draft('Call', '16:00', '16:30'), fixed: true })
+      expect((await repo.listForDay(DAY))[0].fixed).toBe(true)
+      await repo.update({ ...created, fixed: false })
+      expect((await repo.listForDay(DAY))[0].fixed).toBeFalsy()
+    })
+
     test('remove deletes', async () => {
       const repo = makeRepo()
       const created = await repo.create(draft('Gone'))

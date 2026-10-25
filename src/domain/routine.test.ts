@@ -90,3 +90,10 @@ describe('routine descriptions', () => {
     expect(routineToDraft({ id: 'r1', ...draft() }, DAY).description).toBeUndefined()
   })
 })
+
+describe('fixed routines', () => {
+  it("a fixed routine makes a fixed task for the day", () => {
+    expect(routineToDraft({ id: 'r1', ...draft({ fixed: true }) }, DAY).fixed).toBe(true)
+    expect(routineToDraft({ id: 'r1', ...draft() }, DAY).fixed).toBeFalsy()
+  })
+})

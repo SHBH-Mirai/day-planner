@@ -166,3 +166,75 @@ describe('TaskTable description', () => {
     expect(screen.getByRole('article', { name: 'Standup' }).querySelector('.table-description')).toBeNull()
   })
 })
+
+describe('TaskTable fixed time', () => {
+  test('each row has a pin that toggles fixed time', async () => {
+    const onToggleFixed = vi.fn()
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[s, { ...r, fixed: true }]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={onToggleFixed}
+      />,
+    )
+    const pin = screen.getByRole('button', { name: 'Fixed: Standup' })
+    expect(pin).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Fixed: Review' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(pin)
+    expect(onToggleFixed).toHaveBeenCalledWith(s)
+  })
+})
+
+describe('TaskTable pin hint', () => {
+  test('the pin has a tooltip, since it is the only icon-only button', () => {
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[s]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={noop}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Fixed: Standup' })).toHaveAttribute('title', 'Fixed time')
+  })
+})
+
+describe('TaskTable pin on closed rows', () => {
+  test('done and skipped rows cannot be pinned, like +30', () => {
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[{ ...s, status: 'done' }, { ...r, status: 'skipped' }]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={noop}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Fixed: Standup' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Fixed: Review' })).toBeDisabled()
+  })
+})

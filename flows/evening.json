@@ -1159,7 +1159,8 @@
              "item/TaskOriginalEnd": "@addDays(coalesce(items('Each_skipped')?['TaskOriginalEnd'], items('Each_skipped')?['TaskEnd']), 1)",
              "item/TaskCategory/Value": "@coalesce(items('Each_skipped')?['TaskCategory']?['Value'], 'office')",
              "item/TaskStatus/Value": "planned",
-             "item/TaskDescription": "@coalesce(items('Each_skipped')?['TaskDescription'], '')"
+             "item/TaskDescription": "@coalesce(items('Each_skipped')?['TaskDescription'], '')",
+             "item/TaskFixed": "@equals(items('Each_skipped')?['TaskFixed'], true)"
             },
             "host": {
              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",

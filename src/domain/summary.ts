@@ -1,5 +1,6 @@
 import { emptyPerCategory, type Category, type Status, type Task } from './task'
 import { minutesBetween } from './time'
+import { workPlannedMinutes, workSpentMinutes } from './fixed'
 
 export interface TaskSummary {
   id: string
@@ -32,8 +33,9 @@ export function summarize(tasks: Task[]): DaySummary {
   const perCategory = emptyPerCategory()
 
   const perTask = tasks.map((t): TaskSummary => {
-    const plannedMin = plannedMinutes(t)
-    const actualMin = t.actualEnd ? spentMinutes(t) : null
+    // Working time: a fixed task (a call) inside a flexible one is a pause, not work.
+    const plannedMin = workPlannedMinutes(t, tasks)
+    const actualMin = t.actualEnd ? workSpentMinutes(t, tasks) : null
 
     if (t.status === 'done') perCategory[t.category] += actualMin ?? plannedMin
     else if (t.status === 'planned') perCategory[t.category] += plannedMin

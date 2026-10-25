@@ -55,3 +55,25 @@ describe('RoutineForm categories', () => {
     expect(options).toEqual(['Office', 'Projects', 'Content', 'Recording', 'Editing', 'Learning', 'Health', 'Personal', 'Breaks & meals'])
   })
 })
+
+describe('RoutineForm fixed time', () => {
+  test('shows the saved value and submits a change', async () => {
+    const onSubmit = vi.fn(async (_d: object) => true)
+    render(<RoutineForm initial={{ ...gym, fixed: true }} onSubmit={onSubmit} onCancel={vi.fn()} />)
+    const sw = screen.getByRole('switch', { name: 'Fixed time (meeting, call)' })
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(sw)
+    await userEvent.click(screen.getByRole('button', { name: 'Save routine' }))
+    const draft = onSubmit.mock.calls[0][0] as { fixed?: boolean }
+    expect('fixed' in draft).toBe(true)
+    expect(draft.fixed).toBeFalsy()
+  })
+})
+
+describe('RoutineForm fixed time, the switch row', () => {
+  test('tapping the words turns the switch on', async () => {
+    render(<RoutineForm initial={gym} onSubmit={vi.fn(async () => true)} onCancel={vi.fn()} />)
+    await userEvent.click(screen.getByText('Fixed time (meeting, call)'))
+    expect(screen.getByRole('switch', { name: 'Fixed time (meeting, call)' })).toHaveAttribute('aria-checked', 'true')
+  })
+})

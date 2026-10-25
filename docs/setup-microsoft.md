@@ -29,9 +29,11 @@ When you're done you'll have four values for `.env.local`:
    | `TaskCategory` | Choice | `office`, `projects`, `youtube`, `recording`, `editing`, `learning`, `health`, `personal`, `breaks` |
    | `TaskStatus` | Choice | `planned`, `done`, `skipped`; default `planned` |
    | `TaskDescription` | Multiple lines of text | **Plain text** (not rich text). Optional; the app saves at most 500 characters |
+   | `TaskFixed` | Yes/No | Default **No**. Yes marks a fixed-time task (a call, a meeting) |
 
    The routines list (`Templates`) gets the same kind of column, named `Description`,
-   which the Morning flow copies into each day's task.
+   which the Morning flow copies into each day's task. It also gets a Yes/No column
+   `Fixed` (default No), which the Morning flow copies into `TaskFixed`.
 
 4. **Index `TaskStart`:** List settings → **Indexed columns** → Create a new
    index → `TaskStart`. The app filters by start time, and Graph filters

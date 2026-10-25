@@ -148,3 +148,32 @@ describe('TaskRow description', () => {
     expect(row.querySelector('.task-row-description')).toBeNull()
   })
 })
+
+describe('TaskRow fixed time and pauses', () => {
+  it('marks a fixed task', () => {
+    const { row } = setup(task({ fixed: true }))
+    expect(within(row).getByLabelText('Fixed time')).toBeInTheDocument()
+  })
+
+  it('shows the pause and the working length of a flexible task', () => {
+    const t = task({ start: new Date(2026, 9, 17, 15, 30).toISOString(), end: new Date(2026, 9, 17, 17, 30).toISOString() })
+    render(
+      <ul>
+        <TaskRow
+          task={t}
+          isNow={false}
+          pauses={[{ from: new Date(2026, 9, 17, 16, 0).toISOString(), to: new Date(2026, 9, 17, 16, 30).toISOString(), title: 'Call' }]}
+          onDone={vi.fn()}
+          onStarted={vi.fn()}
+          onPush={vi.fn()}
+          onSkip={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </ul>,
+    )
+    const row = screen.getAllByRole('article', { name: 'Standup' }).at(-1)!
+    expect(row).toHaveTextContent('Pauses for Call (16:00–16:30)')
+    expect(row).toHaveTextContent('1h 30m')
+  })
+})

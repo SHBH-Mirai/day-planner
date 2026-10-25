@@ -6,6 +6,7 @@ import { CATEGORY_ICON, CATEGORY_LABEL } from '../labels'
 import { ConfirmButton } from './ConfirmButton'
 import { formatMinutes } from './format'
 import { swipeAction, swipeTarget } from './swipe'
+import type { Pause } from '../../domain/fixed'
 
 interface Props {
   task: Task
@@ -17,17 +18,20 @@ interface Props {
   onSkip: () => void
   onEdit: () => void
   onDelete: () => void
+  /** Fixed tasks (calls, meetings) inside this one: shown, and left out of its length. */
+  pauses?: Pause[]
 }
 
-function minutes(task: Task): string {
-  return formatMinutes(Math.round((Date.parse(task.end) - Date.parse(task.start)) / 60_000))
+function minutes(task: Task, pauses: Pause[]): string {
+  const paused = pauses.reduce((ms, p) => ms + Date.parse(p.to) - Date.parse(p.from), 0)
+  return formatMinutes(Math.round((Date.parse(task.end) - Date.parse(task.start) - paused) / 60_000))
 }
 
 /**
  * One task on the timeline. Tap the circle to tick it done; tap the row to unfold
  * Started / +30 / Skip / Edit / Delete; swipe right to move it forward, left to skip.
  */
-export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit, onDelete }: Props) {
+export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit, onDelete, pauses = [] }: Props) {
   const [open, setOpen] = useState(false)
   const titleId = useId()
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -101,13 +105,23 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
             <span className="task-row-meta">
               <span className="task-row-time">
                 {formatLocalTime(task.start)}–{formatLocalTime(task.end)}
-              </span>{' '}
+              </span>
+              {task.fixed && (
+                <span className="fixed-pin" role="img" aria-label="Fixed time" title="Fixed time">
+                  {' '}📌
+                </span>
+              )}{' '}
               · <span className="tag">{CATEGORY_LABEL[task.category]}</span>
               {isNow && <span className="now-badge"> · Now</span>}
               {!planned && <span className="status"> · {task.status}</span>}
             </span>
+            {pauses.length > 0 && (
+              <span className="task-row-pause">
+                {pauses.map((p) => `Pauses for ${p.title} (${formatLocalTime(p.from)}–${formatLocalTime(p.to)})`).join(', ')}
+              </span>
+            )}
           </button>
-          <span className="task-row-length">{minutes(task)}</span>
+          <span className="task-row-length">{minutes(task, pauses)}</span>
         </div>
         <AnimatePresence initial={false}>
           {open && (

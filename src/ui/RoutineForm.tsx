@@ -3,6 +3,7 @@ import { validateRoutine, WEEKDAYS, type Routine, type RoutineDraft, type Weekda
 import { CATEGORIES, normaliseDescription, type Category } from '../domain/task'
 import { CATEGORY_LABEL } from './labels'
 import { DescriptionField } from './DescriptionField'
+import { Switch } from './neu/Switch'
 
 interface Props {
   /** Present when editing an existing routine. */
@@ -16,6 +17,7 @@ interface Props {
 export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [category, setCategory] = useState<Category>(initial?.category ?? 'office')
+  const [fixed, setFixed] = useState(initial?.fixed === true)
   const [description, setDescription] = useState(initial?.description ?? '')
   const [startTime, setStartTime] = useState(initial?.startTime ?? '07:00')
   const [durationMin, setDurationMin] = useState(String(initial?.durationMin ?? 30))
@@ -36,6 +38,8 @@ export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
       days,
       active: initial?.active ?? true,
       description: normaliseDescription(description),
+      // Present even when off, so an edit that turns it off overwrites the saved value.
+      fixed: fixed || undefined,
     }
     const problems = validateRoutine(draft)
     setErrors(problems)
@@ -76,6 +80,11 @@ export function RoutineForm({ initial, onSubmit, onCancel }: Props) {
           </button>
         ))}
       </div>
+      <label className="form-switch form-wide">
+        <span>Fixed time (meeting, call)</span>
+        <Switch label="Fixed time (meeting, call)" checked={fixed} onChange={setFixed} />
+      </label>
+      <p className="form-hint form-wide">Other tasks pause around it and never move it.</p>
       <DescriptionField value={description} onChange={setDescription} />
 
       {errors.length > 0 && (
