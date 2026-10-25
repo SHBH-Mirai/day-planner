@@ -16,10 +16,12 @@ export interface Task {
   status: Status
   /** Plain text shown wherever a nudge shows. Absent when there is none. */
   description?: string
+  /** Fixed time (a call, a meeting): reorder, +30 and chain moves never move it; flexible tasks pause around it. */
+  fixed?: boolean
 }
 
 /** What the form collects before the task exists. */
-export type TaskDraft = Pick<Task, 'title' | 'start' | 'end' | 'category'> & { description?: string }
+export type TaskDraft = Pick<Task, 'title' | 'start' | 'end' | 'category'> & { description?: string; fixed?: boolean }
 
 /** Every category, in the order pickers, summaries and legends show them. `youtube` is stored for Content. */
 export const CATEGORIES: readonly Category[] = ['office', 'projects', 'youtube', 'recording', 'editing', 'learning', 'health', 'personal', 'breaks']

@@ -104,3 +104,19 @@ describe('routine mapping: category values', () => {
     expect(fromRoutineItem(item('learning')).category).toBe('learning')
   })
 })
+
+describe('routine mapping: fixed time', () => {
+  const draft = { title: 'Standup', category: 'office' as const, startTime: '09:30', durationMin: 15, days: ['Mon' as const], active: true }
+  const item = (Fixed: unknown) => ({ id: '9', fields: { Title: 'Standup', Category: 'office', StartTime: '09:30', DurationMin: 15, Days: ['Mon'], Active: true, Fixed } })
+
+  test('a new routine sends Fixed only when fixed; an update always sends it', () => {
+    expect(toRoutineFields({ ...draft, fixed: true }).Fixed).toBe(true)
+    expect(toRoutineFields(draft)).not.toHaveProperty('Fixed')
+    expect(toRoutineFields(draft, 'update').Fixed).toBe(false)
+  })
+
+  test('reads Fixed back; anything but true reads as not fixed', () => {
+    expect(fromRoutineItem(item(true)).fixed).toBe(true)
+    for (const v of [false, null, undefined, 'yes']) expect(fromRoutineItem(item(v)).fixed).toBeFalsy()
+  })
+})

@@ -92,3 +92,26 @@ describe('SharePoint mapping: category values', () => {
     expect(fromItem(withCategory('nope')).category).toBe('office')
   })
 })
+
+describe('SharePoint mapping: fixed time', () => {
+  const draft = { title: 'Call', start: ist(D, '16:00'), end: ist(D, '16:30'), category: 'office' as const }
+  const item = (TaskFixed: unknown) => ({
+    id: '11',
+    fields: { ...toFields(makeTask({ id: '11' })), TaskFixed } as Parameters<typeof fromItem>[0]['fields'],
+  })
+
+  test('a new draft sends TaskFixed only when it is fixed', () => {
+    expect(toFields({ ...draft, fixed: true }).TaskFixed).toBe(true)
+    expect(toFields(draft)).not.toHaveProperty('TaskFixed')
+  })
+
+  test('an update always sends it, so turning fixed off saves false', () => {
+    expect(toFields(makeTask({ fixed: true })).TaskFixed).toBe(true)
+    expect(toFields(makeTask()).TaskFixed).toBe(false)
+  })
+
+  test('reads fixed back; false, null or missing read as not fixed', () => {
+    expect(fromItem(item(true)).fixed).toBe(true)
+    for (const v of [false, null, undefined]) expect(fromItem(item(v)).fixed).toBeFalsy()
+  })
+})

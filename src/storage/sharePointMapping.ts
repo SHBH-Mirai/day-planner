@@ -12,6 +12,8 @@ export interface TaskFields {
   TaskStatus: Status
   /** Multiple lines of text, plain. Sent as null to clear it. */
   TaskDescription?: string | null
+  /** Yes/No. A new item sends it only when true; an update always sends it. */
+  TaskFixed?: boolean | null
 }
 
 export interface GraphListItem {
@@ -44,6 +46,7 @@ export function toFields(t: Task | TaskDraft): TaskFields {
     TaskStatus: task.status,
   }
   if (isUpdate || task.description) fields.TaskDescription = task.description ?? null
+  if (isUpdate || task.fixed) fields.TaskFixed = task.fixed === true
   return fields
 }
 
@@ -63,5 +66,6 @@ export function fromItem(item: GraphListItem): Task {
   if (actualStart) task.actualStart = actualStart
   if (actualEnd) task.actualEnd = actualEnd
   if (typeof f.TaskDescription === 'string' && f.TaskDescription.trim()) task.description = f.TaskDescription
+  if (f.TaskFixed === true) task.fixed = true
   return task
 }

@@ -57,6 +57,14 @@ export function runRoutineContract(name: string, makeRepo: () => RoutineReposito
       expect((await repo.list())[0].description).toBeUndefined()
     })
 
+    test('fixed time is saved, and turning it off saves that too', async () => {
+      const repo = makeRepo()
+      const created = await repo.create(draft('Standup', '09:30', { fixed: true }))
+      expect((await repo.list())[0].fixed).toBe(true)
+      await repo.update({ ...created, fixed: false })
+      expect((await repo.list())[0].fixed).toBeFalsy()
+    })
+
     test('remove deletes it, and removing a missing one is notFound', async () => {
       const repo = makeRepo()
       const r = await repo.create(draft('Gym'))

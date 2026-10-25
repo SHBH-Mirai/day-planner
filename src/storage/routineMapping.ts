@@ -4,7 +4,7 @@ import { readCategory } from '../domain/task'
 /** A Templates list item as Graph returns it with $expand=fields. */
 export interface RoutineItem {
   id: string
-  fields: { Title?: unknown; Category?: unknown; StartTime?: unknown; DurationMin?: unknown; Days?: unknown; Active?: unknown; Description?: unknown }
+  fields: { Title?: unknown; Category?: unknown; StartTime?: unknown; DurationMin?: unknown; Days?: unknown; Active?: unknown; Description?: unknown; Fixed?: unknown }
 }
 
 /**
@@ -22,6 +22,7 @@ export function toRoutineFields(r: RoutineDraft, mode: 'create' | 'update' = 'cr
     Active: r.active,
   }
   if (mode === 'update' || r.description) fields.Description = r.description ?? null
+  if (mode === 'update' || r.fixed) fields.Fixed = r.fixed === true
   return fields
 }
 
@@ -39,5 +40,6 @@ export function fromRoutineItem(item: RoutineItem): Routine {
     // Empty Active is off: the Morning flow's `Active eq 1` filter skips it too.
     active: f.Active === true,
     ...(typeof f.Description === 'string' && f.Description.trim() ? { description: f.Description } : {}),
+    ...(f.Fixed === true ? { fixed: true } : {}),
   }
 }

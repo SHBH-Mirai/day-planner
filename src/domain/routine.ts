@@ -16,6 +16,8 @@ export interface Routine {
   active: boolean
   /** Copied into each day's task. */
   description?: string
+  /** The day's task is fixed time. */
+  fixed?: boolean
 }
 
 export type RoutineDraft = Omit<Routine, 'id'>
@@ -40,6 +42,7 @@ export function routineToDraft(r: Routine, day: Date): TaskDraft {
   const end = new Date(start.getTime() + r.durationMin * 60_000)
   const draft: TaskDraft = { title: r.title, start: start.toISOString(), end: end.toISOString(), category: r.category }
   if (r.description) draft.description = r.description
+  if (r.fixed) draft.fixed = true
   return draft
 }
 
