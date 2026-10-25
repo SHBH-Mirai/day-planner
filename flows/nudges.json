@@ -361,7 +361,7 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{concat(coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
+                    "text": "@{concat(if(equals(body('Get_item_start')?['TaskFixed'], true), '📌 ', ''), coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_start')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",
@@ -1064,7 +1064,7 @@
                   "items": [
                    {
                     "type": "TextBlock",
-                    "text": "@{concat(coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
+                    "text": "@{concat(if(equals(body('Get_item_end')?['TaskFixed'], true), '📌 ', ''), coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['icon'], '💼'), ' ', coalesce(outputs('Category_map')?[coalesce(body('Get_item_end')?['TaskCategory']?['Value'], 'office')]?['label'], 'Office'))}",
                     "wrap": true,
                     "weight": "Bolder",
                     "horizontalAlignment": "Right",

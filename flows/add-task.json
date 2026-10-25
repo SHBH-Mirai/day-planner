@@ -225,6 +225,23 @@
       ]
      }
     },
+    "Init_fixed": {
+     "runAfter": {
+      "Init_description": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "fixed",
+        "type": "boolean",
+        "value": false
+       }
+      ]
+     }
+    },
     "Init_note": {
      "type": "InitializeVariable",
      "inputs": {
@@ -237,7 +254,7 @@
       ]
      },
      "runAfter": {
-      "Init_description": [
+      "Init_fixed": [
        "Succeeded"
       ]
      }
@@ -423,6 +440,14 @@
             "value": "breaks"
            }
           ]
+         },
+         {
+          "type": "Input.Toggle",
+          "id": "fixed",
+          "title": "Fixed time (meeting, call)",
+          "valueOn": "true",
+          "valueOff": "false",
+          "value": "@{if(variables('fixed'), 'true', 'false')}"
          }
         ],
         "actions": [
@@ -567,9 +592,21 @@
           "value": "@trim(coalesce(body('Post_form')?['data']?['description'], ''))"
          }
         },
-        "Check": {
+        "Keep_fixed": {
          "runAfter": {
           "Keep_description": [
+           "Succeeded"
+          ]
+         },
+         "type": "SetVariable",
+         "inputs": {
+          "name": "fixed",
+          "value": "@equals(coalesce(body('Post_form')?['data']?['fixed'], 'false'), 'true')"
+         }
+        },
+        "Check": {
+         "runAfter": {
+          "Keep_fixed": [
            "Succeeded"
           ]
          },
@@ -646,7 +683,8 @@
              "item/TaskOriginalEnd": "@convertToUtc(concat(variables('date'), 'T', variables('end'), ':00'), 'India Standard Time')",
              "item/TaskCategory/Value": "@variables('category')",
              "item/TaskStatus/Value": "planned",
-             "item/TaskDescription": "@variables('description')"
+             "item/TaskDescription": "@variables('description')",
+             "item/TaskFixed": "@variables('fixed')"
             },
             "host": {
              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -731,6 +769,18 @@
            "inputs": {
             "name": "description",
             "value": ""
+           }
+          },
+          "Next_fixed": {
+           "runAfter": {
+            "Next_description": [
+             "Succeeded"
+            ]
+           },
+           "type": "SetVariable",
+           "inputs": {
+            "name": "fixed",
+            "value": false
            }
           }
          },
