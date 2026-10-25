@@ -141,20 +141,20 @@ describe('pushes keep descriptions', () => {
 })
 
 describe('fixed tasks never move', () => {
-  test('+30 leaves a fixed call where it is and the flexible task pauses for it', () => {
+  test('worked example 3: +30 flows around a fixed call, which stays, and B keeps its place after it', () => {
     const a = at('A', '15:00', '15:50'),
       call = at('Call', '16:00', '16:30', { fixed: true }),
       b = at('B', '16:30', '17:00')
-    const { updated, moved } = pushTask(a, [a, call, b], new Date(ist(D, '15:50')))
-    expect(updated.end).toBe(ist(D, '16:20'))
-    expect(moved).toEqual([])
+    const { updated, moved, deltaMin } = pushTask(a, [a, call, b], new Date(ist(D, '15:50')))
+    expect(updated.end).toBe(ist(D, '16:50'))
+    expect(moved.map((t) => [t.title, t.start, t.end])).toEqual([['B', ist(D, '17:00'), ist(D, '17:30')]])
+    expect(deltaMin).toBe(30)
   })
 
-  test('a chain passes a fixed task without moving it and keeps moving what touches', () => {
+  test('stretching a task only into a fixed call adds no working time, so nothing moves', () => {
     const a = at('A', '15:30', '16:00'),
       call = at('Call', '16:00', '16:30', { fixed: true }),
       b = at('B', '16:20', '17:00')
-    const moved = pushChain(a, { ...a, end: ist(D, '16:30') }, [a, call, b])
-    expect(moved.map((t) => [t.title, t.start, t.end])).toEqual([['B', ist(D, '16:50'), ist(D, '17:30')]])
+    expect(pushChain(a, { ...a, end: ist(D, '16:30') }, [a, call, b])).toEqual([])
   })
 })

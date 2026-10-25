@@ -182,3 +182,16 @@ describe('TodayView, the pin says what it did', () => {
     await waitFor(() => expect(screen.getByRole('status', { name: 'Undo' })).toHaveTextContent('Made flexible: Review'))
   })
 })
+
+describe('TodayView, reorder in the table', () => {
+  test('ArrowDown on a row handle moves the task down', async () => {
+    const repo = await seeded()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await table()
+    const handle = await screen.findByRole('button', { name: 'Reorder Standup' })
+    handle.focus()
+    await userEvent.keyboard('{ArrowDown}')
+    await waitFor(async () => expect((await saved(repo, 'Review')).start).toBe(ist(D, '09:00')))
+    expect((await saved(repo, 'Standup')).start).toBe(ist(D, '09:40'))
+  })
+})
