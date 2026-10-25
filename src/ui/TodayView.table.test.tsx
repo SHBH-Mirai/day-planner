@@ -157,3 +157,15 @@ describe('TodayView, task table', () => {
     await waitFor(async () => expect((await repo.listForDay(DAY)).map((t) => t.title)).toContain('Code review'))
   })
 })
+
+describe('TodayView, fixed time in the table', () => {
+  test('the pin saves fixed time, and Undo puts it back', async () => {
+    const repo = await seeded()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await table()
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixed: Review' }))
+    await waitFor(async () => expect((await saved(repo, 'Review')).fixed).toBe(true))
+    await userEvent.click(within(await screen.findByRole('status', { name: 'Undo' })).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await saved(repo, 'Review')).fixed).toBeFalsy())
+  })
+})

@@ -164,3 +164,36 @@ describe('TaskForm categories', () => {
     expect(options).toEqual(['Office', 'Projects', 'Content', 'Recording', 'Editing', 'Learning', 'Health', 'Personal', 'Breaks & meals'])
   })
 })
+
+describe('TaskForm fixed time', () => {
+  const sw = () => screen.getByRole('switch', { name: 'Fixed time (meeting, call)' })
+
+  test('a new task starts flexible and can be made fixed', async () => {
+    const onSubmit = vi.fn(async () => true)
+    render(<TaskForm day={DAY} others={[]} onSubmit={onSubmit} />)
+    expect(sw()).toHaveAttribute('aria-checked', 'false')
+    fill('Team call', '2026-10-17T16:00', '2026-10-17T16:30')
+    await userEvent.click(sw())
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ fixed: true }))
+  })
+
+  test('editing a fixed task shows it on, and turning it off submits false', async () => {
+    const onSubmit = vi.fn(async (_d: object) => true)
+    render(<TaskForm day={DAY} others={[]} initial={makeTask({ fixed: true })} onSubmit={onSubmit} />)
+    expect(sw()).toHaveAttribute('aria-checked', 'true')
+    await userEvent.click(sw())
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const draft = onSubmit.mock.calls[0][0] as { fixed?: boolean }
+    expect('fixed' in draft).toBe(true)
+    expect(draft.fixed).toBeFalsy()
+  })
+
+  test('a flexible task over a fixed one notes the pause instead of warning', () => {
+    const call = makeTask({ title: 'Call', start: ist('2026-10-17', '16:00'), end: ist('2026-10-17', '16:30'), fixed: true })
+    render(<TaskForm day={DAY} others={[call]} onSubmit={vi.fn(async () => true)} />)
+    fill('Deep work', '2026-10-17T15:30', '2026-10-17T17:30')
+    expect(screen.getByText('Pauses for Call (16:00–16:30)')).toBeInTheDocument()
+    expect(screen.queryByText(/Overlaps Call/)).not.toBeInTheDocument()
+  })
+})

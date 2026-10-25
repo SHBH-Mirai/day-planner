@@ -18,6 +18,8 @@ export interface TaskTableProps {
   onReplan: (t: Task, start: string, end: string) => void
   onPush: (t: Task) => void
   onRemove: (t: Task) => void
+  /** Pin or unpin fixed time (a call, a meeting). */
+  onToggleFixed?: (t: Task) => void
 }
 
 const MIN_LENGTH = 5
@@ -46,7 +48,7 @@ export function TaskTable({ tasks, ...rowProps }: TaskTableProps) {
   )
 }
 
-function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, onReplan, onPush, onRemove }: Omit<TaskTableProps, 'tasks'> & { task: Task }) {
+function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, onReplan, onPush, onRemove, onToggleFixed }: Omit<TaskTableProps, 'tasks'> & { task: Task }) {
   const savedStart = formatLocalTime(task.start)
   const savedLength = minutesBetween(task.start, task.end)
 
@@ -144,6 +146,11 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
         onKeyDown={keys(() => setLength(String(savedLength)))}
       />
       <div className="table-actions">
+        {onToggleFixed && (
+          <button className="pin" aria-label={`Fixed: ${name}`} aria-pressed={task.fixed === true} onClick={() => onToggleFixed(task)}>
+            📌
+          </button>
+        )}
         <button aria-label={`+30 min: ${name}`} disabled={closed} onClick={() => onPush(task)}>
           +30
         </button>

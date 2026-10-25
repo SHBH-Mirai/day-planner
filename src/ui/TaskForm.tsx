@@ -4,6 +4,8 @@ import { validateTask } from '../domain/validate'
 import { fromInputValue, toInputValue } from './datetimeInput'
 import { CATEGORY_LABEL } from './labels'
 import { DescriptionField } from './DescriptionField'
+import { Switch } from './neu/Switch'
+import { pauseNotes } from '../domain/fixed'
 
 interface Props {
   day: Date
@@ -37,13 +39,15 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
   const setEnd = (value: string) => setTyped({ start, end: value })
   const [title, setTitle] = useState(initial?.title ?? '')
   const [category, setCategory] = useState<Category>(initial?.category ?? 'office')
+  const [fixed, setFixed] = useState(initial?.fixed === true)
   const [description, setDescription] = useState(initial?.description ?? '')
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
   // `description` is always present, even when empty, so an edit that clears it overwrites the old one.
-  const draft: TaskDraft = { title, start: fromInputValue(start), end: fromInputValue(end), category, description: normaliseDescription(description) }
+  const draft: TaskDraft = { title, start: fromInputValue(start), end: fromInputValue(end), category, description: normaliseDescription(description), fixed: fixed || undefined }
   const { warnings } = validateTask(draft, others, initial?.id)
+  const notes = pauseNotes(draft, others.filter((o) => o.id !== initial?.id))
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -80,6 +84,10 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
           ))}
         </select>
       </label>
+      <div className="form-switch form-wide">
+        <span>Fixed time (meeting, call)</span>
+        <Switch label="Fixed time (meeting, call)" checked={fixed} onChange={setFixed} />
+      </div>
       <DescriptionField value={description} onChange={setDescription} />
 
       {errors.length > 0 && (
@@ -92,6 +100,13 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
       {warnings.length > 0 && (
         <ul className="form-warnings">
           {warnings.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      )}
+      {notes.length > 0 && (
+        <ul className="form-notes">
+          {notes.map((m) => (
             <li key={m}>{m}</li>
           ))}
         </ul>

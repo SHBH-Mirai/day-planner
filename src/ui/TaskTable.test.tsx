@@ -166,3 +166,30 @@ describe('TaskTable description', () => {
     expect(screen.getByRole('article', { name: 'Standup' }).querySelector('.table-description')).toBeNull()
   })
 })
+
+describe('TaskTable fixed time', () => {
+  test('each row has a pin that toggles fixed time', async () => {
+    const onToggleFixed = vi.fn()
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[s, { ...r, fixed: true }]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={onToggleFixed}
+      />,
+    )
+    const pin = screen.getByRole('button', { name: 'Fixed: Standup' })
+    expect(pin).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Fixed: Review' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(pin)
+    expect(onToggleFixed).toHaveBeenCalledWith(s)
+  })
+})

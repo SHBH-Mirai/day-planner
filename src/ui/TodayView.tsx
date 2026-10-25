@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { chainShiftMin, describePush, pushChain, pushTask } from '../domain/push'
+import { pauses } from '../domain/fixed'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
@@ -153,6 +154,12 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     const list = shown
     void list.save({ ...task, status: 'done', actualEnd: stamp() })
     setUndo({ taskIds: [task.id], message: `Marked done: ${task.title}`, restore: () => void list.save(task) })
+  }
+
+  /** Pin or unpin fixed time; one Undo puts it back. */
+  function toggleFixed(task: Task) {
+    void shown.save({ ...task, fixed: !task.fixed })
+    setUndo({ taskIds: [task.id], message: `${task.fixed ? 'Not fixed' : 'Fixed time'}: ${task.title}`, restore: () => void shown.save(task) })
   }
 
   function markSkipped(task: Task) {
@@ -457,6 +464,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
             onReplan={replan}
             onPush={(task) => void push(shown, task)}
             onRemove={remove}
+            onToggleFixed={toggleFixed}
           />
         </m.div>
       ) : (
@@ -473,6 +481,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
                 key={task.id}
                 task={task}
                 isNow={isNow(task)}
+                pauses={pauses(task, shown.tasks)}
                 onStarted={() => edit(shown, { ...task, actualStart: stamp() })}
                 onDone={() => markDone(task)}
                 onPush={() => void push(shown, task)}
