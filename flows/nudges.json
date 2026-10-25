@@ -663,6 +663,14 @@
                        "@ticks(items('Apply_to_each_later')?['TaskStart'])",
                        "@ticks(variables('LaterFrontier'))"
                       ]
+                     },
+                     {
+                      "not": {
+                       "equals": [
+                        "@items('Apply_to_each_later')?['TaskFixed']",
+                        true
+                       ]
+                      }
                      }
                     ]
                    },
@@ -1435,6 +1443,14 @@
                      "@ticks(items('Apply_to_each_chain')?['TaskStart'])",
                      "@ticks(variables('Frontier'))"
                     ]
+                   },
+                   {
+                    "not": {
+                     "equals": [
+                      "@items('Apply_to_each_chain')?['TaskFixed']",
+                      true
+                     ]
+                    }
                    }
                   ]
                  },
