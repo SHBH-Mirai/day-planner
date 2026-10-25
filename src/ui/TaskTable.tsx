@@ -1,10 +1,11 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import type { Task } from '../domain/task'
 import { formatLocalTime, minutesBetween, withLocalTime } from '../domain/time'
 import { CATEGORY_LABEL } from './labels'
 import { ConfirmButton } from './neu/ConfirmButton'
 import { NeuSurface } from './neu/NeuSurface'
+import { ReorderHandle } from './neu/TaskRow'
 
 export interface TaskTableProps {
   tasks: Task[]
@@ -20,6 +21,16 @@ export interface TaskTableProps {
   onRemove: (t: Task) => void
   /** Pin or unpin fixed time (a call, a meeting). */
   onToggleFixed?: (t: Task) => void
+  /** Reorder: the handle for a movable row (undefined = no handle), and the list element drags measure. */
+  reorderFor?: (t: Task, i: number, n: number) => RowReorder | undefined
+  listRef?: Ref<HTMLOListElement>
+}
+
+export interface RowReorder {
+  onUp?: () => void
+  onDown?: () => void
+  onDragStart: (e: ReactPointerEvent) => void
+  drop?: 'before' | 'after'
 }
 
 const MIN_LENGTH = 5
@@ -32,15 +43,15 @@ const plusMinutes = (iso: string, min: number) => new Date(Date.parse(iso) + min
  * asked for; TodayView saves. Typed values commit on Enter or when you leave the box, Esc puts
  * the saved value back.
  */
-export function TaskTable({ tasks, ...rowProps }: TaskTableProps) {
+export function TaskTable({ tasks, reorderFor, listRef, ...rowProps }: TaskTableProps) {
   if (tasks.length === 0) return null
   const sorted = [...tasks].sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
   return (
     <NeuSurface className="task-table">
-      <ol>
+      <ol ref={listRef}>
         <AnimatePresence initial={false}>
-          {sorted.map((task) => (
-            <TableRow key={task.id} task={task} {...rowProps} />
+          {sorted.map((task, i) => (
+            <TableRow key={task.id} task={task} reorder={reorderFor?.(task, i, sorted.length)} {...rowProps} />
           ))}
         </AnimatePresence>
       </ol>
@@ -48,7 +59,20 @@ export function TaskTable({ tasks, ...rowProps }: TaskTableProps) {
   )
 }
 
-function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, onReplan, onPush, onRemove, onToggleFixed }: Omit<TaskTableProps, 'tasks'> & { task: Task }) {
+function TableRow({
+  task,
+  isNow,
+  onDone,
+  onUndone,
+  onSkip,
+  onUnskip,
+  onRename,
+  onReplan,
+  onPush,
+  onRemove,
+  onToggleFixed,
+  reorder,
+}: Omit<TaskTableProps, 'tasks' | 'reorderFor' | 'listRef'> & { task: Task; reorder?: RowReorder }) {
   const savedStart = formatLocalTime(task.start)
   const savedLength = minutesBetween(task.start, task.end)
 
@@ -96,7 +120,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
   return (
     // The list item animates (motion leaves an inline opacity); the article inside carries the
     // status, so the CSS that dims done and skipped rows isn't overridden.
-    <m.li layout className="table-item" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <m.li layout className="table-item" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} data-task-id={task.id} data-drop={reorder?.drop}>
     <article
       aria-label={name}
       className={`table-row${isNow(task) ? ' now' : ''}`}
@@ -146,6 +170,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
         onKeyDown={keys(() => setLength(String(savedLength)))}
       />
       <div className="table-actions">
+        {reorder && <ReorderHandle title={name} {...reorder} />}
         {onToggleFixed && (
           <button
             className="pin"

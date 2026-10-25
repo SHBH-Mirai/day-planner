@@ -261,3 +261,62 @@ describe('TodayView Week segment', () => {
     expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-pressed', 'true')
   })
 })
+
+describe('TodayView, reorder', () => {
+  const at = async (repo: InMemoryTaskRepository, title: string) => (await repo.listForDay(DAY)).find((t) => t.title === title)!
+
+  test('ArrowUp on the handle moves B above A, both re-timed; Undo puts them back', async () => {
+    const repo = await seeded(['A', '16:00', '17:30'], ['B', '17:00', '17:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const handle = await screen.findByRole('button', { name: 'Reorder B' })
+    handle.focus()
+    await userEvent.keyboard('{ArrowUp}')
+    await waitFor(async () => expect((await at(repo, 'B')).start).toBe(ist(D, '16:00')))
+    expect((await at(repo, 'A')).start).toBe(ist(D, '16:30'))
+    const bar = await screen.findByRole('status', { name: 'Undo' })
+    expect(bar).toHaveTextContent('Moved B to 16:00 · A now 16:30')
+    await userEvent.click(within(bar).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await at(repo, 'B')).start).toBe(ist(D, '17:00')))
+  })
+
+  test('Move down in the unfolded row moves A below B', async () => {
+    const repo = await seeded(['A', '16:00', '17:00'], ['B', '17:00', '17:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('A')
+    await userEvent.click(within(card('A')).getByRole('button', { name: 'Move down' }))
+    await waitFor(async () => expect((await at(repo, 'A')).start).toBe(ist(D, '16:30')))
+    expect((await at(repo, 'B')).start).toBe(ist(D, '16:00'))
+  })
+
+  test('the first task has no Move up, and a done task has no handle', async () => {
+    const repo = await seeded(['A', '16:00', '17:00'], ['B', '17:00', '17:30'])
+    const b = (await repo.listForDay(DAY)).find((t) => t.title === 'B')!
+    await repo.update({ ...b, status: 'done' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await unfold('A')
+    expect(within(card('A')).queryByRole('button', { name: 'Move up' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reorder B' })).not.toBeInTheDocument()
+  })
+})
+
+describe('TodayView, drag to reorder', () => {
+  test('dragging A by its handle below B moves it there, with a drop line while dragging', async () => {
+    const repo = await seeded(['A', '16:00', '17:00'], ['B', '17:00', '17:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const handle = await screen.findByRole('button', { name: 'Reorder A' })
+    const rows = () => [...document.querySelectorAll<HTMLElement>('[data-task-id]')]
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const i = rows().indexOf(this)
+      return { top: i * 50, height: 50, bottom: i * 50 + 50, left: 0, right: 300, width: 300, x: 0, y: i * 50, toJSON: () => ({}) } as DOMRect
+    })
+    fireEvent(handle, new MouseEvent('pointerdown', { bubbles: true, button: 0, clientY: 10 }))
+    fireEvent(window, new MouseEvent('pointermove', { clientY: 90 }))
+    await waitFor(() => expect(rows()[1]).toHaveAttribute('data-drop', 'after'))
+    fireEvent(window, new MouseEvent('pointerup', { clientY: 90 }))
+    const at = async (title: string) => (await repo.listForDay(DAY)).find((t) => t.title === title)!
+    await waitFor(async () => expect((await at('A')).start).toBe(ist(D, '16:30')))
+    expect((await at('B')).start).toBe(ist(D, '16:00'))
+    expect(rows().some((r) => r.hasAttribute('data-drop'))).toBe(false)
+    rect.mockRestore()
+  })
+})

@@ -1,6 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { AnimatePresence, m } from 'motion/react'
-import { chainShiftMin, describePush, pushChain, pushTask } from '../domain/push'
+import { chainShiftMin, describePush, moveTask, pushChain, pushTask } from '../domain/push'
+import { describeReorder, isMovable, moveTarget, reorderDay } from '../domain/reorder'
+import { useReorderDrag } from './useReorderDrag'
 import { pauses } from '../domain/fixed'
 import type { Task } from '../domain/task'
 import { formatLocalTime, tasksForDay } from '../domain/time'
@@ -186,7 +188,9 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   /** A new start or length is a re-plan (originalEnd follows); a later end pushes the chain like +30. */
   function replan(task: Task, start: string, end: string) {
     const list = shown
-    const updated = { ...task, start, end, originalEnd: end }
+    // A new start with the same length (Table's start box) keeps the working time and flows around fixed tasks.
+    const startOnly = start !== task.start && Date.parse(end) - Date.parse(start) === Date.parse(task.end) - Date.parse(task.start)
+    const updated = startOnly ? moveTask(task, start, list.tasks) : { ...task, start, end, originalEnd: end }
     const moved = pushChain(task, updated, list.tasks)
     void list.save(updated)
     for (const t of moved) void list.save(t)
@@ -194,9 +198,33 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     const before = [task, ...list.tasks.filter((t) => moved.some((m) => m.id === t.id))]
     setUndo({
       taskIds: before.map((t) => t.id),
-      message: describePush(task.title, end, moved, chainShiftMin(task, updated)),
+      message: describePush(task.title, updated.end, moved, chainShiftMin(task, updated, list.tasks)),
       restore: () => before.forEach((t) => void list.save(t)),
     })
+  }
+
+  /** Put a task before another (null = last); the tasks it passes re-time; one Undo puts them all back. */
+  function reorder(movedId: string, beforeId: string | null) {
+    const list = shown
+    const changed = reorderDay(list.tasks, movedId, beforeId)
+    if (!changed.length) return
+    const before = list.tasks.filter((t) => changed.some((c) => c.id === t.id))
+    for (const t of changed) void list.save(t)
+    setUndo({ taskIds: before.map((t) => t.id), message: describeReorder(changed), restore: () => before.forEach((t) => void list.save(t)) })
+  }
+  const { listRef: reorderListRef, start: startDrag, mark: dropMark } = useReorderDrag(reorder)
+  /** The handle and Move up / Move down for a movable row; none when it's the only movable task. */
+  function reorderFor(task: Task, i: number, n: number) {
+    if (!isMovable(task)) return undefined
+    const up = moveTarget(shown.tasks, task.id, -1)
+    const down = moveTarget(shown.tasks, task.id, 1)
+    if (up === undefined && down === undefined) return undefined
+    return {
+      onUp: up === undefined ? undefined : () => reorder(task.id, up),
+      onDown: down === undefined ? undefined : () => reorder(task.id, down),
+      onDragStart: (e: ReactPointerEvent) => startDrag(task.id, e),
+      drop: dropMark(i, n),
+    }
   }
 
   function remove(task: Task) {
@@ -465,10 +493,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
             onPush={(task) => void push(shown, task)}
             onRemove={remove}
             onToggleFixed={toggleFixed}
+            reorderFor={reorderFor}
+            listRef={reorderListRef}
           />
         </m.div>
       ) : (
         <m.ol
+          ref={reorderListRef}
           className="timeline"
           key={viewTomorrow ? 'tomorrow' : 'today'}
           initial={slide ? { opacity: 0, x: viewTomorrow ? 32 : -32 } : false}
@@ -476,8 +507,9 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           <AnimatePresence initial={false}>
-            {shown.tasks.map((task) => (
+            {shown.tasks.map((task, i) => (
               <TaskRow
+                reorder={reorderFor(task, i, shown.tasks.length)}
                 key={task.id}
                 task={task}
                 isNow={isNow(task)}
