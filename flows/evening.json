@@ -367,6 +367,38 @@
       ]
      }
     },
+    "Init_pauseplanned": {
+     "runAfter": {
+      "Init_moved": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "PausePlanned",
+        "type": "integer"
+       }
+      ]
+     }
+    },
+    "Init_pauseactual": {
+     "runAfter": {
+      "Init_pauseplanned": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "PauseActual",
+        "type": "integer"
+       }
+      ]
+     }
+    },
     "Get_today": {
      "type": "OpenApiConnection",
      "inputs": {
@@ -384,15 +416,27 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Init_moved": [
+      "Init_pauseactual": [
        "Succeeded"
       ]
+     }
+    },
+    "Fixed_today": {
+     "type": "Query",
+     "runAfter": {
+      "Get_today": [
+       "Succeeded"
+      ]
+     },
+     "inputs": {
+      "from": "@body('Get_today')?['value']",
+      "where": "@and(equals(item()?['TaskFixed'], true), not(equals(item()?['TaskStatus']?['Value'], 'skipped')))"
      }
     },
     "Each_task": {
      "type": "Foreach",
      "runAfter": {
-      "Get_today": [
+      "Fixed_today": [
        "Succeeded"
       ]
      },
@@ -403,9 +447,70 @@
       }
      },
      "actions": {
+      "Reset_pause_planned": {
+       "type": "SetVariable",
+       "inputs": {
+        "name": "PausePlanned",
+        "value": 0
+       },
+       "runAfter": {}
+      },
+      "Reset_pause_actual": {
+       "type": "SetVariable",
+       "inputs": {
+        "name": "PauseActual",
+        "value": 0
+       },
+       "runAfter": {
+        "Reset_pause_planned": [
+         "Succeeded"
+        ]
+       }
+      },
+      "Each_fixed": {
+       "type": "Foreach",
+       "runAfter": {
+        "Reset_pause_actual": [
+         "Succeeded"
+        ]
+       },
+       "runtimeConfiguration": {
+        "concurrency": {
+         "repetitions": 1
+        }
+       },
+       "foreach": "@if(equals(items('Each_task')?['TaskFixed'], true), json('[]'), body('Fixed_today'))",
+       "actions": {
+        "Add_pause_planned": {
+         "type": "IncrementVariable",
+         "runAfter": {},
+         "inputs": {
+          "name": "PausePlanned",
+          "value": "@max(0, div(sub(min(ticks(coalesce(items('Each_task')?['TaskOriginalEnd'], items('Each_task')?['TaskEnd'])), ticks(items('Each_fixed')?['TaskEnd'])), max(ticks(items('Each_task')?['TaskStart']), ticks(items('Each_fixed')?['TaskStart']))), 600000000))"
+         }
+        },
+        "Add_pause_actual": {
+         "type": "IncrementVariable",
+         "runAfter": {
+          "Add_pause_planned": [
+           "Succeeded"
+          ]
+         },
+         "inputs": {
+          "name": "PauseActual",
+          "value": "@max(0, div(sub(min(ticks(coalesce(items('Each_task')?['TaskActualEnd'], items('Each_task')?['TaskStart'])), ticks(items('Each_fixed')?['TaskEnd'])), max(ticks(coalesce(items('Each_task')?['TaskActualStart'], items('Each_task')?['TaskStart'])), ticks(items('Each_fixed')?['TaskStart']))), 600000000))"
+         }
+        }
+       }
+      },
       "Planned_min": {
        "type": "Compose",
-       "inputs": "@div(add(sub(ticks(coalesce(items('Each_task')?['TaskOriginalEnd'], items('Each_task')?['TaskEnd'])), ticks(items('Each_task')?['TaskStart'])), 300000000), 600000000)"
+       "inputs": "@sub(div(add(sub(ticks(coalesce(items('Each_task')?['TaskOriginalEnd'], items('Each_task')?['TaskEnd'])), ticks(items('Each_task')?['TaskStart'])), 300000000), 600000000), variables('PausePlanned'))",
+       "runAfter": {
+        "Each_fixed": [
+         "Succeeded"
+        ]
+       }
       },
       "Actual_min": {
        "type": "Compose",
@@ -414,7 +519,7 @@
          "Succeeded"
         ]
        },
-       "inputs": "@div(add(sub(ticks(coalesce(items('Each_task')?['TaskActualEnd'], items('Each_task')?['TaskStart'])), ticks(coalesce(items('Each_task')?['TaskActualStart'], items('Each_task')?['TaskStart']))), 300000000), 600000000)"
+       "inputs": "@sub(div(add(sub(ticks(coalesce(items('Each_task')?['TaskActualEnd'], items('Each_task')?['TaskStart'])), ticks(coalesce(items('Each_task')?['TaskActualStart'], items('Each_task')?['TaskStart']))), 300000000), 600000000), variables('PauseActual'))"
       },
       "Add_planned": {
        "type": "IncrementVariable",

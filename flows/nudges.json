@@ -171,7 +171,7 @@
       "authentication": "@parameters('$authentication')"
      },
      "runAfter": {
-      "Init_later_moved": [
+      "Init_laterend": [
        "Succeeded"
       ]
      }
@@ -616,16 +616,162 @@
                   ]
                  }
                 },
+                "Get_day_later": {
+                 "type": "OpenApiConnection",
+                 "inputs": {
+                  "parameters": {
+                   "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                   "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                   "$filter": "ID ne @{triggerOutputs()?['body/ID']} and TaskStart ge '@{convertToUtc(concat(convertFromUtc(body('Get_item_started')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time')}' and TaskStart lt '@{addDays(convertToUtc(concat(convertFromUtc(body('Get_item_started')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time'), 1)}'",
+                   "$orderby": "TaskStart asc",
+                   "$top": 100
+                  },
+                  "host": {
+                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                   "connectionName": "shared_sharepointonline",
+                   "operationId": "GetItems"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                 },
+                 "runAfter": {
+                  "Get_chain_later": [
+                   "Succeeded"
+                  ]
+                 }
+                },
+                "Later_fixed": {
+                 "type": "Query",
+                 "runAfter": {
+                  "Get_day_later": [
+                   "Succeeded"
+                  ]
+                 },
+                 "inputs": {
+                  "from": "@body('Get_day_later')?['value']",
+                  "where": "@and(equals(item()?['TaskFixed'], true), not(equals(item()?['TaskStatus']?['Value'], 'skipped')))"
+                 }
+                },
+                "Set_later_end": {
+                 "type": "SetVariable",
+                 "inputs": {
+                  "name": "LaterEnd",
+                  "value": "@outputs('New_end_later')"
+                 },
+                 "runAfter": {
+                  "Later_fixed": [
+                   "Succeeded"
+                  ]
+                 }
+                },
+                "Flow_later": {
+                 "type": "Foreach",
+                 "foreach": "@if(equals(body('Get_item_started')?['TaskFixed'], true), json('[]'), body('Later_fixed'))",
+                 "runtimeConfiguration": {
+                  "concurrency": {
+                   "repetitions": 1
+                  }
+                 },
+                 "actions": {
+                  "If_meets_Flow_later": {
+                   "type": "If",
+                   "runAfter": {},
+                   "expression": {
+                    "and": [
+                     {
+                      "less": [
+                       "@ticks(items('Flow_later')?['TaskStart'])",
+                       "@ticks(variables('LaterEnd'))"
+                      ]
+                     },
+                     {
+                      "greater": [
+                       "@ticks(items('Flow_later')?['TaskEnd'])",
+                       "@ticks(outputs('New_start'))"
+                      ]
+                     }
+                    ]
+                   },
+                   "actions": {
+                    "LaterEnd_next_Flow_later": {
+                     "type": "Compose",
+                     "runAfter": {},
+                     "inputs": "@addSeconds(variables('LaterEnd'), div(sub(ticks(items('Flow_later')?['TaskEnd']), max(ticks(items('Flow_later')?['TaskStart']), ticks(outputs('New_start')))), 10000000))"
+                    },
+                    "Set_LaterEnd_next_Flow_later": {
+                     "type": "SetVariable",
+                     "inputs": {
+                      "name": "LaterEnd",
+                      "value": "@outputs('LaterEnd_next_Flow_later')"
+                     },
+                     "runAfter": {
+                      "LaterEnd_next_Flow_later": [
+                       "Succeeded"
+                      ]
+                     }
+                    }
+                   },
+                   "else": {
+                    "actions": {}
+                   }
+                  }
+                 },
+                 "runAfter": {
+                  "Set_later_end": [
+                   "Succeeded"
+                  ]
+                 }
+                },
+                "If_later_paused": {
+                 "type": "If",
+                 "runAfter": {
+                  "Flow_later": [
+                   "Succeeded"
+                  ]
+                 },
+                 "expression": {
+                  "not": {
+                   "equals": [
+                    "@variables('LaterEnd')",
+                    "@outputs('New_end_later')"
+                   ]
+                  }
+                 },
+                 "actions": {
+                  "Update_later_end": {
+                   "type": "OpenApiConnection",
+                   "inputs": {
+                    "parameters": {
+                     "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                     "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                     "id": "@triggerOutputs()?['body/ID']",
+                     "item/Title": "@body('Get_item_started')?['Title']",
+                     "item/TaskEnd": "@variables('LaterEnd')",
+                     "item/TaskOriginalEnd": "@variables('LaterEnd')"
+                    },
+                    "host": {
+                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                     "connectionName": "shared_sharepointonline",
+                     "operationId": "PatchItem"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                   },
+                   "runAfter": {}
+                  }
+                 },
+                 "else": {
+                  "actions": {}
+                 }
+                },
                 "Set_later_frontier_start": {
                  "type": "SetVariable",
                  "runAfter": {
-                  "Get_chain_later": [
+                  "If_later_paused": [
                    "Succeeded"
                   ]
                  },
                  "inputs": {
                   "name": "LaterFrontier",
-                  "value": "@outputs('New_end_later')"
+                  "value": "@variables('LaterEnd')"
                  }
                 },
                 "Apply_to_each_later": {
@@ -675,6 +821,23 @@
                     ]
                    },
                    "actions": {
+                    "Overlaps_Apply_to_each_later": {
+                     "type": "Select",
+                     "runAfter": {},
+                     "inputs": {
+                      "from": "@body('Later_fixed')",
+                      "select": "@max(0, div(sub(min(ticks(addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec'))), ticks(item()?['TaskEnd'])), max(ticks(addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))), ticks(item()?['TaskStart']))), 10000000))"
+                     }
+                    },
+                    "Pause_Apply_to_each_later": {
+                     "type": "Compose",
+                     "runAfter": {
+                      "Overlaps_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
+                     },
+                     "inputs": "@int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Overlaps_Apply_to_each_later')), '}}'))), 'sum(/r/v)'), '0'))"
+                    },
                     "Move_later_item": {
                      "type": "OpenApiConnection",
                      "inputs": {
@@ -684,8 +847,8 @@
                        "id": "@items('Apply_to_each_later')?['ID']",
                        "item/Title": "@items('Apply_to_each_later')?['Title']",
                        "item/TaskStart": "@addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))",
-                       "item/TaskEnd": "@addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec'))",
-                       "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_later')?['TaskOriginalEnd'], items('Apply_to_each_later')?['TaskEnd']), outputs('Later_delta_sec'))"
+                       "item/TaskEnd": "@addSeconds(addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec')), outputs('Pause_Apply_to_each_later'))",
+                       "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_later')?['TaskOriginalEnd'], items('Apply_to_each_later')?['TaskEnd']), add(outputs('Later_delta_sec'), outputs('Pause_Apply_to_each_later')))"
                       },
                       "host": {
                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -693,6 +856,11 @@
                        "operationId": "PatchItem"
                       },
                       "authentication": "@parameters('$authentication')"
+                     },
+                     "runAfter": {
+                      "Pause_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
                      }
                     },
                     "Next_later_frontier": {
@@ -742,7 +910,7 @@
                    "Succeeded"
                   ]
                  },
-                 "inputs": "@concat(body('Get_item_started')?['Title'], ': now ', convertFromUtc(outputs('New_start'), 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(outputs('New_end_later'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('LaterMoved')), 'Nothing else moves.', concat('Moved ', join(variables('LaterMoved'), ', '), ' by ', string(div(add(outputs('Later_delta_sec'), 30), 60)), ' min.')))"
+                 "inputs": "@concat(body('Get_item_started')?['Title'], ': now ', convertFromUtc(outputs('New_start'), 'India Standard Time', 'HH:mm'), ' → ', convertFromUtc(variables('LaterEnd'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('LaterMoved')), 'Nothing else moves.', concat('Moved ', join(variables('LaterMoved'), ', '), ' by ', string(div(add(outputs('Later_delta_sec'), 30), 60)), ' min.')))"
                 },
                 "Post_later": {
                  "type": "OpenApiConnection",
@@ -1387,25 +1555,147 @@
                 "authentication": "@parameters('$authentication')"
                }
               },
-              "Delta_sec": {
-               "type": "Compose",
+              "Push_fixed": {
+               "type": "Query",
                "runAfter": {
                 "Get_chain": [
                  "Succeeded"
                 ]
                },
+               "inputs": {
+                "from": "@body('Get_chain')?['value']",
+                "where": "@and(equals(item()?['TaskFixed'], true), not(equals(item()?['TaskStatus']?['Value'], 'skipped')))"
+               }
+              },
+              "Delta_sec": {
+               "type": "Compose",
+               "runAfter": {
+                "Push_fixed": [
+                 "Succeeded"
+                ]
+               },
                "inputs": "@div(sub(ticks(outputs('New_end')), ticks(body('Get_item_pressed')?['TaskEnd'])), 10000000)"
+              },
+              "Set_push_end": {
+               "type": "SetVariable",
+               "inputs": {
+                "name": "PushEnd",
+                "value": "@outputs('New_end')"
+               },
+               "runAfter": {
+                "Delta_sec": [
+                 "Succeeded"
+                ]
+               }
+              },
+              "Flow_push": {
+               "type": "Foreach",
+               "foreach": "@if(equals(body('Get_item_pressed')?['TaskFixed'], true), json('[]'), body('Push_fixed'))",
+               "runtimeConfiguration": {
+                "concurrency": {
+                 "repetitions": 1
+                }
+               },
+               "actions": {
+                "If_meets_Flow_push": {
+                 "type": "If",
+                 "runAfter": {},
+                 "expression": {
+                  "and": [
+                   {
+                    "less": [
+                     "@ticks(items('Flow_push')?['TaskStart'])",
+                     "@ticks(variables('PushEnd'))"
+                    ]
+                   },
+                   {
+                    "greater": [
+                     "@ticks(items('Flow_push')?['TaskEnd'])",
+                     "@ticks(addMinutes(outputs('New_end'), -30))"
+                    ]
+                   }
+                  ]
+                 },
+                 "actions": {
+                  "PushEnd_next_Flow_push": {
+                   "type": "Compose",
+                   "runAfter": {},
+                   "inputs": "@addSeconds(variables('PushEnd'), div(sub(ticks(items('Flow_push')?['TaskEnd']), max(ticks(items('Flow_push')?['TaskStart']), ticks(addMinutes(outputs('New_end'), -30)))), 10000000))"
+                  },
+                  "Set_PushEnd_next_Flow_push": {
+                   "type": "SetVariable",
+                   "inputs": {
+                    "name": "PushEnd",
+                    "value": "@outputs('PushEnd_next_Flow_push')"
+                   },
+                   "runAfter": {
+                    "PushEnd_next_Flow_push": [
+                     "Succeeded"
+                    ]
+                   }
+                  }
+                 },
+                 "else": {
+                  "actions": {}
+                 }
+                }
+               },
+               "runAfter": {
+                "Set_push_end": [
+                 "Succeeded"
+                ]
+               }
+              },
+              "If_push_paused": {
+               "type": "If",
+               "runAfter": {
+                "Flow_push": [
+                 "Succeeded"
+                ]
+               },
+               "expression": {
+                "not": {
+                 "equals": [
+                  "@variables('PushEnd')",
+                  "@outputs('New_end')"
+                 ]
+                }
+               },
+               "actions": {
+                "Update_push_end": {
+                 "type": "OpenApiConnection",
+                 "inputs": {
+                  "parameters": {
+                   "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                   "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                   "id": "@triggerOutputs()?['body/ID']",
+                   "item/Title": "@body('Get_item_pressed')?['Title']",
+                   "item/TaskEnd": "@variables('PushEnd')"
+                  },
+                  "host": {
+                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                   "connectionName": "shared_sharepointonline",
+                   "operationId": "PatchItem"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                 },
+                 "runAfter": {}
+                }
+               },
+               "else": {
+                "actions": {}
+               }
               },
               "Set_frontier_start": {
                "type": "SetVariable",
                "runAfter": {
-                "Delta_sec": [
+                "If_push_paused": [
                  "Succeeded"
                 ]
                },
                "inputs": {
                 "name": "Frontier",
-                "value": "@outputs('New_end')"
+                "value": "@variables('PushEnd')"
                }
               },
               "Apply_to_each_chain": {
@@ -1455,6 +1745,23 @@
                   ]
                  },
                  "actions": {
+                  "Overlaps_Apply_to_each_chain": {
+                   "type": "Select",
+                   "runAfter": {},
+                   "inputs": {
+                    "from": "@body('Push_fixed')",
+                    "select": "@max(0, div(sub(min(ticks(addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec'))), ticks(item()?['TaskEnd'])), max(ticks(addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))), ticks(item()?['TaskStart']))), 10000000))"
+                   }
+                  },
+                  "Pause_Apply_to_each_chain": {
+                   "type": "Compose",
+                   "runAfter": {
+                    "Overlaps_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
+                   },
+                   "inputs": "@int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Overlaps_Apply_to_each_chain')), '}}'))), 'sum(/r/v)'), '0'))"
+                  },
                   "Move_chain_item": {
                    "type": "OpenApiConnection",
                    "inputs": {
@@ -1464,8 +1771,8 @@
                      "id": "@items('Apply_to_each_chain')?['ID']",
                      "item/Title": "@items('Apply_to_each_chain')?['Title']",
                      "item/TaskStart": "@addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))",
-                     "item/TaskEnd": "@addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec'))",
-                     "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), outputs('Delta_sec'))"
+                     "item/TaskEnd": "@addSeconds(addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec')), outputs('Pause_Apply_to_each_chain'))",
+                     "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), add(outputs('Delta_sec'), outputs('Pause_Apply_to_each_chain')))"
                     },
                     "host": {
                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -1473,6 +1780,11 @@
                      "operationId": "PatchItem"
                     },
                     "authentication": "@parameters('$authentication')"
+                   },
+                   "runAfter": {
+                    "Pause_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
                    }
                   },
                   "Next_frontier": {
@@ -1522,7 +1834,7 @@
                  "Succeeded"
                 ]
                },
-               "inputs": "@concat(body('Get_item_pressed')?['Title'], ': ends at ', convertFromUtc(outputs('New_end'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('Moved')), 'Nothing else moves.', concat('Moved ', join(variables('Moved'), ', '), ' by ', string(div(add(outputs('Delta_sec'), 30), 60)), ' min.')))"
+               "inputs": "@concat(body('Get_item_pressed')?['Title'], ': ends at ', convertFromUtc(variables('PushEnd'), 'India Standard Time', 'HH:mm'), '. ', if(empty(variables('Moved')), 'Nothing else moves.', concat('Moved ', join(variables('Moved'), ', '), ' by ', string(div(add(outputs('Delta_sec'), 30), 60)), ' min.')))"
               },
               "Post_moved": {
                "type": "OpenApiConnection",
@@ -1635,6 +1947,38 @@
         "name": "LaterMoved",
         "type": "array",
         "value": []
+       }
+      ]
+     }
+    },
+    "Init_pushend": {
+     "runAfter": {
+      "Init_later_moved": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "PushEnd",
+        "type": "string"
+       }
+      ]
+     }
+    },
+    "Init_laterend": {
+     "runAfter": {
+      "Init_pushend": [
+       "Succeeded"
+      ]
+     },
+     "type": "InitializeVariable",
+     "inputs": {
+      "variables": [
+       {
+        "name": "LaterEnd",
+        "type": "string"
        }
       ]
      }
