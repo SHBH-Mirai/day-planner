@@ -193,3 +193,25 @@ describe('TaskTable fixed time', () => {
     expect(onToggleFixed).toHaveBeenCalledWith(s)
   })
 })
+
+describe('TaskTable pin hint', () => {
+  test('the pin has a tooltip, since it is the only icon-only button', () => {
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[s]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={noop}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Fixed: Standup' })).toHaveAttribute('title', 'Fixed time')
+  })
+})

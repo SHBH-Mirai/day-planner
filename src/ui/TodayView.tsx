@@ -159,7 +159,7 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   /** Pin or unpin fixed time; one Undo puts it back. */
   function toggleFixed(task: Task) {
     void shown.save({ ...task, fixed: !task.fixed })
-    setUndo({ taskIds: [task.id], message: `${task.fixed ? 'Not fixed' : 'Fixed time'}: ${task.title}`, restore: () => void shown.save(task) })
+    setUndo({ taskIds: [task.id], message: `${task.fixed ? 'Made flexible' : 'Marked fixed'}: ${task.title}`, restore: () => void shown.save(task) })
   }
 
   function markSkipped(task: Task) {

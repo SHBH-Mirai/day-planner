@@ -84,10 +84,11 @@ export function TaskForm({ day, others, initial, onSubmit, onCancel, defaultLeng
           ))}
         </select>
       </label>
-      <div className="form-switch form-wide">
+      <label className="form-switch form-wide">
         <span>Fixed time (meeting, call)</span>
         <Switch label="Fixed time (meeting, call)" checked={fixed} onChange={setFixed} />
-      </div>
+      </label>
+      <p className="form-hint form-wide">Other tasks pause around it and never move it.</p>
       <DescriptionField value={description} onChange={setDescription} />
 
       {errors.length > 0 && (

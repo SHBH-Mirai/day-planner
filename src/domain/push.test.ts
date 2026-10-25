@@ -139,3 +139,22 @@ describe('pushes keep descriptions', () => {
     expect(pushChain(a, { ...a, end: ist(D, '10:00') }, [a, b]).map((t) => t.description)).toEqual(['b steps'])
   })
 })
+
+describe('fixed tasks never move', () => {
+  test('+30 leaves a fixed call where it is and the flexible task pauses for it', () => {
+    const a = at('A', '15:00', '15:50'),
+      call = at('Call', '16:00', '16:30', { fixed: true }),
+      b = at('B', '16:30', '17:00')
+    const { updated, moved } = pushTask(a, [a, call, b], new Date(ist(D, '15:50')))
+    expect(updated.end).toBe(ist(D, '16:20'))
+    expect(moved).toEqual([])
+  })
+
+  test('a chain passes a fixed task without moving it and keeps moving what touches', () => {
+    const a = at('A', '15:30', '16:00'),
+      call = at('Call', '16:00', '16:30', { fixed: true }),
+      b = at('B', '16:20', '17:00')
+    const moved = pushChain(a, { ...a, end: ist(D, '16:30') }, [a, call, b])
+    expect(moved.map((t) => [t.title, t.start, t.end])).toEqual([['B', ist(D, '16:50'), ist(D, '17:30')]])
+  })
+})

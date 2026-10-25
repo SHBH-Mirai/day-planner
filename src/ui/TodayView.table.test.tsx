@@ -169,3 +169,16 @@ describe('TodayView, fixed time in the table', () => {
     await waitFor(async () => expect((await saved(repo, 'Review')).fixed).toBeFalsy())
   })
 })
+
+describe('TodayView, the pin says what it did', () => {
+  test('"Marked fixed" when pinned, "Made flexible" when unpinned', async () => {
+    const repo = await seeded()
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await table()
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixed: Review' }))
+    expect(await screen.findByRole('status', { name: 'Undo' })).toHaveTextContent('Marked fixed: Review')
+    await waitFor(async () => expect((await saved(repo, 'Review')).fixed).toBe(true))
+    await userEvent.click(await screen.findByRole('button', { name: 'Fixed: Review' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Undo' })).toHaveTextContent('Made flexible: Review'))
+  })
+})

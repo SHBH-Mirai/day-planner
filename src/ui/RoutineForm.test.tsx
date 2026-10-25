@@ -69,3 +69,11 @@ describe('RoutineForm fixed time', () => {
     expect(draft.fixed).toBeFalsy()
   })
 })
+
+describe('RoutineForm fixed time, the switch row', () => {
+  test('tapping the words turns the switch on', async () => {
+    render(<RoutineForm initial={gym} onSubmit={vi.fn(async () => true)} onCancel={vi.fn()} />)
+    await userEvent.click(screen.getByText('Fixed time (meeting, call)'))
+    expect(screen.getByRole('switch', { name: 'Fixed time (meeting, call)' })).toHaveAttribute('aria-checked', 'true')
+  })
+})

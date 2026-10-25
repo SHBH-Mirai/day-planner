@@ -197,3 +197,12 @@ describe('TaskForm fixed time', () => {
     expect(screen.queryByText(/Overlaps Call/)).not.toBeInTheDocument()
   })
 })
+
+describe('TaskForm fixed time, the switch row', () => {
+  test('tapping the words turns the switch on, and a hint says what fixed means', async () => {
+    render(<TaskForm day={DAY} others={[]} onSubmit={vi.fn(async () => true)} />)
+    await userEvent.click(screen.getByText('Fixed time (meeting, call)'))
+    expect(screen.getByRole('switch', { name: 'Fixed time (meeting, call)' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByText('Other tasks pause around it and never move it.')).toBeInTheDocument()
+  })
+})

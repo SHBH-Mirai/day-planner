@@ -147,7 +147,13 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
       />
       <div className="table-actions">
         {onToggleFixed && (
-          <button className="pin" aria-label={`Fixed: ${name}`} aria-pressed={task.fixed === true} onClick={() => onToggleFixed(task)}>
+          <button
+            className="pin"
+            title="Fixed time"
+            aria-label={`Fixed: ${name}`}
+            aria-pressed={task.fixed === true}
+            onClick={() => onToggleFixed(task)}
+          >
             📌
           </button>
         )}
