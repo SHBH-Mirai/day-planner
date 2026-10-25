@@ -821,22 +821,64 @@
                     ]
                    },
                    "actions": {
-                    "Overlaps_Apply_to_each_later": {
+                    "Passed_Apply_to_each_later": {
                      "type": "Select",
-                     "runAfter": {},
                      "inputs": {
                       "from": "@body('Later_fixed')",
-                      "select": "@max(0, div(sub(min(ticks(addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec'))), ticks(item()?['TaskEnd'])), max(ticks(addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))), ticks(item()?['TaskStart']))), 10000000))"
-                     }
+                      "select": "@if(and(greaterOrEquals(ticks(item()?['TaskStart']), ticks(items('Apply_to_each_later')?['TaskStart'])), less(ticks(item()?['TaskStart']), ticks(addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))))), div(sub(ticks(item()?['TaskEnd']), ticks(item()?['TaskStart'])), 10000000), 0)"
+                     },
+                     "runAfter": {}
                     },
-                    "Pause_Apply_to_each_later": {
+                    "Start_Apply_to_each_later": {
                      "type": "Compose",
+                     "inputs": "@addSeconds(addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec')), if(empty(body('Passed_Apply_to_each_later')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Passed_Apply_to_each_later')), '}}'))), 'sum(/r/v)'), '0'))))",
                      "runAfter": {
-                      "Overlaps_Apply_to_each_later": [
+                      "Passed_Apply_to_each_later": [
                        "Succeeded"
                       ]
+                     }
+                    },
+                    "Paused_Apply_to_each_later": {
+                     "type": "Select",
+                     "inputs": {
+                      "from": "@body('Later_fixed')",
+                      "select": "@max(0, div(sub(min(ticks(items('Apply_to_each_later')?['TaskEnd']), ticks(item()?['TaskEnd'])), max(ticks(items('Apply_to_each_later')?['TaskStart']), ticks(item()?['TaskStart']))), 10000000))"
                      },
-                     "inputs": "@int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Overlaps_Apply_to_each_later')), '}}'))), 'sum(/r/v)'), '0'))"
+                     "runAfter": {
+                      "Start_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
+                     }
+                    },
+                    "Work_end_Apply_to_each_later": {
+                     "type": "Compose",
+                     "inputs": "@addSeconds(outputs('Start_Apply_to_each_later'), sub(div(sub(ticks(items('Apply_to_each_later')?['TaskEnd']), ticks(items('Apply_to_each_later')?['TaskStart'])), 10000000), if(empty(body('Paused_Apply_to_each_later')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Paused_Apply_to_each_later')), '}}'))), 'sum(/r/v)'), '0')))))",
+                     "runAfter": {
+                      "Paused_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
+                     }
+                    },
+                    "Reached_Apply_to_each_later": {
+                     "type": "Select",
+                     "inputs": {
+                      "from": "@body('Later_fixed')",
+                      "select": "@if(and(less(ticks(item()?['TaskStart']), ticks(outputs('Work_end_Apply_to_each_later'))), greater(ticks(item()?['TaskEnd']), ticks(outputs('Start_Apply_to_each_later')))), div(sub(ticks(item()?['TaskEnd']), max(ticks(item()?['TaskStart']), ticks(outputs('Start_Apply_to_each_later')))), 10000000), 0)"
+                     },
+                     "runAfter": {
+                      "Work_end_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
+                     }
+                    },
+                    "End_Apply_to_each_later": {
+                     "type": "Compose",
+                     "inputs": "@addSeconds(outputs('Work_end_Apply_to_each_later'), if(empty(body('Reached_Apply_to_each_later')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Reached_Apply_to_each_later')), '}}'))), 'sum(/r/v)'), '0'))))",
+                     "runAfter": {
+                      "Reached_Apply_to_each_later": [
+                       "Succeeded"
+                      ]
+                     }
                     },
                     "Move_later_item": {
                      "type": "OpenApiConnection",
@@ -846,9 +888,9 @@
                        "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
                        "id": "@items('Apply_to_each_later')?['ID']",
                        "item/Title": "@items('Apply_to_each_later')?['Title']",
-                       "item/TaskStart": "@addSeconds(items('Apply_to_each_later')?['TaskStart'], outputs('Later_delta_sec'))",
-                       "item/TaskEnd": "@addSeconds(addSeconds(items('Apply_to_each_later')?['TaskEnd'], outputs('Later_delta_sec')), outputs('Pause_Apply_to_each_later'))",
-                       "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_later')?['TaskOriginalEnd'], items('Apply_to_each_later')?['TaskEnd']), add(outputs('Later_delta_sec'), outputs('Pause_Apply_to_each_later')))"
+                       "item/TaskStart": "@outputs('Start_Apply_to_each_later')",
+                       "item/TaskEnd": "@outputs('End_Apply_to_each_later')",
+                       "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_later')?['TaskOriginalEnd'], items('Apply_to_each_later')?['TaskEnd']), div(sub(ticks(outputs('End_Apply_to_each_later')), ticks(items('Apply_to_each_later')?['TaskEnd'])), 10000000))"
                       },
                       "host": {
                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -858,7 +900,7 @@
                       "authentication": "@parameters('$authentication')"
                      },
                      "runAfter": {
-                      "Pause_Apply_to_each_later": [
+                      "End_Apply_to_each_later": [
                        "Succeeded"
                       ]
                      }
@@ -1555,15 +1597,38 @@
                 "authentication": "@parameters('$authentication')"
                }
               },
-              "Push_fixed": {
-               "type": "Query",
+              "Get_day_push": {
+               "type": "OpenApiConnection",
+               "inputs": {
+                "parameters": {
+                 "dataset": "https://datenshi.sharepoint.com/sites/Development",
+                 "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
+                 "$filter": "ID ne @{triggerOutputs()?['body/ID']} and TaskStart ge '@{convertToUtc(concat(convertFromUtc(body('Get_item_pressed')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time')}' and TaskStart lt '@{addDays(convertToUtc(concat(convertFromUtc(body('Get_item_pressed')?['TaskStart'], 'India Standard Time', 'yyyy-MM-dd'), 'T00:00:00'), 'India Standard Time'), 1)}'",
+                 "$orderby": "TaskStart asc",
+                 "$top": 100
+                },
+                "host": {
+                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                 "connectionName": "shared_sharepointonline",
+                 "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+               },
                "runAfter": {
                 "Get_chain": [
                  "Succeeded"
                 ]
+               }
+              },
+              "Push_fixed": {
+               "type": "Query",
+               "runAfter": {
+                "Get_day_push": [
+                 "Succeeded"
+                ]
                },
                "inputs": {
-                "from": "@body('Get_chain')?['value']",
+                "from": "@body('Get_day_push')?['value']",
                 "where": "@and(equals(item()?['TaskFixed'], true), not(equals(item()?['TaskStatus']?['Value'], 'skipped')))"
                }
               },
@@ -1745,22 +1810,64 @@
                   ]
                  },
                  "actions": {
-                  "Overlaps_Apply_to_each_chain": {
+                  "Passed_Apply_to_each_chain": {
                    "type": "Select",
-                   "runAfter": {},
                    "inputs": {
                     "from": "@body('Push_fixed')",
-                    "select": "@max(0, div(sub(min(ticks(addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec'))), ticks(item()?['TaskEnd'])), max(ticks(addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))), ticks(item()?['TaskStart']))), 10000000))"
-                   }
+                    "select": "@if(and(greaterOrEquals(ticks(item()?['TaskStart']), ticks(items('Apply_to_each_chain')?['TaskStart'])), less(ticks(item()?['TaskStart']), ticks(addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))))), div(sub(ticks(item()?['TaskEnd']), ticks(item()?['TaskStart'])), 10000000), 0)"
+                   },
+                   "runAfter": {}
                   },
-                  "Pause_Apply_to_each_chain": {
+                  "Start_Apply_to_each_chain": {
                    "type": "Compose",
+                   "inputs": "@addSeconds(addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec')), if(empty(body('Passed_Apply_to_each_chain')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Passed_Apply_to_each_chain')), '}}'))), 'sum(/r/v)'), '0'))))",
                    "runAfter": {
-                    "Overlaps_Apply_to_each_chain": [
+                    "Passed_Apply_to_each_chain": [
                      "Succeeded"
                     ]
+                   }
+                  },
+                  "Paused_Apply_to_each_chain": {
+                   "type": "Select",
+                   "inputs": {
+                    "from": "@body('Push_fixed')",
+                    "select": "@max(0, div(sub(min(ticks(items('Apply_to_each_chain')?['TaskEnd']), ticks(item()?['TaskEnd'])), max(ticks(items('Apply_to_each_chain')?['TaskStart']), ticks(item()?['TaskStart']))), 10000000))"
                    },
-                   "inputs": "@int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Overlaps_Apply_to_each_chain')), '}}'))), 'sum(/r/v)'), '0'))"
+                   "runAfter": {
+                    "Start_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
+                   }
+                  },
+                  "Work_end_Apply_to_each_chain": {
+                   "type": "Compose",
+                   "inputs": "@addSeconds(outputs('Start_Apply_to_each_chain'), sub(div(sub(ticks(items('Apply_to_each_chain')?['TaskEnd']), ticks(items('Apply_to_each_chain')?['TaskStart'])), 10000000), if(empty(body('Paused_Apply_to_each_chain')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Paused_Apply_to_each_chain')), '}}'))), 'sum(/r/v)'), '0')))))",
+                   "runAfter": {
+                    "Paused_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
+                   }
+                  },
+                  "Reached_Apply_to_each_chain": {
+                   "type": "Select",
+                   "inputs": {
+                    "from": "@body('Push_fixed')",
+                    "select": "@if(and(less(ticks(item()?['TaskStart']), ticks(outputs('Work_end_Apply_to_each_chain'))), greater(ticks(item()?['TaskEnd']), ticks(outputs('Start_Apply_to_each_chain')))), div(sub(ticks(item()?['TaskEnd']), max(ticks(item()?['TaskStart']), ticks(outputs('Start_Apply_to_each_chain')))), 10000000), 0)"
+                   },
+                   "runAfter": {
+                    "Work_end_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
+                   }
+                  },
+                  "End_Apply_to_each_chain": {
+                   "type": "Compose",
+                   "inputs": "@addSeconds(outputs('Work_end_Apply_to_each_chain'), if(empty(body('Reached_Apply_to_each_chain')), 0, int(formatNumber(xpath(xml(json(concat('{\"r\":{\"v\":', string(body('Reached_Apply_to_each_chain')), '}}'))), 'sum(/r/v)'), '0'))))",
+                   "runAfter": {
+                    "Reached_Apply_to_each_chain": [
+                     "Succeeded"
+                    ]
+                   }
                   },
                   "Move_chain_item": {
                    "type": "OpenApiConnection",
@@ -1770,9 +1877,9 @@
                      "table": "f0d2c452-c1da-4f3d-8e74-ff03feeb5f77",
                      "id": "@items('Apply_to_each_chain')?['ID']",
                      "item/Title": "@items('Apply_to_each_chain')?['Title']",
-                     "item/TaskStart": "@addSeconds(items('Apply_to_each_chain')?['TaskStart'], outputs('Delta_sec'))",
-                     "item/TaskEnd": "@addSeconds(addSeconds(items('Apply_to_each_chain')?['TaskEnd'], outputs('Delta_sec')), outputs('Pause_Apply_to_each_chain'))",
-                     "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), add(outputs('Delta_sec'), outputs('Pause_Apply_to_each_chain')))"
+                     "item/TaskStart": "@outputs('Start_Apply_to_each_chain')",
+                     "item/TaskEnd": "@outputs('End_Apply_to_each_chain')",
+                     "item/TaskOriginalEnd": "@addSeconds(coalesce(items('Apply_to_each_chain')?['TaskOriginalEnd'], items('Apply_to_each_chain')?['TaskEnd']), div(sub(ticks(outputs('End_Apply_to_each_chain')), ticks(items('Apply_to_each_chain')?['TaskEnd'])), 10000000))"
                     },
                     "host": {
                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -1782,7 +1889,7 @@
                     "authentication": "@parameters('$authentication')"
                    },
                    "runAfter": {
-                    "Pause_Apply_to_each_chain": [
+                    "End_Apply_to_each_chain": [
                      "Succeeded"
                     ]
                    }
