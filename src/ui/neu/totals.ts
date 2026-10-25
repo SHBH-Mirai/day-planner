@@ -1,4 +1,4 @@
-import { plannedMinutes, spentMinutes } from '../../domain/summary'
+import { workPlannedMinutes, workSpentMinutes } from '../../domain/fixed'
 import { emptyPerCategory, type Category, type Task } from '../../domain/task'
 
 export interface DayTotals {
@@ -24,10 +24,10 @@ export function dayTotals(tasks: Task[]): DayTotals {
       totals.skippedCount++
       continue
     }
-    const plannedMin = plannedMinutes(t)
+    const plannedMin = workPlannedMinutes(t, tasks)
     totals.planned += plannedMin
     if (t.status === 'done') {
-      const spent = spentMinutes(t)
+      const spent = workSpentMinutes(t, tasks)
       totals.doneCount++
       totals.done += spent
       totals.perCategory[t.category] += spent

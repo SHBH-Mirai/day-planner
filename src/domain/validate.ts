@@ -20,6 +20,8 @@ export function validateTask(draft: TaskDraft, others: Task[], editingId?: strin
 
   for (const other of others) {
     if (other.id === editingId || other.status === 'skipped') continue
+    // A flexible task over a fixed one is a pause (see pauseNotes), not a clash.
+    if (Boolean(draft.fixed) !== Boolean(other.fixed)) continue
     const overlaps = Date.parse(draft.start) < Date.parse(other.end) && Date.parse(other.start) < Date.parse(draft.end)
     if (overlaps) {
       warnings.push(`Overlaps ${other.title} (${formatLocalTime(other.start)}–${formatLocalTime(other.end)})`)

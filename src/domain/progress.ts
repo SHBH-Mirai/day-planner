@@ -1,4 +1,4 @@
-import { plannedMinutes, spentMinutes } from './summary'
+import { workPlannedMinutes, workSpentMinutes } from './fixed'
 import { CATEGORIES, emptyPerCategory, type Category, type Task } from './task'
 import { tasksForDay } from './time'
 
@@ -68,15 +68,16 @@ export function progressRange(now: Date): { from: Date; days: number } {
 
 function dayProgress(tasks: Task[], day: Date, today: Date): DayProgress {
   const p: DayProgress = { day, doneMin: 0, plannedMin: 0, doneCount: 0, skippedCount: 0, future: day > midnight(today) }
-  for (const t of tasksForDay(tasks, day)) {
+  const dayTasks = tasksForDay(tasks, day)
+  for (const t of dayTasks) {
     if (t.status === 'skipped') {
       p.skippedCount++
       continue
     }
-    p.plannedMin += plannedMinutes(t)
+    p.plannedMin += workPlannedMinutes(t, dayTasks)
     if (t.status === 'done') {
       p.doneCount++
-      p.doneMin += spentMinutes(t)
+      p.doneMin += workSpentMinutes(t, dayTasks)
     }
   }
   return p
@@ -88,7 +89,8 @@ export function weekReview(tasks: Task[], now: Date): WeekReview {
   const days = Array.from({ length: 7 }, (_, i) => dayProgress(tasks, addDays(start, i), now))
   const perCategoryDone = emptyPerCategory()
   for (const d of days) {
-    for (const t of tasksForDay(tasks, d.day)) if (t.status === 'done') perCategoryDone[t.category] += spentMinutes(t)
+    const dayTasks = tasksForDay(tasks, d.day)
+    for (const t of dayTasks) if (t.status === 'done') perCategoryDone[t.category] += workSpentMinutes(t, dayTasks)
   }
   // Same clock time a week ago, so a Thursday morning isn't measured against all of last Thursday.
   const from = addDays(start, -7).getTime()
@@ -96,7 +98,7 @@ export function weekReview(tasks: Task[], now: Date): WeekReview {
   let lastWeekDoneMin = 0
   for (const t of tasks) {
     const at = Date.parse(t.start)
-    if (t.status === 'done' && at >= from && at < until) lastWeekDoneMin += spentMinutes(t)
+    if (t.status === 'done' && at >= from && at < until) lastWeekDoneMin += workSpentMinutes(t, tasks)
   }
   const sum = (key: 'doneMin' | 'plannedMin' | 'doneCount' | 'skippedCount') => days.reduce((n, d) => n + d[key], 0)
   return {
