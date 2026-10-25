@@ -68,7 +68,7 @@ When plans change, reshape the day in seconds around what matters. Drag a task u
 - **Forms:** TaskForm and RoutineForm get a switch "Fixed time (meeting, call)".
 - **List row:**
   - a 📌 next to the time on fixed tasks
-  - flexible tasks with a pause show "Paused 16:00–16:30 · Call"
+  - flexible tasks with a pause show "Pauses for Call (16:00–16:30)" (Shubh, 2026-10-25, after the design review; was "Paused 16:00–16:30 · Call")
   - movable rows get a **⋮⋮ handle** (`aria-label` "Reorder <title>")
   - the unfolded row gets **Move up** and **Move down**
 - **Dragging:** you hold the handle and move the pointer, and a line shows where the task will land; on release the task is reordered. On the handle, ArrowUp and ArrowDown move the task one place. The handle stops the swipe drag and the tap-to-unfold.

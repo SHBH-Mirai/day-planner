@@ -173,7 +173,7 @@ describe('TaskRow fixed time and pauses', () => {
       </ul>,
     )
     const row = screen.getAllByRole('article', { name: 'Standup' }).at(-1)!
-    expect(row).toHaveTextContent('Paused 16:00–16:30 · Call')
+    expect(row).toHaveTextContent('Pauses for Call (16:00–16:30)')
     expect(row).toHaveTextContent('1h 30m')
   })
 })

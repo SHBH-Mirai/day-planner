@@ -215,3 +215,26 @@ describe('TaskTable pin hint', () => {
     expect(screen.getByRole('button', { name: 'Fixed: Standup' })).toHaveAttribute('title', 'Fixed time')
   })
 })
+
+describe('TaskTable pin on closed rows', () => {
+  test('done and skipped rows cannot be pinned, like +30', () => {
+    const noop = vi.fn()
+    render(
+      <TaskTable
+        tasks={[{ ...s, status: 'done' }, { ...r, status: 'skipped' }]}
+        isNow={() => false}
+        onDone={noop}
+        onUndone={noop}
+        onSkip={noop}
+        onUnskip={noop}
+        onRename={noop}
+        onReplan={noop}
+        onPush={noop}
+        onRemove={noop}
+        onToggleFixed={noop}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Fixed: Standup' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Fixed: Review' })).toBeDisabled()
+  })
+})

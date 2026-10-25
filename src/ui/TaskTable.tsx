@@ -152,6 +152,7 @@ function TableRow({ task, isNow, onDone, onUndone, onSkip, onUnskip, onRename, o
             title="Fixed time"
             aria-label={`Fixed: ${name}`}
             aria-pressed={task.fixed === true}
+            disabled={closed}
             onClick={() => onToggleFixed(task)}
           >
             📌

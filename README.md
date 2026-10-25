@@ -39,7 +39,7 @@ chat and read and write the same SharePoint lists on `/sites/Development`.
   In the web app it shows in the unfolded row, as one line in Table view, in the nudge banner and in the
   pop-up. Columns: `TaskDescription` (DayPlannerTasks) and `Description` (Templates).
 - **Fixed time:** a call or a meeting can be marked fixed (the task sheet, Table view's 📌, a routine, or the
-  Add task form's toggle). A flexible task that overlaps it pauses for it ("Paused 16:00–16:30 · Call"), and its
+  Add task form's toggle). A flexible task that overlaps it pauses for it ("Pauses for Call (16:00–16:30)"), and its
   working time leaves the pause out. The +30 push (app and Teams) never moves a fixed task. The Morning flow and
   Evening's Move skipped keep a task's Fixed value, and the nudge cards show 📌 in the header. Columns: `TaskFixed` (DayPlannerTasks) and `Fixed` (Templates), both Yes/No, default No.
 - **Definitions** live in `flows/*.json` (the flows' Dataverse `clientdata`).

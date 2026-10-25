@@ -117,7 +117,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
             </span>
             {pauses.length > 0 && (
               <span className="task-row-pause">
-                {pauses.map((p) => `Paused ${formatLocalTime(p.from)}–${formatLocalTime(p.to)} · ${p.title}`).join(', ')}
+                {pauses.map((p) => `Pauses for ${p.title} (${formatLocalTime(p.from)}–${formatLocalTime(p.to)})`).join(', ')}
               </span>
             )}
           </button>

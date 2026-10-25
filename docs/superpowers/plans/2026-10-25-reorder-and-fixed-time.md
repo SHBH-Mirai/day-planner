@@ -17,7 +17,7 @@
 - **Copy, exact:**
   - "Fixed time (meeting, call)" (form switch)
   - "Fixed: <title>" (Table pin)
-  - "Paused HH:mm–HH:mm · <title>" (row)
+  - "Pauses for <title> (HH:mm–HH:mm)" (row; Shubh changed it from "Paused HH:mm–HH:mm · <title>" after the design review)
   - "Pauses for <title> (HH:mm–HH:mm)" (form note)
   - "Reorder <title>" (handle)
   - "Move up", "Move down"
@@ -87,7 +87,7 @@
 - **TaskRow:**
   - takes an optional `pauses` prop
   - fixed tasks show 📌 (`aria-label` "Fixed time")
-  - a flexible task with pauses shows "Paused HH:mm–HH:mm · <title>"
+  - a flexible task with pauses shows "Pauses for <title> (HH:mm–HH:mm)"
 - **TaskTable:** a pin toggle per row, `aria-pressed` and label "Fixed: <title>", calling `onToggleFixed(task)`.
 - **TodayView:** passes `pauses(task, shown.tasks)` to each row; `onToggleFixed` saves `{ ...task, fixed: !task.fixed }` with Undo.
 
