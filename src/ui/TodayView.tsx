@@ -206,13 +206,27 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
   /** Put a task before another (null = last); the tasks it passes re-time; one Undo puts them all back. */
   function reorder(movedId: string, beforeId: string | null) {
     const list = shown
-    const changed = reorderDay(list.tasks, movedId, beforeId)
-    if (!changed.length) return
+    const laid = reorderDay(list.tasks, movedId, beforeId)
+    if (!laid.length) return
+    // The bar names the task you moved first.
+    const changed = [...laid.filter((t) => t.id === movedId), ...laid.filter((t) => t.id !== movedId)]
     const before = list.tasks.filter((t) => changed.some((c) => c.id === t.id))
     for (const t of changed) void list.save(t)
     setUndo({ taskIds: before.map((t) => t.id), message: describeReorder(changed), restore: () => before.forEach((t) => void list.save(t)) })
   }
-  const { listRef: reorderListRef, start: startDrag, mark: dropMark } = useReorderDrag(reorder)
+  const { listRef: reorderListRef, start: startDrag, mark: dropMark, dragging: draggingId } = useReorderDrag(reorder)
+  // After a keyboard move the row's node moves too, and the browser drops focus: put it back on the handle.
+  const refocusRef = useRef<string | null>(null)
+  useEffect(() => {
+    const id = refocusRef.current
+    if (!id) return
+    reorderListRef.current?.querySelector<HTMLElement>(`[data-task-id="${id}"] .reorder-handle`)?.focus()
+    refocusRef.current = null
+  }, [shown.tasks, reorderListRef])
+  const moveBy = (task: Task, to: string | null) => {
+    refocusRef.current = task.id
+    reorder(task.id, to)
+  }
   /** The handle and Move up / Move down for a movable row; none when it's the only movable task. */
   function reorderFor(task: Task, i: number, n: number) {
     if (!isMovable(task)) return undefined
@@ -220,10 +234,11 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     const down = moveTarget(shown.tasks, task.id, 1)
     if (up === undefined && down === undefined) return undefined
     return {
-      onUp: up === undefined ? undefined : () => reorder(task.id, up),
-      onDown: down === undefined ? undefined : () => reorder(task.id, down),
+      onUp: up === undefined ? undefined : () => moveBy(task, up),
+      onDown: down === undefined ? undefined : () => moveBy(task, down),
       onDragStart: (e: ReactPointerEvent) => startDrag(task.id, e),
       drop: dropMark(i, n),
+      dragging: draggingId === task.id,
     }
   }
 

@@ -27,6 +27,8 @@ interface Props {
     onDragStart: (e: ReactPointerEvent) => void
     /** Where the drag's drop line shows on this row. */
     drop?: 'before' | 'after'
+    /** This row is the one being dragged. */
+    dragging?: boolean
   }
 }
 
@@ -69,7 +71,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
   }
 
   return (
-    <m.li layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} data-task-id={task.id} data-drop={reorder?.drop} className={reorder ? 'has-handle' : undefined}>
+    <m.li layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} data-task-id={task.id} data-drop={reorder?.drop} data-dragging={reorder?.dragging || undefined} className={reorder ? 'has-handle' : undefined}>
       <m.article
         ref={rowRef}
         aria-label={task.title}
@@ -151,7 +153,7 @@ export function TaskRow({ task, isNow, onDone, onStarted, onPush, onSkip, onEdit
           )}
         </AnimatePresence>
       </m.article>
-      {reorder && <ReorderHandle title={task.title} {...reorder} />}
+      {reorder && <ReorderHandle title={task.title} onUp={reorder.onUp} onDown={reorder.onDown} onDragStart={reorder.onDragStart} />}
     </m.li>
   )
 }
@@ -176,6 +178,7 @@ export function ReorderHandle({
       type="button"
       className="reorder-handle"
       aria-label={`Reorder ${title}`}
+      title="Drag, or press the up and down arrow keys"
       onPointerDown={onDragStart}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {

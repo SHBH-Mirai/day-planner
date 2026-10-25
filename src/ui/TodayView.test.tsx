@@ -320,3 +320,21 @@ describe('TodayView, drag to reorder', () => {
     rect.mockRestore()
   })
 })
+
+describe('TodayView, keyboard reorder keeps going', () => {
+  test('ArrowDown twice moves A to the end, the bar names A, and focus stays on its handle', async () => {
+    const repo = await seeded(['A', '16:00', '16:30'], ['B', '16:30', '17:00'], ['C', '17:00', '17:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const handle = await screen.findByRole('button', { name: 'Reorder A' })
+    expect(handle).toHaveAttribute('title', 'Drag, or press the up and down arrow keys')
+    handle.focus()
+    await userEvent.keyboard('{ArrowDown}')
+    const at = async (title: string) => (await repo.listForDay(DAY)).find((t) => t.title === title)!
+    await waitFor(async () => expect((await at('A')).start).toBe(ist(D, '16:30')))
+    expect(await screen.findByRole('status', { name: 'Undo' })).toHaveTextContent('Moved A to 16:30 · B now 16:00')
+    await waitFor(() => expect(document.activeElement).toHaveAccessibleName('Reorder A'))
+    await userEvent.keyboard('{ArrowDown}')
+    await waitFor(async () => expect((await at('A')).start).toBe(ist(D, '17:00')))
+    expect((await at('C')).start).toBe(ist(D, '16:30'))
+  })
+})

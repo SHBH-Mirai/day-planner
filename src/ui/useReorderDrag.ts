@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { dropIndex } from '../domain/reorder'
 
 /**
@@ -9,9 +9,12 @@ import { dropIndex } from '../domain/reorder'
 export function useReorderDrag(onDrop: (movedId: string, beforeId: string | null) => void) {
   const listRef = useRef<HTMLOListElement | null>(null)
   const [drag, setDrag] = useState<{ id: string; index: number } | null>(null)
+  const stopRef = useRef<(() => void) | null>(null)
+  // A list that unmounts mid-drag drops its window listeners.
+  useEffect(() => () => stopRef.current?.(), [])
 
   function start(id: string, e: ReactPointerEvent) {
-    if (e.button > 0) return
+    if (e.button > 0 || stopRef.current) return
     e.preventDefault()
     const rows = () => [...(listRef.current?.querySelectorAll<HTMLElement>('[data-task-id]') ?? [])]
     let index = -1
@@ -40,11 +43,13 @@ export function useReorderDrag(onDrop: (movedId: string, beforeId: string | null
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
       window.removeEventListener('keydown', key)
+      stopRef.current = null
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     window.addEventListener('keydown', key)
+    stopRef.current = cleanup
     setDrag({ id, index: -1 })
   }
 

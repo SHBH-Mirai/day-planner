@@ -31,6 +31,7 @@ export interface RowReorder {
   onDown?: () => void
   onDragStart: (e: ReactPointerEvent) => void
   drop?: 'before' | 'after'
+  dragging?: boolean
 }
 
 const MIN_LENGTH = 5
@@ -120,7 +121,7 @@ function TableRow({
   return (
     // The list item animates (motion leaves an inline opacity); the article inside carries the
     // status, so the CSS that dims done and skipped rows isn't overridden.
-    <m.li layout className="table-item" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} data-task-id={task.id} data-drop={reorder?.drop}>
+    <m.li layout className="table-item" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} data-task-id={task.id} data-drop={reorder?.drop} data-dragging={reorder?.dragging || undefined}>
     <article
       aria-label={name}
       className={`table-row${isNow(task) ? ' now' : ''}`}
@@ -170,7 +171,7 @@ function TableRow({
         onKeyDown={keys(() => setLength(String(savedLength)))}
       />
       <div className="table-actions">
-        {reorder && <ReorderHandle title={name} {...reorder} />}
+        {reorder && <ReorderHandle title={name} onUp={reorder.onUp} onDown={reorder.onDown} onDragStart={reorder.onDragStart} />}
         {onToggleFixed && (
           <button
             className="pin"
