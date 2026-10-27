@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEven
 import { AnimatePresence, m } from 'motion/react'
 import { chainShiftMin, describePush, moveTask, pushChain, pushTask } from '../domain/push'
 import { describeReorder, isMovable, moveTarget, reorderDay } from '../domain/reorder'
-import { describeReplan, firstStart, replanDay, replanStart } from '../domain/replan'
+import { describeReplan, firstStart, replanPlan, replanStart } from '../domain/replan'
 import { useReorderDrag } from './useReorderDrag'
 import { pauses } from '../domain/fixed'
 import type { Task } from '../domain/task'
-import { formatLocalTime, tasksForDay } from '../domain/time'
+import { dayBounds, formatLocalTime, tasksForDay } from '../domain/time'
 import { findNoBreakRuns } from '../domain/validate'
 import { notificationPermission, requestNotificationPermission, showOsNotification } from '../notify/notify'
 import { startScheduler } from '../scheduler/startScheduler'
@@ -243,16 +243,24 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     }
   }
 
-  /** Re-plan: Today from now (or after the running task), Tomorrow from its first task; one Undo puts it back. */
-  function replanAll() {
+  /** Re-plan: Today from now (or after the running task), Tomorrow from its first task, up to midnight. */
+  function replanNow() {
     const list = shown
     const start = viewTomorrow ? firstStart(list.tasks) : replanStart(list.tasks, now())
-    if (start === undefined) return
-    const changed = replanDay(list.tasks, start)
-    if (!changed.length) return
-    const before = list.tasks.filter((t) => changed.some((c) => c.id === t.id))
-    for (const t of changed) void list.save(t)
-    setUndo({ taskIds: before.map((t) => t.id), message: describeReplan(changed, start), restore: () => before.forEach((t) => void list.save(t)) })
+    return start === undefined ? undefined : replanPlan(list.tasks, start, Date.parse(dayBounds(shownDay).toUtc))
+  }
+  const replanPreview = shown.tasks.some(isMovable) ? replanNow() : undefined
+  function replanAll() {
+    const list = shown
+    const plan = replanNow()
+    if (!plan?.changed.length) return
+    const before = list.tasks.filter((t) => plan.changed.some((c) => c.id === t.id))
+    for (const t of plan.changed) void list.save(t)
+    setUndo({
+      taskIds: before.map((t) => t.id),
+      message: describeReplan(plan.changed.length, plan.from, plan.leftOver),
+      restore: () => before.forEach((t) => void list.save(t)),
+    })
   }
 
   function remove(task: Task) {
@@ -473,8 +481,13 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
 
       {!showSummary && !showWeek && !setupOpen && (
         <div className="day-tools">
-          {shown.tasks.some(isMovable) && (
-            <NeuButton className="replan" onClick={replanAll}>
+          {replanPreview && (
+            <NeuButton
+              className="replan"
+              disabled={!replanPreview.changed.length}
+              title={replanPreview.changed.length ? 'Moves unstarted tasks back to back; fixed, started and done ones stay' : 'Already back to back'}
+              onClick={replanAll}
+            >
               {viewTomorrow ? 'Re-plan from first task' : 'Re-plan from now'}
             </NeuButton>
           )}

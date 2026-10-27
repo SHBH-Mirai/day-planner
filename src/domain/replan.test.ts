@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { describeReplan, firstStart, replanDay, replanStart } from './replan'
+import { describeReplan, firstStart, replanDay, replanPlan, replanStart } from './replan'
 import type { Task } from './task'
 import { ist, makeTask } from '../test-utils/makeTask'
 
@@ -70,9 +70,30 @@ describe('where a re-plan starts', () => {
   })
 })
 
+describe('replanPlan: stops at the end of the day', () => {
+  test('tasks that would run past midnight stay where they are and are counted', () => {
+    const a = at('A', '09:00', '10:00'),
+      b = at('B', '10:00', '11:00'),
+      c = at('C', '11:00', '12:00')
+    const plan = replanPlan([a, b, c], ms('22:00'), Date.parse(ist('2026-10-23', '00:00')))
+    expect(times(plan.changed)).toEqual([
+      ['A', ist(D, '22:00'), ist(D, '23:00')],
+      ['B', ist(D, '23:00'), ist('2026-10-23', '00:00')],
+    ])
+    expect(plan.leftOver).toBe(1)
+  })
+
+  test('"from" is where the first task really starts (after a call it would land in)', () => {
+    const plan = replanPlan([at('Call', '16:00', '16:30', { fixed: true }), at('B', '18:00', '18:30')], ms('16:10'))
+    expect([plan.from, plan.leftOver]).toEqual([ms('16:30'), 0])
+  })
+})
+
 describe('describeReplan', () => {
-  test('how many tasks moved and from when', () => {
-    expect(describeReplan([at('A', '14:00', '15:00'), at('B', '15:00', '15:30')], ms('14:00'))).toBe('Re-planned 2 tasks from 14:00')
-    expect(describeReplan([at('A', '14:00', '15:00')], ms('14:00'))).toBe('Re-planned 1 task from 14:00')
+  test('how many tasks moved, from when, and how many did not fit', () => {
+    expect(describeReplan(2, ms('14:00'), 0)).toBe('Re-planned 2 tasks from 14:00')
+    expect(describeReplan(1, ms('14:00'), 0)).toBe('Re-planned 1 task from 14:00')
+    expect(describeReplan(2, ms('22:00'), 1)).toBe("Re-planned 2 tasks from 22:00 · 1 doesn't fit before midnight")
+    expect(describeReplan(2, ms('22:00'), 2)).toBe("Re-planned 2 tasks from 22:00 · 2 don't fit before midnight")
   })
 })

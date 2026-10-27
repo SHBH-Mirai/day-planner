@@ -375,3 +375,13 @@ describe('TodayView, re-plan', () => {
     expect(screen.queryByRole('button', { name: 'Re-plan from now' })).not.toBeInTheDocument()
   })
 })
+
+describe('TodayView, re-plan when already tidy', () => {
+  test('the button is disabled and says why when the day is already back to back from now', async () => {
+    const repo = await seeded(['A', '09:30', '10:00'], ['B', '10:00', '10:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    const button = await screen.findByRole('button', { name: 'Re-plan from now' })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('title', 'Already back to back')
+  })
+})
