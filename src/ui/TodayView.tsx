@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEven
 import { AnimatePresence, m } from 'motion/react'
 import { chainShiftMin, describePush, moveTask, pushChain, pushTask } from '../domain/push'
 import { describeReorder, isMovable, moveTarget, reorderDay } from '../domain/reorder'
+import { describeReplan, firstStart, replanDay, replanStart } from '../domain/replan'
 import { useReorderDrag } from './useReorderDrag'
 import { pauses } from '../domain/fixed'
 import type { Task } from '../domain/task'
@@ -242,6 +243,18 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
     }
   }
 
+  /** Re-plan: Today from now (or after the running task), Tomorrow from its first task; one Undo puts it back. */
+  function replanAll() {
+    const list = shown
+    const start = viewTomorrow ? firstStart(list.tasks) : replanStart(list.tasks, now())
+    if (start === undefined) return
+    const changed = replanDay(list.tasks, start)
+    if (!changed.length) return
+    const before = list.tasks.filter((t) => changed.some((c) => c.id === t.id))
+    for (const t of changed) void list.save(t)
+    setUndo({ taskIds: before.map((t) => t.id), message: describeReplan(changed, start), restore: () => before.forEach((t) => void list.save(t)) })
+  }
+
   function remove(task: Task) {
     dropUndoFor(task.id)
     void shown.remove(task.id)
@@ -459,13 +472,20 @@ export function TodayView({ repo, day, now = () => new Date(), onSignInAgain, in
       </Sheet>
 
       {!showSummary && !showWeek && !setupOpen && (
-        <ViewSwitch
-          value={dayView}
-          onChange={(view) => {
-            setDayView(view)
-            saveDayView(view)
-          }}
-        />
+        <div className="day-tools">
+          {shown.tasks.some(isMovable) && (
+            <NeuButton className="replan" onClick={replanAll}>
+              {viewTomorrow ? 'Re-plan from first task' : 'Re-plan from now'}
+            </NeuButton>
+          )}
+          <ViewSwitch
+            value={dayView}
+            onChange={(view) => {
+              setDayView(view)
+              saveDayView(view)
+            }}
+          />
+        </div>
       )}
 
       {setupOpen && settingsRepo && routineRepo ? (

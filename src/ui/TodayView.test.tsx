@@ -338,3 +338,40 @@ describe('TodayView, keyboard reorder keeps going', () => {
     expect((await at('C')).start).toBe(ist(D, '16:30'))
   })
 })
+
+describe('TodayView, re-plan', () => {
+  const at = async (repo: InMemoryTaskRepository, title: string, day = DAY) => (await repo.listForDay(day)).find((t) => t.title === title)!
+
+  test('Today: "Re-plan from now" lays planned tasks back to back from now; Undo puts them back', async () => {
+    const repo = await seeded(['Overdue', '08:00', '08:30'], ['Later', '11:00', '11:30'])
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Re-plan from now' }))
+    await waitFor(async () => expect((await at(repo, 'Overdue')).start).toBe(ist(D, '09:30')))
+    expect((await at(repo, 'Later')).start).toBe(ist(D, '10:00'))
+    const bar = await screen.findByRole('status', { name: 'Undo' })
+    expect(bar).toHaveTextContent('Re-planned 2 tasks from 09:30')
+    await userEvent.click(within(bar).getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => expect((await at(repo, 'Overdue')).start).toBe(ist(D, '08:00')))
+  })
+
+  test('Tomorrow: "Re-plan from first task" closes the gaps from the first start', async () => {
+    const repo = new InMemoryTaskRepository()
+    const T = '2026-10-18'
+    await repo.create({ title: 'First', start: ist(T, '10:00'), end: ist(T, '10:30'), category: 'office' })
+    await repo.create({ title: 'Second', start: ist(T, '12:00'), end: ist(T, '12:30'), category: 'office' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Tomorrow' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Re-plan from first task' }))
+    const tomorrow = new Date('2026-10-18T12:00:00+05:30')
+    await waitFor(async () => expect((await at(repo, 'Second', tomorrow)).start).toBe(ist(T, '10:30')))
+  })
+
+  test('no button when nothing can move', async () => {
+    const repo = await seeded(['Done', '08:00', '08:30'])
+    const done = (await repo.listForDay(DAY))[0]
+    await repo.update({ ...done, status: 'done' })
+    render(<TodayView repo={repo} day={DAY} now={() => NOW} />)
+    await findCard('Done')
+    expect(screen.queryByRole('button', { name: 'Re-plan from now' })).not.toBeInTheDocument()
+  })
+})
