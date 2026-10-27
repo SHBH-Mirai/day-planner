@@ -419,3 +419,14 @@ input, select, textarea {
 [data-drop='before']::before, [data-drop='after']::after { content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; z-index: 1; background: var(--neu-accent-text); pointer-events: none; }
 [data-drop='before']::before { top: -3px; }
 [data-drop='after']::after { bottom: -3px; }
+
+/* Re-plan from now / from first task, beside the List | Table switch. */
+.day-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.day-tools .view-switch { margin: 0; }
+.day-tools .replan { min-height: 44px; padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--neu-text); }
+.day-tools .replan:disabled { color: var(--neu-muted); }
+@media (max-width: 479px) {
+  /* Phones: the Undo bar sits above the + button and wraps, so a long message stays readable. */
+  .undo-bar { bottom: 96px; max-width: calc(100vw - 32px); }
+  .undo-bar span { white-space: normal; }
+}
